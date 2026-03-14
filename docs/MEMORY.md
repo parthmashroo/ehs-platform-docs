@@ -4,9 +4,9 @@
 
 ## Active Files
 
-- [career-profile.md](https://github.com/parthmashroo/ehs-platform-docs/tree/main/docs/career-profile.md) — User's engineering background, goals, and learning plan
+- [career-profile.md](https://github.com/parthmashroo/ehs-platform-docs/blob/main/docs/career-profile.md) — User's engineering background, goals, and learning plan
 
-- [project-roadmap.md](https://github.com/parthmashroo/ehs-platform-docs/tree/main/docs/project-roadmap.md) — Full technical blueprint, ALL decisions, all phases
+- [project-roadmap.md](https://github.com/parthmashroo/ehs-platform-docs/blob/main/docs/project-roadmap.md) — Full technical blueprint, ALL decisions, all phases
 
 
 
