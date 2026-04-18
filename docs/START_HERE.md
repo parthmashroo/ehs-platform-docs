@@ -6,4 +6,4 @@
 4. career-profile.md contains developer background
 
 Current status:
-Phase 0 not started
+Phase 0 complete. Phase 1 not started.
