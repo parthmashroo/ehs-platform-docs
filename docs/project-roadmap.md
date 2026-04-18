@@ -16,7 +16,7 @@ Written so any AI assistant can resume this project with full context from any s
 
 **Practice machine:** Personal machine only. Never on company laptop.
 
-**Current status:** Phase 0 not started. No code exists yet.
+**Current status:** Phase 0 complete. Phase 1 not started.
 
 
 
