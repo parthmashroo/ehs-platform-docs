@@ -40,7 +40,7 @@ When discussing MAISAAS patterns or comparing to the new build, read that file f
 
 - Practice machine: Personal machine only — NOT the company laptop
 
-- Current status: Phase 0 complete. Phase 1 not started.
+- Current status: Phase 0 complete. Phase 1 in progress.
 
 - User personality: Self-identified procrastinator and overthinker. Perfectionist. Needs to be kept on task.
 
@@ -77,3 +77,33 @@ When discussing MAISAAS patterns or comparing to the new build, read that file f
 - Session 2 (Mar 2026): Deep analysis of MAISAAS, full EHS scope decided, all architecture decisions locked
 
 - Session 3 (Mar 2026): MAISAAS deep-analysis document generated and saved. MAISAAS project deleted from company laptop. Ready to start Phase 0 on personal machine. 
+
+## Phase 1 Progress (Sprint 2)
+
+### Completed
+- EHS-11 ✅ BaseEntity, ITenantEntity, all enums (CompanyType, IncidentType, Severity, IncidentStatus, CorrectiveActionStatus, UserRole)
+- EHS-12 ✅ Organization, Site, SiteArea entities
+- EHS-13 ✅ Incident entity
+- EHS-14 ✅ EF Core 8, ApplicationDbContext, IApplicationDbContext, DependencyInjection, connection string
+- EHS-15 ✅ InitialCreate migration — Organizations, Sites, SiteAreas, Incidents tables created in SQL Server
+- EHS-16 ✅ MediatR 12.2.0, FluentValidation 11.9.0, CreateIncidentCommand, Handler, Validator, Application DependencyInjection
+
+### Next Session Starts Here — EHS-17
+Create these in EHSPlatform.Application/Incidents/Queries/:
+1. GetIncidentsQuery + Handler — returns List<IncidentDto>
+2. GetIncidentByIdQuery + Handler — returns single IncidentDto or throws NotFoundException
+
+Then EHS-18 — IncidentsController with POST, GET /api/incidents, GET /api/incidents/{id}
+Then EHS-19 — dev-notes.md in docs repo
+
+### Local Environment
+- SQL Server 2022 local — EHSPlatform database exists with 4 tables
+- Connection: Server=localhost;Database=EHSPlatform;Trusted_Connection=True;TrustServerCertificate=True;
+- No Docker needed
+- Git UI: Fork
+- IDE: Visual Studio 2022 Community
+- Repo: C:\Projects\ehs-platform
+- Jira: pmashroo.atlassian.net — Sprint 2 active
+
+### Session History Update
+- Session 4 (Apr 2026): Phase 0 complete. Phase 1 started. EHS-11 through EHS-16 complete.
