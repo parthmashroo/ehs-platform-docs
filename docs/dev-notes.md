@@ -12,7 +12,7 @@
 | IDE | Visual Studio 2022 Community |
 | Git UI | Fork |
 | Jira | pmashroo.atlassian.net |
-| Active Sprint | Sprint 2 |
+| Active Sprint | Sprint 3 |
 | Database | SQL Server 2022 local (no Docker needed) |
 | Connection String | `Server=localhost;Database=EHSPlatform;Trusted_Connection=True;TrustServerCertificate=True;` |
 | DB Name | EHSPlatform |
@@ -27,8 +27,9 @@
 |---|---|
 | Phase 0 — Project Skeleton | ✅ Complete |
 | Phase 1 — Core Domain + Incident Reporting | ✅ Complete |
-| Phase 2 — Incident Lifecycle (Status Machine) | ⬜ Next |
-| Phase 3+ | Not started |
+| Phase 2 — Incident Lifecycle (Status Machine) | ✅ Complete |
+| Phase 3 — Corrective Actions | ⬜ Next |
+| Phase 4+ | Not started |
 
 ---
 
@@ -45,6 +46,18 @@
 | EHS-17 | GetIncidentsQuery + Handler, GetIncidentByIdQuery + Handler | ✅ Done |
 | EHS-18 | IncidentsController — POST, GET /api/incidents, GET /api/incidents/{id:guid} | ✅ Done |
 | EHS-20 | dev-notes.md written, docs repo updated, Phase 1 marked complete | ✅ Done |
+
+---
+
+## Phase 2 Ticket Status
+
+| Ticket | Description | Status |
+|---|---|---|
+| EHS-21 | Incident.TransitionTo() domain method + InvalidStatusTransitionException | ✅ Done |
+| EHS-22 | UpdateIncidentCommand, UpdateIncidentStatusCommand, AssignIncidentCommand + handlers + validators | ✅ Done |
+| EHS-23 | PaginatedList\<T\>, GetIncidentsQuery with pagination and filters | ✅ Done |
+| EHS-24 | PUT, PATCH /status, PATCH /assign endpoints in IncidentsController | ✅ Done |
+| EHS-25 | Docs updated for Phase 2 completion | ✅ Done |
 
 ---
 
@@ -78,9 +91,12 @@ dotnet run --project src/EHSPlatform.API
 Open: `http://localhost:5147/swagger`
 
 **Endpoints live in Swagger:**
-- `POST /api/incidents` — create incident
-- `GET /api/incidents` — list all
-- `GET /api/incidents/{id}` — get by Guid
+- `POST /api/incidents` — report a new incident
+- `GET /api/incidents` — get a list of incidents (supports `?pageNumber=1&pageSize=10&status=&severity=&siteId=`)
+- `GET /api/incidents/{id}` — get incident details
+- `PUT /api/incidents/{id}` — update incident information
+- `PATCH /api/incidents/{id}/status` — change the status of an incident
+- `PATCH /api/incidents/{id}/assign` — assign an investigator to the incident
 
 ---
 
@@ -396,14 +412,34 @@ InvalidStatusTransitionException thrown for any invalid jump.
 - Never throw from a Query handler except `NotFoundException`. Queries should never have side effects.
 - No auth yet — TenantId and UserId are hardcoded placeholders until Phase 4.
 
+### State Machine (Phase 2)
+- `Incident.TransitionTo(newStatus)` enforces all status rules at the domain level — never in the handler or controller.
+- `InvalidStatusTransitionException` → 422 Unprocessable Entity via `ExceptionHandlingMiddleware`.
+- `AssignIncidentHandler` auto-transitions to `UnderInvestigation` when status is `Reported` — business rule lives in the handler, not the domain, because it involves coordination not invariants.
+
+### PaginatedList (Phase 2)
+- Two DB trips: `CountAsync` for total count, then `Skip/Take/Select` for the page. Do not load all rows.
+- Filters are composed with nullable checks: `if (request.Status.HasValue) query = query.Where(...)`. Never filter on null.
+- `PaginatedList<T>` lives in `Application/Common/Models/` — reusable across all features.
+
+### Record with { } expression (Phase 2)
+- Controllers use `command with { Id = id }` to merge route ID into the body command without manual mapping.
+- Example: `await _sender.Send(command with { Id = id }, cancellationToken);`
+
+### Testing (from Phase 3 onwards)
+- Tests ship with the code in the same commit — never deferred to a separate phase.
+- Backend: xUnit + Moq + FluentAssertions.
+- Frontend (Phase 12): React Testing Library.
+- E2E (Phase 16): Playwright in GitHub Actions pipeline.
+
 ---
 
 ## What's Coming (Don't Build Early)
 
 | Phase | What | When |
 |---|---|---|
-| Phase 2 | Incident status machine, pagination, filtering | Next |
-| Phase 3 | Corrective Actions | After Phase 2 |
+| Phase 2 | Incident status machine, pagination, filtering | ✅ Done |
+| Phase 3 | Corrective Actions | Next |
 | Phase 4 | Users, JWT auth, roles | After Phase 3 |
 | Phase 5 | Multi-tenancy (Global Query Filters) | After Phase 4 |
 | Phase 6 | Audit logging (EF interceptor) | After Phase 5 |
@@ -442,6 +478,7 @@ InvalidStatusTransitionException thrown for any invalid jump.
 | Session 3 | Mar 2026 | MAISAAS deep-analysis doc generated. MAISAAS deleted from company laptop. |
 | Session 4 | Apr 2026 | Phase 0 complete. Phase 1 started. EHS-11 through EHS-16 complete. |
 | Session 5 | Apr 2026 | EHS-17, EHS-18, EHS-20 complete. Phase 1 DONE. GitHub + Jira connected to Claude Code. Docs repo cloned locally. Ready for Phase 2. |
+| Session 6 | Apr 2026 | Phase 2 DONE. EHS-21 through EHS-25 complete. State machine (TransitionTo), PaginatedList, UpdateIncident/UpdateStatus/AssignIncident commands, full controller with 6 endpoints. All tested via Swagger — 422 on invalid transitions confirmed working. Testing strategy locked: tests ship with code from Phase 3 onwards. |
 
 ---
 
