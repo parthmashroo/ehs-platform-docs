@@ -16,7 +16,7 @@ Written so any AI assistant can resume this project with full context from any s
 
 **Practice machine:** Personal machine only. Never on company laptop.
 
-**Current status:** Phase 0 complete. Phase 1 not started.
+**Current status:** Phase 0 ✅ Phase 1 ✅ Phase 2 ✅ Phase 3 in progress.
 
 
 
@@ -1170,7 +1170,7 @@ EHSPlatform/
 
 
 
-### Phase 0: Project Skeleton
+### Phase 0: Project Skeleton ✅ COMPLETE
 
 **Goal:** A running .NET 8 API that returns a health check. Nothing more.
 
@@ -1202,7 +1202,7 @@ EHSPlatform/
 
 --- 
 
-### Phase 1: Core Domain + Incident Reporting (No Auth)
+### Phase 1: Core Domain + Incident Reporting (No Auth) ✅ COMPLETE
 
 **Goal:** Create and retrieve incidents. No auth. No multi-tenancy. Just the core loop.
 
@@ -1248,7 +1248,7 @@ New concepts: Clean Architecture structure, EF Core code-first, first migration,
 
 
 
-### Phase 2: Incident Lifecycle — Status Machine
+### Phase 2: Incident Lifecycle — Status Machine ✅ COMPLETE
 
 **Goal:** Incidents have an enforced lifecycle.
 
@@ -1284,7 +1284,7 @@ New concepts: State machine in domain, domain exceptions, PUT/PATCH endpoints, p
 
 
 
-### Phase 3: Corrective Actions
+### Phase 3: Corrective Actions 🔄 IN PROGRESS
 
 **Goal:** Incidents have corrective actions. CAs block incident resolution.
 
@@ -1800,4 +1800,4 @@ dotnet run --project src/EHSPlatform.API
 
 
 
-**Current status: Phase 0 not started. No code exists. Start here.**
+**Current status: Phase 0 ✅ Phase 1 ✅ Phase 2 ✅ Phase 3 in progress (EHS-26 through EHS-31 in Sprint 3).**

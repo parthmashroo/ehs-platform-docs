@@ -40,7 +40,7 @@ When discussing MAISAAS patterns or comparing to the new build, read that file f
 
 - Practice machine: Personal machine only — NOT the company laptop
 
-- Current status: Phase 0 complete. Phase 1 COMPLETE. Phase 2 is next.
+- Current status: Phase 0 ✅ Phase 1 ✅ Phase 2 ✅ Phase 3 🔄 IN PROGRESS (EHS-26 to EHS-31, Sprint 3)
 
 - User personality: Self-identified procrastinator and overthinker. Perfectionist. Needs to be kept on task.
 
@@ -91,21 +91,31 @@ When discussing MAISAAS patterns or comparing to the new build, read that file f
 - EHS-18 ✅ IncidentsController — POST /api/incidents, GET /api/incidents, GET /api/incidents/{id:guid}
 - EHS-20 ✅ dev-notes.md written, docs repo updated
 
-### Next Session Starts Here — Phase 2: Incident Lifecycle (Status Machine)
-- Incident.TransitionTo(newStatus) domain method
-- InvalidStatusTransitionException
-- UpdateIncidentCommand, UpdateIncidentStatusCommand, AssignIncidentCommand
-- PaginatedList<T> + filters on GetIncidents (status, severity, type, site)
+## Phase 2 — COMPLETE (Sprint 3)
+- EHS-21 ✅ Incident.TransitionTo() + InvalidStatusTransitionException
+- EHS-22 ✅ UpdateIncident, UpdateIncidentStatus, AssignIncident commands
+- EHS-23 ✅ PaginatedList + GetIncidents with filters
+- EHS-24 ✅ PUT, PATCH /status, PATCH /assign endpoints + EndpointSummary
+- EHS-25 ✅ Docs updated
+
+## Phase 3 — IN PROGRESS (Sprint 3)
+- EHS-26 🔄 CorrectiveAction entity + EF config + migration
+- EHS-27 ⬜ CreateCorrectiveAction + GetCorrectiveActions queries
+- EHS-28 ⬜ UpdateCorrectiveAction + UpdateCorrectiveActionStatus
+- EHS-29 ⬜ CorrectiveActionsController
+- EHS-30 ⬜ Unit tests (first tests in the project)
+- EHS-31 ⬜ Docs update for Phase 3
 
 ### Local Environment
-- SQL Server 2022 local — EHSPlatform database exists with 4 tables
+- SQL Server 2022 local — EHSPlatform database exists
 - Connection: Server=localhost;Database=EHSPlatform;Trusted_Connection=True;TrustServerCertificate=True;
 - No Docker needed
 - Git UI: Fork
 - IDE: Visual Studio 2022 Community
 - Repo: C:\Projects\ehs-platform
-- Jira: pmashroo.atlassian.net — Sprint 2 active
+- Jira: pmashroo.atlassian.net — Sprint 3 active
 
-### Session History Update
+### Session History
 - Session 4 (Apr 2026): Phase 0 complete. Phase 1 started. EHS-11 through EHS-16 complete.
 - Session 5 (Apr 2026): EHS-17, EHS-18, EHS-20 complete. Phase 1 DONE. Ready for Phase 2.
+- Session 6 (Apr 2026): Phase 2 DONE. State machine, PaginatedList, all PATCH/PUT endpoints tested. Phase 3 stories created (EHS-26 to EHS-31).
