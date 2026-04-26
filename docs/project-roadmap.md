@@ -576,7 +576,9 @@ CorrectiveAction
 
 - TenantId (Guid)
 
-- IncidentId (Guid) → Incident
+- IncidentId (Guid?) → Incident           ← nullable — CA can be standalone or from other source
+- AuditFindingId (Guid?) → AuditFinding   ← Phase 15 (add when needed, same pattern)
+                                            ← future: RiskId?, NonConformanceId? same pattern
 
 - Title (string)
 
@@ -603,6 +605,10 @@ CorrectiveAction
 - UpdatedAt (DateTime)
 
 ```
+
+Source linking decision: ADR-011 — Separate nullable FKs per source type.
+One CA has at most one source (or none). One source can have many CAs (one-to-many).
+See ADR-011 for full reasoning including scale analysis at 350M rows.
 
 ### AuditLog (Immutable — every change recorded)
 

@@ -196,6 +196,109 @@ not free text location fields.
 
 ---
 
+## ADR-011: CorrectiveAction Source Linking — Separate Nullable FKs + ICorrectiveActionSource
+
+**Decision:** A CorrectiveAction links to its source entity (Incident, AuditFinding, etc.)
+via separate nullable FK columns — one per source type. A shared `ICorrectiveActionSource`
+interface enforces the "all CAs must be closed before source can resolve" rule uniformly
+across all source types. Filtered indexes (WHERE SourceId IS NOT NULL) are used per FK column.
+
+```csharp
+// Entity
+public class CorrectiveAction : BaseEntity
+{
+    public Guid? IncidentId { get; set; }       // Phase 3
+    public Guid? AuditFindingId { get; set; }   // Phase 15 — add when needed
+    // New source types added as new nullable columns per phase
+}
+
+// Domain contract — every source entity implements this
+public interface ICorrectiveActionSource
+{
+    Guid Id { get; }
+    bool CanResolve(IEnumerable<CorrectiveActionStatus> caStatuses);
+}
+
+// Filtered index per source (added in EF config)
+// CREATE INDEX IX_CA_Incident ON CorrectiveActions(TenantId, IncidentId)
+// WHERE IncidentId IS NOT NULL
+```
+
+---
+
+**The questions that drove this decision (full reasoning trail):**
+
+*Q: Can a CA exist without any source — standalone?*
+Yes. Management-driven CAs, proactive risk mitigations, and policy-driven actions have
+no parent entity. IncidentId must be nullable.
+
+*Q: Can one source have many CAs?*
+Yes — one-to-many. A single incident can have 5, 10, or 20 CAs. A compliance audit
+finding commonly spawns multiple CAs. This is the expected primary access pattern.
+
+*Q: Can one CA link to multiple sources simultaneously?*
+No. A CA has exactly one origin — or none (standalone). Many-to-many is not the domain.
+
+*Q: Which modules will realistically generate CAs across all 17 phases?*
+Incident (Phase 3), Work Permit violations (Phase 13), Compliance Audit findings (Phase 15),
+Risk Assessments (future), Non-Conformances/ISO (future), Site Inspections (future).
+Bounded set of 5–7 known source types. Not open-ended. Not user-defined.
+
+*Q: What does the combined CA status rule look like?*
+A source entity can only transition to Resolved/Closed when ALL its linked CAs are
+Completed or Verified. This rule is identical across all source types — hence the
+ICorrectiveActionSource interface captures it once and all source entities implement it.
+
+---
+
+**Scale analysis (informed this decision):**
+- Realistic at full SaaS scale: 7 modules × 100k records × 5 CAs = 3.5M rows per tenant
+- At 100 tenants: ~350M rows in CorrectiveActions table
+- With TenantId as leading column + filtered index per nullable FK:
+  "Get all CAs for incident X" hits a filtered index covering only non-null IncidentId rows
+  — dramatically smaller index, O(log n) lookup regardless of total table size
+- "Can this incident resolve?" query uses EXISTS (SELECT TOP 1) — exits on first open CA,
+  sub-millisecond even at 350M rows
+- Adding a new nullable FK column at 350M rows: instant DDL, SQL Server does not rewrite data
+  for nullable columns with no default
+
+---
+
+**All four options considered:**
+
+| Option | Description | Verdict |
+|---|---|---|
+| A (chosen) | Separate nullable FKs per source type | Integrity + performance + bounded growth |
+| B | Polymorphic: SourceEntityType (string) + SourceEntityId (Guid) | No FK constraint — unacceptable in compliance domain. String index covers all rows, no filtered optimization. Cross-module reporting needs string GROUP BY. |
+| C | TPH inheritance (IncidentCA, AuditCA subclasses) | Same DB structure as A but with EF inheritance ceremony. Benefit marginal for 5-7 known types. Rejected — complexity not justified. |
+| D | Junction/link table (many-to-many) | Solves a problem we don't have (one CA, many sources). Extra JOIN on every query. Rejected. |
+
+**Why Option B was rejected at scale specifically:**
+Filtered indexes are not possible on polymorphic columns — the index must cover all 350M rows.
+String comparison on SourceEntityType adds overhead on every query. Cross-module reporting
+("CAs by source module") requires GROUP BY on a string column with no referential integrity.
+In a compliance domain where audit trail correctness is legally significant, an unverifiable
+Guid → string pair is unacceptable.
+
+**Why Option A's extensibility score (6/10 raw) is acceptable:**
+Adding a new source type costs: one nullable column, one filtered index, one migration
+(instant DDL), ~30-50 lines of application code (command update, query filter, validator).
+The ICorrectiveActionSource interface means the "all CAs done" guard is written once and
+tested once — not reimplemented per source. Real extensibility cost is predictable and low.
+
+---
+
+**Future implications to remember:**
+- Phase 5 (multi-tenancy): TenantId MUST be the leading column in all CA indexes
+  or EF Global Query Filters will cause full table scans
+- Phase 11 (reporting): Cross-module CA dashboard may need a nightly pre-aggregated
+  summary table — evaluate at Phase 11, not before
+- Phase 16 (Azure): Consider table partitioning by TenantId if tenant count exceeds 500
+- Soft delete accumulation: Archive CAs older than 2 years to CorrectiveActions_Archive
+  in Phase 16 to keep active table and indexes lean
+
+---
+
 ## What We Deliberately Did NOT Do (and Why)
 
 | Rejected Approach | Why Rejected |
