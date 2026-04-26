@@ -384,7 +384,7 @@ public class GetMyEntitiesQuery : IRequest<PaginatedList<MyEntityDto>>
 ```csharp
 public async Task<PaginatedList<MyEntityDto>> Handle(GetMyEntitiesQuery request, CancellationToken ct)
 {
-    var safePageSize = Math.Min(request.PageSize, 100); // always cap
+    var safePageSize = Math.Min(request.PageSize, PaginationConstants.MaxPageSize); // always cap — never hardcode the number
     var query = _context.MyEntities.Where(x => !x.IsDeleted);
     var totalCount = await query.CountAsync(ct);
     var items = await query

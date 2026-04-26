@@ -41,7 +41,7 @@
 
 ---
 
-### 🟡 Pagination is unstable — same record can appear on two pages
+### ~~🟡 Pagination is unstable — same record can appear on two pages~~ ✅ Fixed in EHS-33
 **Finding:** `OrderByDescending(x => x.OccurredAt)` with no tiebreaker. If two incidents share the same `OccurredAt` (common in bulk imports or rapid reporting), SQL Server returns them in non-deterministic order. Page 1 and page 2 can return the same record.
 
 **Fix:** `.OrderByDescending(x => x.OccurredAt).ThenBy(x => x.Id)` — Id as tiebreaker gives deterministic ordering.
@@ -52,7 +52,7 @@
 
 ---
 
-### 🟡 No upper bound on pageSize — memory bomb risk
+### ~~🟡 No upper bound on pageSize — memory bomb risk~~ ✅ Fixed in EHS-33
 **Finding:** `GET /api/incidents?pageSize=100000` is valid. One authenticated call loads every incident in the tenant into memory. At 10k incidents × 100 tenants, this is a DoS vector from inside the app.
 
 **Fix:** `var safePageSize = Math.Min(request.PageSize, 100);` in the handler. Two lines.
@@ -113,8 +113,8 @@
 |---|---|---|---|---|---|
 | 1 | Public status/assignee setters — state machine bypassable | 🔴 High | Phase 3 | EHS-32 | ⬜ Open |
 | 2 | Auto-transition rule in handler, not domain | 🔴 High | Phase 3 | EHS-32 | ⬜ Open |
-| 3 | Unstable pagination — no sort tiebreaker | 🟡 Medium | Phase 3 | EHS-33 | ⬜ Open |
-| 4 | No pageSize cap — memory bomb | 🟡 Medium | Phase 3 | EHS-33 | ⬜ Open |
+| 3 | Unstable pagination — no sort tiebreaker | 🟡 Medium | Phase 3 | EHS-33 | ✅ Fixed |
+| 4 | No pageSize cap — memory bomb | 🟡 Medium | Phase 3 | EHS-33 | ✅ Fixed |
 | 5 | No optimistic concurrency — silent data loss | 🔴 High | Phase 4 | EHS-34 | ⬜ Open |
 | 6 | AssignedToId/ReportedById — no FK or existence check | 🟡 Medium | Phase 4 | EHS-35 | ⬜ Open |
 | 7 | PATCH /assign returns 204 — status change invisible | 🟢 Low | Phase 4/12 | EHS-36 | ⬜ Open |
