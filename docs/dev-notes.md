@@ -181,6 +181,273 @@ public interface ITenantEntity
 
 ---
 
+## New Entity Checklist — Follow This Every Time
+
+Every new entity in this system touches all 4 layers in a predictable sequence.
+Follow this order every time. Never skip steps.
+
+---
+
+### Step 1 — Domain: Enums
+`EHSPlatform.Domain/Enums/`
+
+Create one file per enum needed by the entity.
+Always assign explicit integer values starting at 1.
+
+```csharp
+public enum MyStatusEnum
+{
+    Active = 1,
+    Inactive = 2,
+    Archived = 3
+}
+```
+
+---
+
+### Step 2 — Domain: Entity
+`EHSPlatform.Domain/Entities/MyEntity.cs`
+
+Always extend `BaseEntity` (gives Id, CreatedAt, UpdatedAt).
+String properties default to `string.Empty`. Booleans default explicitly.
+Status property defaults to its initial state.
+
+```csharp
+public class MyEntity : BaseEntity
+{
+    public string Title { get; set; } = string.Empty;
+    public MyStatusEnum Status { get; set; } = MyStatusEnum.Active;
+    public bool IsDeleted { get; set; } = false;
+    // FK to parent entity (nullable if optional link — see ADR-011)
+    public Guid? ParentEntityId { get; set; }
+}
+```
+
+If the entity has business rules on state changes — add a domain method here (like `TransitionTo()`).
+Never put business rules in handlers if they belong in the entity.
+
+---
+
+### Step 3 — Infrastructure: EF Configuration
+`EHSPlatform.Infrastructure/Persistence/Configurations/MyEntityConfiguration.cs`
+
+One file per entity. Implement `IEntityTypeConfiguration<MyEntity>`.
+EF auto-discovers all configurations via `ApplyConfigurationsFromAssembly()` — no manual registration needed.
+
+```csharp
+public class MyEntityConfiguration : IEntityTypeConfiguration<MyEntity>
+{
+    public void Configure(EntityTypeBuilder<MyEntity> builder)
+    {
+        builder.ToTable("MyEntities");
+        builder.HasKey(x => x.Id);
+
+        builder.Property(x => x.Title).IsRequired().HasMaxLength(500);
+        builder.Property(x => x.Status).IsRequired();
+        builder.Property(x => x.IsDeleted).IsRequired().HasDefaultValue(false);
+        builder.Property(x => x.CreatedAt).IsRequired();
+        builder.Property(x => x.UpdatedAt).IsRequired();
+
+        // FK relationship (if applicable)
+        builder.HasOne<ParentEntity>()
+            .WithMany()
+            .HasForeignKey(x => x.ParentEntityId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Filtered index for nullable FK (ADR-011)
+        builder.HasIndex(x => x.ParentEntityId)
+            .HasFilter("[ParentEntityId] IS NOT NULL");
+
+        // Soft delete filter — hides deleted records from all queries
+        builder.HasQueryFilter(x => !x.IsDeleted);
+    }
+}
+```
+
+---
+
+### Step 4 — Infrastructure: Register DbSet
+Two files to update:
+
+**`ApplicationDbContext.cs`** — add the DbSet:
+```csharp
+public DbSet<MyEntity> MyEntities => Set<MyEntity>();
+```
+
+**`IApplicationDbContext.cs`** — add the interface property:
+```csharp
+DbSet<MyEntity> MyEntities { get; }
+```
+
+Both must be updated together. If you update one and forget the other, it will not compile.
+
+---
+
+### Step 5 — Infrastructure: Migration
+Run from solution root. Always name migrations descriptively.
+
+```bash
+dotnet ef migrations add AddMyEntity \
+  --project src/EHSPlatform.Infrastructure \
+  --startup-project src/EHSPlatform.API
+
+dotnet ef database update \
+  --project src/EHSPlatform.Infrastructure \
+  --startup-project src/EHSPlatform.API
+```
+
+Review the generated migration file before running update. Check:
+- Correct table name
+- Correct column types and nullability
+- FK constraint present
+- Filtered index present
+
+---
+
+### Step 6 — Application: DTO
+`EHSPlatform.Application/MyEntities/Queries/MyEntityDto.cs`
+
+What the API returns — never return raw entities from handlers.
+Only include fields that callers actually need.
+
+```csharp
+public class MyEntityDto
+{
+    public Guid Id { get; init; }
+    public string Title { get; init; } = string.Empty;
+    public string Status { get; init; } = string.Empty;
+    public DateTime CreatedAt { get; init; }
+}
+```
+
+---
+
+### Step 7 — Application: Commands (Writes)
+`EHSPlatform.Application/MyEntities/Commands/CreateMyEntity/`
+
+Three files per command — always:
+
+**Command** (`CreateMyEntityCommand.cs`) — the input:
+```csharp
+public record CreateMyEntityCommand : IRequest<Guid>
+{
+    public string Title { get; init; } = string.Empty;
+}
+```
+
+**Handler** (`CreateMyEntityCommandHandler.cs`) — the logic:
+```csharp
+public class CreateMyEntityCommandHandler : IRequestHandler<CreateMyEntityCommand, Guid>
+{
+    private readonly IApplicationDbContext _context;
+    public CreateMyEntityCommandHandler(IApplicationDbContext context) => _context = context;
+
+    public async Task<Guid> Handle(CreateMyEntityCommand request, CancellationToken ct)
+    {
+        var entity = new MyEntity { Title = request.Title, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
+        _context.MyEntities.Add(entity);
+        await _context.SaveChangesAsync(ct);
+        return entity.Id;
+    }
+}
+```
+
+**Validator** (`CreateMyEntityCommandValidator.cs`) — the rules:
+```csharp
+public class CreateMyEntityCommandValidator : AbstractValidator<CreateMyEntityCommand>
+{
+    public CreateMyEntityCommandValidator()
+    {
+        RuleFor(x => x.Title).NotEmpty().MaximumLength(500);
+    }
+}
+```
+
+Repeat this pattern for each write operation (Update, Delete/soft-delete, status change).
+
+---
+
+### Step 8 — Application: Queries (Reads)
+`EHSPlatform.Application/MyEntities/Queries/GetMyEntities/`
+
+**Query** (`GetMyEntitiesQuery.cs`):
+```csharp
+public class GetMyEntitiesQuery : IRequest<PaginatedList<MyEntityDto>>
+{
+    public int PageNumber { get; init; } = 1;
+    public int PageSize { get; init; } = 10;
+    // Add nullable filters as needed
+}
+```
+
+**Handler** (`GetMyEntitiesQueryHandler.cs`):
+```csharp
+public async Task<PaginatedList<MyEntityDto>> Handle(GetMyEntitiesQuery request, CancellationToken ct)
+{
+    var safePageSize = Math.Min(request.PageSize, 100); // always cap
+    var query = _context.MyEntities.Where(x => !x.IsDeleted);
+    var totalCount = await query.CountAsync(ct);
+    var items = await query
+        .OrderByDescending(x => x.CreatedAt).ThenBy(x => x.Id) // always stable sort
+        .Skip((request.PageNumber - 1) * safePageSize)
+        .Take(safePageSize)
+        .Select(x => new MyEntityDto { Id = x.Id, Title = x.Title, Status = x.Status.ToString() })
+        .ToListAsync(ct);
+    return new PaginatedList<MyEntityDto>(items, totalCount, request.PageNumber, safePageSize);
+}
+```
+
+---
+
+### Step 9 — API: Controller
+`EHSPlatform.API/Controllers/MyEntitiesController.cs`
+
+```csharp
+[ApiController]
+[Route("api/[controller]")]
+public class MyEntitiesController : ControllerBase
+{
+    private readonly ISender _sender;
+    public MyEntitiesController(ISender sender) => _sender = sender;
+
+    [HttpPost]
+    [EndpointSummary("...plain language description for end users...")]
+    public async Task<IActionResult> Create(CreateMyEntityCommand command, CancellationToken ct)
+    {
+        var id = await _sender.Send(command, ct);
+        return CreatedAtAction(nameof(GetById), new { id }, new { id });
+    }
+}
+```
+
+Rules:
+- `[EndpointSummary]` on every endpoint — plain language, no developer jargon
+- `ISender` not `IMediator`
+- POST returns 201 `CreatedAtAction`, PUT/PATCH returns 204, GET returns 200
+- Zero business logic in controllers
+
+---
+
+### Step 10 — Tests
+`tests/EHSPlatform.Domain.Tests/` and `tests/EHSPlatform.Application.Tests/`
+
+Minimum required per entity:
+- Unit test: any domain method with rules (like TransitionTo, AssignTo) — test every valid and invalid path
+- Integration test: happy path for Create + Get, and one failure case (not found, invalid input)
+
+Tests ship in the same commit as the code. Never deferred.
+
+---
+
+### Step 11 — Docs & Jira
+After all code is committed:
+1. Update `dev-notes.md` — add to Phase ticket status table
+2. Update `project-roadmap.md` — check off phase items if applicable
+3. Commit docs to `ehs-platform-docs`
+4. Transition Jira ticket → Done
+
+---
+
 ## Application Layer Patterns
 
 ### CQRS Pattern (MediatR)
