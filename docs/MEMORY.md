@@ -3,6 +3,7 @@
 
 
 ## Active Files
+- [technical-debt.md](technical-debt.md) — Architecture review findings, severity, target phase, Jira ticket ref
 
 - [career-profile.md](https://github.com/parthmashroo/ehs-platform-docs/blob/main/docs/career-profile.md) — User's engineering background, goals, and learning plan
 
