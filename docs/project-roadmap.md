@@ -1318,7 +1318,7 @@ New concepts: One-to-many in EF, nested resources, cross-entity business rules.
 
 
 
-### Phase 4: Users & Authentication
+### Phase 4: Users & Authentication 🔄 IN PROGRESS
 
 **Goal:** Real users with JWT. Roles enforced on endpoints.
 

@@ -77,6 +77,18 @@
 
 ---
 
+## Phase 4 Ticket Status
+
+| Ticket | Description | Status |
+|---|---|---|
+| EHS-39 | User entity, UserRole enum, EF config, migration | ⬜ Open |
+| EHS-40 | ICurrentUserService interface + implementation | ⬜ Open |
+| EHS-41 | AuthController — Register + Login + JWT generation | ⬜ Open |
+| EHS-42 | [Authorize] on all endpoints + role restrictions + wire ICurrentUserService | ⬜ Open |
+| EHS-43 | Phase 4 docs update | ⬜ Open |
+
+---
+
 ## Solution Structure
 
 ```
