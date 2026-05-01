@@ -68,9 +68,11 @@
 | EHS-26 | CorrectiveAction entity, EF config, AddCorrectiveActions migration | ✅ Done |
 | EHS-27 | CreateCorrectiveActionCommand + queries + controller (GET list, GET by id) + unit tests for Incident.TransitionTo() | ✅ Done |
 | EHS-28 | CorrectiveAction.TransitionTo() domain method + UpdateCorrectiveAction + UpdateCorrectiveActionStatus commands + unit tests | ✅ Done |
-| EHS-29 | SoftDeleteCorrectiveActionCommand | ⬜ Open |
-| EHS-30 | DeleteCorrectiveAction soft-delete endpoint | ⬜ Open |
-| EHS-31 | Docs updated for Phase 3 completion | ⬜ Open |
+| EHS-29 | SoftDeleteCorrectiveActionCommand + DELETE endpoint | ✅ Done |
+| EHS-30 | (merged into EHS-29) | ✅ Done |
+| EHS-31 | Docs updated for Phase 3 in-progress state | ✅ Done |
+| — | Business rule: Incident → Resolved only if all CAs Completed/Verified | ⬜ Open |
+| — | GetIncidentByIdQuery to include linked CAs in response | ⬜ Open |
 
 ---
 

@@ -878,13 +878,12 @@ GET /api/incidents/{id}/audit-log — Full change history
 
 ```
 
-POST /api/incidents/{incidentId}/corrective-actions
-
-GET /api/incidents/{incidentId}/corrective-actions
-
-PUT /api/corrective-actions/{id}
-
-PATCH /api/corrective-actions/{id}/status
+POST /api/correctiveactions                      — log a new corrective action
+GET /api/correctiveactions                       — list (filterable by incidentId, status, paginated)
+GET /api/correctiveactions/{id}                  — get corrective action details
+PUT /api/correctiveactions/{id}                  — update fields
+PATCH /api/correctiveactions/{id}/status         — transition status (state machine enforced)
+DELETE /api/correctiveactions/{id}               — soft delete
 
 ```
 
@@ -1300,19 +1299,14 @@ New concepts: One-to-many in EF, nested resources, cross-entity business rules.
 
 
 
-- [ ] CorrectiveAction entity + enums
-
-- [ ] EF relationship + migration
-
-- [ ] CRUD commands/queries for CAs
-
-- [ ] CorrectiveActionsController
-
+- [x] CorrectiveAction entity + enums (Priority, CorrectiveActionStatus)
+- [x] EF relationship + migration (nullable IncidentId FK, filtered index — ADR-011)
+- [x] CRUD commands/queries for CAs (Create, Update, UpdateStatus, SoftDelete, GetList, GetById)
+- [x] CorrectiveAction.TransitionTo() domain method with state machine + guard clauses
+- [x] CorrectiveActionsController (POST, GET list, GET by id, PUT, PATCH /status, DELETE)
+- [x] Unit tests — 10 for Incident.TransitionTo(), 10 for CorrectiveAction.TransitionTo()
 - [ ] Business rule: Incident → Resolved only if all CAs are Completed/Verified
-
 - [ ] GetIncidentByIdQuery includes CAs in response
-
-- [ ] Commit: `"Phase 3: Corrective actions"`
 
 
 
