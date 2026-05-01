@@ -185,6 +185,24 @@ WorkflowCrossEntityRule — per tenant: which linked module must be in terminal 
 
 ---
 
+### 🟢 All detail endpoints embed child lists — system-wide pattern should be count + lazy load
+**Finding:** `GetIncidentByIdQueryHandler` embeds the full `CorrectiveActions` list in the incident detail response. This pattern, if repeated across all modules, means opening any detail view loads all child records the user may never scroll to. At scale (incident with 20 CAs, audit with 30 findings) this adds unnecessary payload and DB load.
+
+**Correct pattern — consistent across all modules:**
+- Detail response includes child **count only** (e.g. `"correctiveActionCount": 3`)
+- Full child list loaded lazily via existing filtered list endpoint when user expands the section
+- Example: `GET /api/correctiveactions?incidentId={id}` — already built, called on expand
+
+**Why this matters for UX/consistency:**
+Every module (Incidents, Audits, Permits, CAPA) will have child relationships. If each detail screen lazy-loads its children via the same pattern, the UI/UX is consistent across the entire product — collapse/expand everywhere, fast initial load everywhere. Users learn the pattern once.
+
+**Fix (Phase 12):** When frontend starts, update all `GetXxxByIdQueryHandler` responses to return count fields instead of embedded lists. The child list endpoints are already built and ready.
+
+**Target phase:** Phase 12 (when frontend is built — no point fixing before UI exists)
+**Status:** ⬜ Open
+
+---
+
 ### 🟡 SoftDelete logic lives in the handler, not the domain
 **Finding:** `SoftDeleteCorrectiveActionCommandHandler` sets `ca.IsDeleted = true` and `ca.UpdatedAt` directly — bypassing the domain layer. Every other mutation on `CorrectiveAction` goes through `TransitionTo()`. This inconsistency means when EHS-37 lands (reason required when deleting a Verified CA), the guard will likely be added to the handler instead of the domain — repeating the exact mistake EHS-32 caught on `Incident`.
 
@@ -218,4 +236,4 @@ Handler calls `ca.SoftDelete(request.Reason)` instead of setting fields directly
 | 8 | Re-open from Closed unrestricted | 🟢 Low | Phase 4 | EHS-35 | ⬜ Open |
 | 9 | UpdateCorrectiveAction edits terminal states — audit trail risk | 🟡 Medium | Phase 3 | EHS-37 | ⬜ Open |
 | 10 | SoftDelete logic in handler, not domain — inconsistent, no seam for future guard | 🟡 Medium | Phase 3 | EHS-38 | ⬜ Open |
-| 11 | GetIncidentById embeds full CA list — should be count-only, lazy loaded by UI | 🟢 Low | Phase 12 | — | ⬜ Open |
+| 11 | All detail endpoints embed child lists — system-wide pattern should be count + lazy load | 🟢 Low | Phase 12 | — | ⬜ Open |
