@@ -185,6 +185,49 @@ WorkflowCrossEntityRule — per tenant: which linked module must be in terminal 
 
 ---
 
+### 🔵 One user can belong to multiple tenants with different roles — current model doesn't support this
+
+**Context:** Phase 4 builds `User` with a single `TenantId` and single `Role`. In the real world a safety consultant or contractor supervisor works across multiple companies — Sarah is SafetyOfficer at SafetyCorp AND ContractorAdmin at OilCorp. With current model she needs two accounts. Broken UX.
+
+**Correct long-term model — junction table:**
+```
+User                      UserTenantMembership
+────                      ────────────────────
+Id                        UserId   → User
+Email                     TenantId → Organisation
+PasswordHash              Role
+                          IsActive
+```
+One user record, many tenant+role memberships. At login, if Sarah has multiple memberships she picks which context to enter. Her JWT is stamped with the chosen tenantId + role. Switching context = new JWT, no re-login required.
+
+**Impact on Phase 4:** Build `User` entity knowing role moves to the junction table in Phase 5. No hard design decisions that block the migration.
+
+**Target phase:** Phase 5 (alongside multi-tenancy work)
+**Status:** 🔵 Deferred by design
+
+---
+
+### 🔵 Multiple SSO providers — Microsoft, Google, Okta via OIDC standard
+
+**Context:** Phase 4 uses email + password (passwords in our DB). Enterprise clients will demand SSO. Different clients use different providers — large enterprises use Azure AD, US mid-market uses Okta, tech companies use Google.
+
+**The key insight:** Microsoft, Google, Okta, GitHub, Apple all speak the same standard — **OpenID Connect (OIDC)**. We learn it once, every provider works. After verification the code is identical regardless of provider — all reduce to: `(email, providerTenantId) → our tenantId + role → our JWT`.
+
+**DB design per tenant:**
+```
+ssoProvider:      "microsoft" | "google" | "okta" | "none"
+providerTenantId: their Microsoft tid / Google domain / Okta domain
+```
+
+**Tenant identification:** In Phase 4 we use email domain or explicit registration. In Phase 14 we use the provider's `tid` claim — exact, unambiguous, doesn't depend on email format.
+
+**Multi-company users (Sarah in two companies):** She picks her context at login. JWT is stamped with chosen tenantId + role. Switching context = new JWT.
+
+**Target phase:** Phase 14
+**Status:** 🔵 Deferred by design
+
+---
+
 ### 🟢 All detail endpoints embed child lists — system-wide pattern should be count + lazy load
 **Finding:** `GetIncidentByIdQueryHandler` embeds the full `CorrectiveActions` list in the incident detail response. This pattern, if repeated across all modules, means opening any detail view loads all child records the user may never scroll to. At scale (incident with 20 CAs, audit with 30 findings) this adds unnecessary payload and DB load.
 
