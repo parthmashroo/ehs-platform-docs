@@ -16,7 +16,7 @@ Written so any AI assistant can resume this project with full context from any s
 
 **Practice machine:** Personal machine only. Never on company laptop.
 
-**Current status:** Phase 0 ✅ Phase 1 ✅ Phase 2 ✅ Phase 3 in progress.
+**Current status:** Phase 0 ✅ Phase 1 ✅ Phase 2 ✅ Phase 3 ✅ Phase 4 next.
 
 
 
@@ -1289,7 +1289,7 @@ New concepts: State machine in domain, domain exceptions, PUT/PATCH endpoints, p
 
 
 
-### Phase 3: Corrective Actions 🔄 IN PROGRESS
+### Phase 3: Corrective Actions ✅ COMPLETE
 
 **Goal:** Incidents have corrective actions. CAs block incident resolution.
 
@@ -1304,9 +1304,9 @@ New concepts: One-to-many in EF, nested resources, cross-entity business rules.
 - [x] CRUD commands/queries for CAs (Create, Update, UpdateStatus, SoftDelete, GetList, GetById)
 - [x] CorrectiveAction.TransitionTo() domain method with state machine + guard clauses
 - [x] CorrectiveActionsController (POST, GET list, GET by id, PUT, PATCH /status, DELETE)
-- [x] Unit tests — 10 for Incident.TransitionTo(), 10 for CorrectiveAction.TransitionTo()
-- [ ] Business rule: Incident → Resolved only if all CAs are Completed/Verified
-- [ ] GetIncidentByIdQuery includes CAs in response
+- [x] Unit tests — 10 for Incident.TransitionTo(), 12 for CorrectiveAction.TransitionTo() + new CA guard
+- [x] Business rule: Incident → Resolved only if all CAs are Completed/Verified
+- [x] GetIncidentByIdQuery includes CAs in response
 
 
 
@@ -1800,4 +1800,4 @@ dotnet run --project src/EHSPlatform.API
 
 
 
-**Current status: Phase 0 ✅ Phase 1 ✅ Phase 2 ✅ Phase 3 in progress (EHS-26 through EHS-31 in Sprint 3).**
+**Current status: Phase 0 ✅ Phase 1 ✅ Phase 2 ✅ Phase 3 ✅ Phase 4 next.**

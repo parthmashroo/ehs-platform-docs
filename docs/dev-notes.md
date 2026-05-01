@@ -28,8 +28,9 @@
 | Phase 0 — Project Skeleton | ✅ Complete |
 | Phase 1 — Core Domain + Incident Reporting | ✅ Complete |
 | Phase 2 — Incident Lifecycle (Status Machine) | ✅ Complete |
-| Phase 3 — Corrective Actions | 🔄 In Progress |
-| Phase 4+ | Not started |
+| Phase 3 — Corrective Actions | ✅ Complete |
+| Phase 4 — Users & Authentication | ⬜ Next |
+| Phase 5+ | Not started |
 
 ---
 
@@ -71,8 +72,8 @@
 | EHS-29 | SoftDeleteCorrectiveActionCommand + DELETE endpoint | ✅ Done |
 | EHS-30 | (merged into EHS-29) | ✅ Done |
 | EHS-31 | Docs updated for Phase 3 in-progress state | ✅ Done |
-| — | Business rule: Incident → Resolved only if all CAs Completed/Verified | ⬜ Open |
-| — | GetIncidentByIdQuery to include linked CAs in response | ⬜ Open |
+| — | Business rule: Incident → Resolved only if all CAs Completed/Verified | ✅ Done |
+| — | GetIncidentByIdQuery to include linked CAs in response | ✅ Done |
 
 ---
 
@@ -763,7 +764,8 @@ InvalidStatusTransitionException thrown for any invalid jump.
 | Phase | What | When |
 |---|---|---|
 | Phase 2 | Incident status machine, pagination, filtering | ✅ Done |
-| Phase 3 | Corrective Actions | 🔄 In Progress |
+| Phase 3 | Corrective Actions | ✅ Done |
+| Phase 4 | Users & Authentication | Next |
 | Phase 4 | Users, JWT auth, roles | After Phase 3 |
 | Phase 5 | Multi-tenancy (Global Query Filters) | After Phase 4 |
 | Phase 6 | Audit logging (EF interceptor) | After Phase 5 |
