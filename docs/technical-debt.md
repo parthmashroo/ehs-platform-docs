@@ -147,6 +147,25 @@ These are not bugs or debt — they are deliberate deferrals. The design today i
 
 ---
 
+### 🟡 SoftDelete logic lives in the handler, not the domain
+**Finding:** `SoftDeleteCorrectiveActionCommandHandler` sets `ca.IsDeleted = true` and `ca.UpdatedAt` directly — bypassing the domain layer. Every other mutation on `CorrectiveAction` goes through `TransitionTo()`. This inconsistency means when EHS-37 lands (reason required when deleting a Verified CA), the guard will likely be added to the handler instead of the domain — repeating the exact mistake EHS-32 caught on `Incident`.
+
+**Fix:** Add `SoftDelete(string? reason = null)` domain method to `CorrectiveAction`:
+```csharp
+public void SoftDelete(string? reason = null)
+{
+    IsDeleted = true;
+    UpdatedAt = DateTime.UtcNow;
+}
+```
+Handler calls `ca.SoftDelete(request.Reason)` instead of setting fields directly. When EHS-37 guard is added, it goes inside this method — not the handler.
+
+**Target phase:** Phase 3
+**Ticket:** EHS-38
+**Status:** ⬜ Open
+
+---
+
 ## Summary Table
 
 | # | Finding | Severity | Target | Ticket | Status |
@@ -160,3 +179,4 @@ These are not bugs or debt — they are deliberate deferrals. The design today i
 | 7 | PATCH /assign returns 204 — status change invisible | 🟢 Low | Phase 4/12 | EHS-36 | ⬜ Open |
 | 8 | Re-open from Closed unrestricted | 🟢 Low | Phase 4 | EHS-35 | ⬜ Open |
 | 9 | UpdateCorrectiveAction edits terminal states — audit trail risk | 🟡 Medium | Phase 3 | EHS-37 | ⬜ Open |
+| 10 | SoftDelete logic in handler, not domain — inconsistent, no seam for future guard | 🟡 Medium | Phase 3 | EHS-38 | ⬜ Open |
