@@ -96,6 +96,23 @@
 
 ---
 
+### 🟡 UpdateCorrectiveAction allows edits on terminal states
+**Finding:** `UpdateCorrectiveActionCommandHandler` updates fields (Title, Description, Priority, AssignedToId, DueDate) with no check on current status. A `Cancelled` or `Verified` corrective action should be immutable — these are closed states. Editing them silently undermines the audit trail.
+
+**Risk:** A caller can change the title of a Verified CA after it has been signed off. In a compliance context this is a data integrity issue — the verified record no longer reflects what was actually verified.
+
+**Fix:** Add a guard in the handler before applying field updates:
+```csharp
+if (ca.Status is CorrectiveActionStatus.Verified or CorrectiveActionStatus.Cancelled)
+    throw new InvalidOperationException("Cannot edit a corrective action in a terminal state.");
+```
+
+**Target phase:** Phase 3
+**Ticket:** EHS-37
+**Status:** ⬜ Open
+
+---
+
 ### 🟢 Re-open from Closed is unrestricted
 **Finding:** `TransitionTo()` allows any non-Reported state → Reported (re-open), including `Closed`. In a compliance context, closing an incident is often a formal/legal act. Re-opening from Closed with no role restriction is dangerous once auth is in place.
 
@@ -104,6 +121,29 @@
 **Target phase:** Phase 4
 **Ticket:** EHS-35 (include with user entity work)
 **Status:** ⬜ Open
+
+---
+
+## Deferred Architectural Decisions
+
+These are not bugs or debt — they are deliberate deferrals. The design today is intentionally simple. These items should be revisited before acquiring enterprise clients or onboarding tenants with divergent compliance workflows.
+
+---
+
+### 🔵 Configurable workflows per tenant — hardcoded state machines won't scale to enterprise SaaS
+**Context:** Every entity with a state machine (Incident, CorrectiveAction, future: Audit, CAPA, Permit) currently has a fixed enum-based status lifecycle. In a real multi-tenant enterprise SaaS, different clients have different workflows — some require a Verified step, some don't; some have 3 statuses, some have 8.
+
+**The real problem:** As we add more clients, "can you configure the workflow?" will be one of the first enterprise questions. Right now the answer is no.
+
+**Options when this comes up:**
+- **Workflow templates** (Phase 6-8): Define 2-3 fixed workflows per module (Simple / Standard / Strict), tenant picks at onboarding. Covers 80% of clients.
+- **Database-driven workflows** (Phase 10+): Statuses and transitions stored per tenant in DB. Full flexibility. Complex.
+- **Workflow engine** (Phase 14+): External engine (Elsa, Temporal). Full enterprise-grade. High investment.
+
+**Decision today:** Fixed state machines. Design domain methods (`TransitionTo()`) so the transition rules can be injected or overridden later without a full rewrite.
+
+**Target phase:** Phase 10 (multi-tenant configuration module)
+**Status:** 🔵 Deferred by design
 
 ---
 
@@ -119,3 +159,4 @@
 | 6 | AssignedToId/ReportedById — no FK or existence check | 🟡 Medium | Phase 4 | EHS-35 | ⬜ Open |
 | 7 | PATCH /assign returns 204 — status change invisible | 🟢 Low | Phase 4/12 | EHS-36 | ⬜ Open |
 | 8 | Re-open from Closed unrestricted | 🟢 Low | Phase 4 | EHS-35 | ⬜ Open |
+| 9 | UpdateCorrectiveAction edits terminal states — audit trail risk | 🟡 Medium | Phase 3 | EHS-37 | ⬜ Open |
