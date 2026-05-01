@@ -28,7 +28,7 @@
 | Phase 0 — Project Skeleton | ✅ Complete |
 | Phase 1 — Core Domain + Incident Reporting | ✅ Complete |
 | Phase 2 — Incident Lifecycle (Status Machine) | ✅ Complete |
-| Phase 3 — Corrective Actions | ⬜ Next |
+| Phase 3 — Corrective Actions | 🔄 In Progress |
 | Phase 4+ | Not started |
 
 ---
@@ -58,6 +58,19 @@
 | EHS-23 | PaginatedList\<T\>, GetIncidentsQuery with pagination and filters | ✅ Done |
 | EHS-24 | PUT, PATCH /status, PATCH /assign endpoints in IncidentsController | ✅ Done |
 | EHS-25 | Docs updated for Phase 2 completion | ✅ Done |
+
+---
+
+## Phase 3 Ticket Status
+
+| Ticket | Description | Status |
+|---|---|---|
+| EHS-26 | CorrectiveAction entity, EF config, AddCorrectiveActions migration | ✅ Done |
+| EHS-27 | CreateCorrectiveActionCommand + queries + controller (GET list, GET by id) + unit tests for Incident.TransitionTo() | ✅ Done |
+| EHS-28 | CorrectiveAction.TransitionTo() domain method + UpdateCorrectiveAction + UpdateCorrectiveActionStatus commands + unit tests | ✅ Done |
+| EHS-29 | SoftDeleteCorrectiveActionCommand | ⬜ Open |
+| EHS-30 | DeleteCorrectiveAction soft-delete endpoint | ⬜ Open |
+| EHS-31 | Docs updated for Phase 3 completion | ⬜ Open |
 
 ---
 
@@ -97,6 +110,11 @@ Open: `http://localhost:5147/swagger`
 - `PUT /api/incidents/{id}` — update incident information
 - `PATCH /api/incidents/{id}/status` — change the status of an incident
 - `PATCH /api/incidents/{id}/assign` — assign an investigator to the incident
+- `POST /api/correctiveactions` — log a new corrective action
+- `GET /api/correctiveactions` — get a list of corrective actions (supports `?incidentId=&status=&pageNumber=1&pageSize=10`)
+- `GET /api/correctiveactions/{id}` — get corrective action details
+- `PUT /api/correctiveactions/{id}` — update a corrective action
+- `PATCH /api/correctiveactions/{id}/status` — update corrective action status
 
 ---
 
@@ -109,6 +127,8 @@ Open: `http://localhost:5147/swagger`
 | Microsoft.EntityFrameworkCore | 8.x | Infrastructure | ORM |
 | Microsoft.EntityFrameworkCore.SqlServer | 8.x | Infrastructure | SQL Server provider |
 | Microsoft.EntityFrameworkCore.Tools | 8.x | Infrastructure | Migrations |
+| xUnit | 2.x | Domain.Tests | Unit test framework |
+| FluentAssertions | 8.9.0 | Domain.Tests | Assertion library (non-commercial only — see technical-debt.md) |
 
 > Update this table every time a new package is added.
 
@@ -155,6 +175,7 @@ dotnet ef database update --project src/EHSPlatform.Infrastructure --startup-pro
 | `Severity` | Low, Medium, High, Critical |
 | `IncidentStatus` | Reported, UnderInvestigation, AwaitingAction, Resolved, Closed |
 | `CorrectiveActionStatus` | Open, InProgress, Completed, Verified, Cancelled |
+| `Priority` | Low = 1, Medium = 2, High = 3, Critical = 4 |
 | `UserRole` | OrganizationAdmin, SafetyOfficer, ComplianceManager, IncidentReviewer, SiteEmployee, ContractorAdmin, ContractorSupervisor, ContractorWorker |
 
 ### BaseEntity (EHSPlatform.Domain/Common/BaseEntity.cs)
@@ -532,6 +553,7 @@ Validators are auto-discovered and wired into the MediatR pipeline via `Validati
 public interface IApplicationDbContext
 {
     DbSet<Incident> Incidents { get; }
+    DbSet<CorrectiveAction> CorrectiveActions { get; }
     DbSet<Organization> Organizations { get; }
     DbSet<Site> Sites { get; }
     DbSet<SiteArea> SiteAreas { get; }
@@ -693,6 +715,12 @@ InvalidStatusTransitionException thrown for any invalid jump.
 - Controllers use `command with { Id = id }` to merge route ID into the body command without manual mapping.
 - Example: `await _sender.Send(command with { Id = id }, cancellationToken);`
 
+### CorrectiveAction State Machine (Phase 3)
+- `CorrectiveAction.TransitionTo()` follows same pattern as `Incident.TransitionTo()` — domain method, switch expression, guard clauses.
+- Auto-stamps `CompletedAt` when → Completed; clears it when pushed back → InProgress.
+- `Verified` and `Cancelled` are terminal — no transitions out. Enforced by the switch (no matching arm = throws).
+- `UpdateCorrectiveActionCommandHandler` does NOT guard terminal states yet — tracked as EHS-37.
+
 ### Testing (from Phase 3 onwards)
 - Tests ship with the code in the same commit — never deferred to a separate phase.
 - Backend: xUnit + Moq + FluentAssertions.
@@ -706,7 +734,7 @@ InvalidStatusTransitionException thrown for any invalid jump.
 | Phase | What | When |
 |---|---|---|
 | Phase 2 | Incident status machine, pagination, filtering | ✅ Done |
-| Phase 3 | Corrective Actions | Next |
+| Phase 3 | Corrective Actions | 🔄 In Progress |
 | Phase 4 | Users, JWT auth, roles | After Phase 3 |
 | Phase 5 | Multi-tenancy (Global Query Filters) | After Phase 4 |
 | Phase 6 | Audit logging (EF interceptor) | After Phase 5 |
