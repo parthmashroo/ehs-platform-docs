@@ -147,6 +147,44 @@ These are not bugs or debt — they are deliberate deferrals. The design today i
 
 ---
 
+### 🔵 Three specific code locations that break when custom workflows land
+
+**Context:** When Phase 10 introduces tenant-configurable statuses, these three hardcoded patterns across the codebase will need to change:
+
+1. **`AnyAsync` checks in handlers — hardcoded "what counts as done"**
+   ```csharp
+   x.Status != CorrectiveActionStatus.Completed && x.Status != CorrectiveActionStatus.Verified
+   ```
+   This hardcodes two enum values as terminal. A tenant with a custom `"Peer Reviewed"` status that also counts as done will silently fail this check. Every handler with this pattern needs updating.
+
+2. **Guards in `TransitionTo()` — hardcoded which transition triggers cross-entity checks**
+   ```csharp
+   if (newStatus == IncidentStatus.Resolved && hasOpenCorrectiveActions)
+   ```
+   Hardcodes `Resolved` as the status that triggers the CA check. If a tenant renames or replaces this status, the guard never fires.
+
+3. **Switch expressions — hardcoded transition pairs**
+   ```csharp
+   (IncidentStatus.AwaitingAction, IncidentStatus.Resolved) => true
+   ```
+   Fixed enum pairs. Custom statuses live in DB, not enums — the switch breaks entirely.
+
+**Why this is not a problem today:** The `bool hasOpenCorrectiveActions` parameter is the seam. In Phase 10, the same boolean gets populated from a cached tenant config query instead of hardcoded enum values. The domain method signature never changes — only the one line in the handler that populates the boolean.
+
+**Performance concern and answer:** Adding workflow config queries per request would add latency. The solution is Redis caching (Phase 8) — workflow config is read-heavy, write-rare (changed maybe monthly per tenant). One cache miss per config change, then ~0.5ms Redis hits for every subsequent request. The trade: 0.5ms latency for zero-deployment tenant configuration. Correct trade for a SaaS.
+
+**Phase 10 data model:**
+```
+WorkflowStatus    — per tenant, per module: name, CountsAsDone (bool), IsFinal (bool)
+WorkflowTransition — per tenant: FromStatusId, ToStatusId, RequiresCrossEntityCheck (bool)
+WorkflowCrossEntityRule — per tenant: which linked module must be in terminal status
+```
+
+**Target phase:** Phase 10
+**Status:** 🔵 Deferred by design
+
+---
+
 ### 🟡 SoftDelete logic lives in the handler, not the domain
 **Finding:** `SoftDeleteCorrectiveActionCommandHandler` sets `ca.IsDeleted = true` and `ca.UpdatedAt` directly — bypassing the domain layer. Every other mutation on `CorrectiveAction` goes through `TransitionTo()`. This inconsistency means when EHS-37 lands (reason required when deleting a Verified CA), the guard will likely be added to the handler instead of the domain — repeating the exact mistake EHS-32 caught on `Incident`.
 
