@@ -475,6 +475,33 @@ After all code is committed:
 
 Every feature gets its own folder under `Application/{Feature}/`:
 
+#### One command = one intent = one folder. Always.
+
+Each command gets exactly 3 files — no exceptions:
+- `XxxCommand.cs` — the input (what the caller sends)
+- `XxxCommandHandler.cs` — the logic (fetch → call domain → save)
+- `XxxCommandValidator.cs` — the rules (FluentValidation)
+
+**Never put two commands in one file.** If you're tempted to, you're either:
+1. Looking at two separate operations that need two folders, or
+2. Looking at one operation that needs an enriched command with an optional field + domain guard
+
+**One command = one handler** is a hard rule. The handler is always 1:1 with the command.
+
+#### CQRS at scale — what to expect
+
+By the time this product matures across 17+ phases, expect ~215 command/query folders total:
+
+| Phase group | Estimated operations |
+|---|---|
+| Phase 1-3 (current) | ~25 |
+| Phase 4-8 (auth, tenancy, audit, forms, cache) | ~60 more |
+| Phase 9-13 (permits, training, inspections) | ~80 more |
+| Phase 14-17 (reporting, mobile, integrations) | ~50 more |
+| **Total** | **~215** |
+
+This is healthy, not bloated. Each folder is isolated, testable, and findable in 2 keystrokes (`Ctrl+T`). The alternative — service classes with many methods — becomes a 3000-line maintenance nightmare by year 2. The folder count is a sign of health: every intent has one home, one handler, one test surface.
+
 ```
 Incidents/
 ├── Commands/
