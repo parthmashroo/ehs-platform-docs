@@ -218,3 +218,4 @@ Handler calls `ca.SoftDelete(request.Reason)` instead of setting fields directly
 | 8 | Re-open from Closed unrestricted | 🟢 Low | Phase 4 | EHS-35 | ⬜ Open |
 | 9 | UpdateCorrectiveAction edits terminal states — audit trail risk | 🟡 Medium | Phase 3 | EHS-37 | ⬜ Open |
 | 10 | SoftDelete logic in handler, not domain — inconsistent, no seam for future guard | 🟡 Medium | Phase 3 | EHS-38 | ⬜ Open |
+| 11 | GetIncidentById embeds full CA list — should be count-only, lazy loaded by UI | 🟢 Low | Phase 12 | — | ⬜ Open |
