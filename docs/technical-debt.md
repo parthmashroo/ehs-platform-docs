@@ -265,6 +265,37 @@ Handler calls `ca.SoftDelete(request.Reason)` instead of setting fields directly
 
 ---
 
+### 🔴 User-facing error messages contain developer language and wrong HTTP status codes
+**Finding:** Four categories of problems across all exception messages returned in API responses:
+
+1. **`InvalidStatusTransitionException` hardcodes "incident" — but is also thrown for Corrective Actions.** Message template: `"Cannot transition incident from '{from}' to '{to}'"`. A caller cancelling a corrective action receives: *"Cannot transition incident from 'Open' to 'Cancelled'."* — factually wrong entity name.
+
+2. **Raw enum names exposed as status labels.** All messages use `.ToString()` on C# enums, producing PascalCase developer identifiers: `UnderInvestigation`, `AwaitingAction`, `InProgress`. A safety officer reads: *"Cannot transition incident from 'AwaitingAction' to 'Reported'."*
+
+3. **`NotFoundException` exposes entity class names and raw GUIDs.** Template: `"{entityName} with ID '{key}' was not found."` Called with `nameof(CorrectiveAction)`, `nameof(Incident)`. Returns: *"CorrectiveAction with ID '3fa85f64-...' was not found."* to end users.
+
+4. **`InvalidOperationException` in `UpdateCorrectiveActionCommandHandler` returns HTTP 500.** The terminal state guard throws `InvalidOperationException`, which is not handled in `ExceptionHandlingMiddleware` — falls through to `_ => InternalServerError`. A business rule violation returns 500 instead of 422. Message also uses jargon: *"Cannot edit a corrective action in a terminal state."*
+
+**Affected locations:**
+- `EHSPlatform.Domain/Exceptions/InvalidStatusTransitionException.cs` — "incident" hardcoded in message template
+- `EHSPlatform.Domain/Exceptions/NotFoundException.cs` — exposes class names and raw GUIDs
+- `EHSPlatform.Domain/Entities/Incident.cs` — 3 throws using raw `.ToString()` on enum values
+- `EHSPlatform.Domain/Entities/CorrectiveAction.cs` — 2 throws using raw `.ToString()` on enum values
+- `EHSPlatform.Application/CorrectiveActions/Commands/UpdateCorrectiveAction/UpdateCorrectiveActionCommandHandler.cs` — wrong exception type (500 not 422) + jargon message
+
+**Fix (when sprint is scheduled):**
+- Introduce `DomainValidationException` in `EHSPlatform.Domain.Exceptions` — middleware maps it to 422 Unprocessable Entity
+- Fix `InvalidStatusTransitionException` to accept entity name as a constructor parameter or make template entity-agnostic
+- Add `ToDisplayName()` extension method on all status enums — maps enum values to plain English display strings used in all messages
+- Rewrite `NotFoundException` template: *"The requested [resource] could not be found."*
+- Rewrite all guard reason strings to plain language a safety officer would understand
+
+**Target phase:** Dedicated error message sprint — schedule when backlog reaches ~5 user-language issues
+**Ticket:** EHS-44
+**Status:** ⬜ Open
+
+---
+
 ## Summary Table
 
 | # | Finding | Severity | Target | Ticket | Status |
@@ -280,3 +311,4 @@ Handler calls `ca.SoftDelete(request.Reason)` instead of setting fields directly
 | 9 | UpdateCorrectiveAction edits terminal states — audit trail risk | 🟡 Medium | Phase 3 | EHS-37 | ⬜ Open |
 | 10 | SoftDelete logic in handler, not domain — inconsistent, no seam for future guard | 🟡 Medium | Phase 3 | EHS-38 | ⬜ Open |
 | 11 | All detail endpoints embed child lists — system-wide pattern should be count + lazy load | 🟢 Low | Phase 12 | — | ⬜ Open |
+| 12 | User-facing error messages: developer language + wrong HTTP status codes | 🔴 High | Error sprint | EHS-44 | ⬜ Open |
