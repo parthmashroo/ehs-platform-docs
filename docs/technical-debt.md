@@ -300,15 +300,15 @@ Handler calls `ca.SoftDelete(request.Reason)` instead of setting fields directly
 
 | # | Finding | Severity | Target | Ticket | Status |
 |---|---|---|---|---|---|
-| 1 | Public status/assignee setters — state machine bypassable | 🔴 High | Phase 3 | EHS-32 | ⬜ Open |
-| 2 | Auto-transition rule in handler, not domain | 🔴 High | Phase 3 | EHS-32 | ⬜ Open |
+| 1 | Public status/assignee setters — state machine bypassable | 🔴 High | Phase 3 | EHS-32 | ✅ Fixed |
+| 2 | Auto-transition rule in handler, not domain | 🔴 High | Phase 3 | EHS-32 | ✅ Fixed |
 | 3 | Unstable pagination — no sort tiebreaker | 🟡 Medium | Phase 3 | EHS-33 | ✅ Fixed |
 | 4 | No pageSize cap — memory bomb | 🟡 Medium | Phase 3 | EHS-33 | ✅ Fixed |
 | 5 | No optimistic concurrency — silent data loss | 🔴 High | Phase 4 | EHS-34 | ⬜ Open |
 | 6 | AssignedToId/ReportedById — no FK or existence check | 🟡 Medium | Phase 4 | EHS-35 | ⬜ Open |
 | 7 | PATCH /assign returns 204 — status change invisible | 🟢 Low | Phase 4/12 | EHS-36 | ⬜ Open |
 | 8 | Re-open from Closed unrestricted | 🟢 Low | Phase 4 | EHS-35 | ⬜ Open |
-| 9 | UpdateCorrectiveAction edits terminal states — audit trail risk | 🟡 Medium | Phase 3 | EHS-37 | ⬜ Open |
-| 10 | SoftDelete logic in handler, not domain — inconsistent, no seam for future guard | 🟡 Medium | Phase 3 | EHS-38 | ⬜ Open |
+| 9 | UpdateCorrectiveAction edits terminal states — audit trail risk | 🟡 Medium | Phase 3 | EHS-37 | ✅ Fixed |
+| 10 | SoftDelete logic in handler, not domain — inconsistent, no seam for future guard | 🟡 Medium | Phase 3 | EHS-38 | ✅ Fixed |
 | 11 | All detail endpoints embed child lists — system-wide pattern should be count + lazy load | 🟢 Low | Phase 12 | — | ⬜ Open |
 | 12 | User-facing error messages: developer language + wrong HTTP status codes | 🔴 High | Error sprint | EHS-44 | ⬜ Open |
