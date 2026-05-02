@@ -29,7 +29,7 @@
 | Phase 1 — Core Domain + Incident Reporting | ✅ Complete |
 | Phase 2 — Incident Lifecycle (Status Machine) | ✅ Complete |
 | Phase 3 — Corrective Actions | ✅ Complete |
-| Phase 4 — Users & Authentication | ⬜ Next |
+| Phase 4 — Users & Authentication | 🔄 In Progress |
 | Phase 5+ | Not started |
 
 ---
@@ -81,8 +81,8 @@
 
 | Ticket | Description | Status |
 |---|---|---|
-| EHS-39 | User entity, UserRole enum, EF config, migration | ⬜ Open |
-| EHS-40 | ICurrentUserService interface + implementation | ⬜ Open |
+| EHS-39 | User entity, UserRole enum, EF config, migration | ✅ Done |
+| EHS-40 | ICurrentUserService interface + implementation | 🔄 In Progress |
 | EHS-41 | AuthController — Register + Login + JWT generation | ⬜ Open |
 | EHS-42 | [Authorize] on all endpoints + role restrictions + wire ICurrentUserService | ⬜ Open |
 | EHS-43 | Phase 4 docs update | ⬜ Open |
@@ -144,6 +144,8 @@ Open: `http://localhost:5147/swagger`
 | Microsoft.EntityFrameworkCore.Tools | 8.x | Infrastructure | Migrations |
 | xUnit | 2.x | Domain.Tests | Unit test framework |
 | FluentAssertions | 8.9.0 | Domain.Tests | Assertion library (non-commercial only — see technical-debt.md) |
+
+> **Note:** `EHSPlatform.Infrastructure` uses `<FrameworkReference Include="Microsoft.AspNetCore.App" />` in its `.csproj` instead of a NuGet package for ASP.NET Core types (`IHttpContextAccessor`, etc.). This is the correct approach for class libraries targeting `net8.0` — no version number needed, picks up the app's framework version automatically.
 
 > Update this table every time a new package is added.
 
@@ -795,6 +797,92 @@ InvalidStatusTransitionException thrown for any invalid jump.
 
 ---
 
+## Auth & JWT — Full Architecture (Phase 4)
+
+### Why ICurrentUserService exists
+
+Every handler that does something protected needs to know: who is making this request? Their user ID, their tenant, their role. Without this service, every handler would reach directly into `HttpContext` — that is Infrastructure code leaking into Application, breaking Clean Architecture.
+
+The **interface** lives in Application (the contract). The **implementation** lives in Infrastructure (reads from HttpContext). Handlers inject the interface and never know about HTTP. If you switch to background jobs, CLI, or a fake for tests — handlers don't change.
+
+### The full JWT request cycle
+
+```
+LOGIN:
+  POST /api/auth/login (email + password)
+  → LoginCommandHandler reads User from DB
+  → BCrypt.Verify(password, user.PasswordHash) → true
+  → Build JWT claims: uid, tid, ClaimTypes.Role, ctype
+  → Sign with our secret key
+  → Return JWT string to client
+
+EVERY SUBSEQUENT REQUEST:
+  Client sends: Authorization: Bearer <jwt>
+  → JWT middleware validates signature + expiry
+  → Decodes payload → builds ClaimsPrincipal
+  → Assigns to HttpContext.User automatically
+  → CurrentUserService reads: HttpContext.User.FindFirstValue("uid")
+  → Handler uses: _currentUserService.UserId
+```
+
+### Our JWT claim names
+
+| Claim key | Contains | Example |
+|---|---|---|
+| `"uid"` | User.Id (our DB primary key) | `Guid` |
+| `"tid"` | User.TenantId (Organisation they belong to) | `Guid` |
+| `ClaimTypes.Role` | User.Role enum value | `"SafetyOfficer"` |
+| `"ctype"` | User.CompanyType enum value | `"Client"` |
+
+We define these names — they are not set by Microsoft or Okta. They are embedded in the JWT by our `LoginCommandHandler` at login time and read back by `CurrentUserService` on every request.
+
+### BCrypt — why there is no PasswordSalt column
+
+BCrypt embeds the salt inside the hash string itself. The output of `BCrypt.HashPassword("password")` is a single string like `"$2a$11$<salt+hash combined>"`. Verification is `BCrypt.Verify("password", storedHash)` — BCrypt extracts the salt internally. A separate `PasswordSalt` column is an artifact of older manual SHA-256 hashing and is not needed.
+
+### JWT middleware setup (EHS-41)
+
+```csharp
+// Program.cs — what we add in EHS-41
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options => {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Secret"]!)),
+            ValidateIssuer = false,
+            ValidateAudience = false
+        };
+    });
+
+app.UseAuthentication(); // decodes JWT → HttpContext.User
+app.UseAuthorization();  // enforces [Authorize] attributes
+```
+
+### What changes when Azure AD / Okta arrives (Phase 14)
+
+Their token is used **once at login** as proof of identity. After that, we issue our own JWT with our own claim names. `CurrentUserService` never changes — it always reads from our JWT.
+
+```
+Phase 4:  User authenticates with email + password → we issue our JWT
+Phase 14: User authenticates with Microsoft/Okta → we validate their token ONCE
+          → look up our DB → issue our JWT with same claim names → same CurrentUserService
+```
+
+### Refresh tokens — Phase 14 deferred decision
+
+Phase 4 uses simple re-login: when our JWT expires (12 hours), client gets a 401 and re-authenticates. This is acceptable for early phases.
+
+Phase 14 adds refresh tokens:
+- **Access token** — short-lived (15-60 min), sent on every API call
+- **Refresh token** — long-lived (7-30 days), stored securely, sent only to `POST /api/auth/refresh`
+- When access token expires: client sends refresh token → we issue new access token → user never sees a logout
+- If refresh token is stolen: revoke it in DB → forces re-login on next use
+
+The user experience: logs in once, stays logged in for weeks, with access tokens rotating silently every hour.
+
+---
+
 ## Anti-Procrastination Rules (Read This If Drifting)
 
 1. One phase at a time. Never plan Phase 5 while building Phase 1.
@@ -817,6 +905,7 @@ InvalidStatusTransitionException thrown for any invalid jump.
 | Session 4 | Apr 2026 | Phase 0 complete. Phase 1 started. EHS-11 through EHS-16 complete. |
 | Session 5 | Apr 2026 | EHS-17, EHS-18, EHS-20 complete. Phase 1 DONE. GitHub + Jira connected to Claude Code. Docs repo cloned locally. Ready for Phase 2. |
 | Session 6 | Apr 2026 | Phase 2 DONE. EHS-21 through EHS-25 complete. State machine (TransitionTo), PaginatedList, UpdateIncident/UpdateStatus/AssignIncident commands, full controller with 6 endpoints. All tested via Swagger — 422 on invalid transitions confirmed working. Testing strategy locked: tests ship with code from Phase 3 onwards. |
+| Session 7 | May 2026 | Phase 3 DONE (from previous session). Phase 4 started. EHS-32/37/38 domain encapsulation debt paid off. EHS-39 User entity + migration done. EHS-40 ICurrentUserService in progress. Auth/JWT full cycle documented. Technical debt EHS-44 (error messages) logged and deferred. Collaboration rule locked: code changes are Parth's, doc changes are Claude's. |
 
 ---
 
