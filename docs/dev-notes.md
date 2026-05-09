@@ -82,8 +82,8 @@
 | Ticket | Description | Status |
 |---|---|---|
 | EHS-39 | User entity, UserRole enum, EF config, migration | ✅ Done |
-| EHS-40 | ICurrentUserService interface + implementation | 🔄 In Progress |
-| EHS-41 | AuthController — Register + Login + JWT generation | ⬜ Open |
+| EHS-40 | ICurrentUserService interface + implementation | ✅ Done |
+| EHS-41 | AuthController — Register + Login + JWT generation + global email uniqueness + IsActive login guard | ✅ Done |
 | EHS-42 | [Authorize] on all endpoints + role restrictions + wire ICurrentUserService | ⬜ Open |
 | EHS-43 | Phase 4 docs update | ⬜ Open |
 
@@ -130,6 +130,8 @@ Open: `http://localhost:5147/swagger`
 - `GET /api/correctiveactions/{id}` — get corrective action details
 - `PUT /api/correctiveactions/{id}` — update a corrective action
 - `PATCH /api/correctiveactions/{id}/status` — update corrective action status
+- `POST /api/auth/register` — create a new organisation and first admin user, returns JWT
+- `POST /api/auth/login` — login with email and password, returns JWT
 
 ---
 
@@ -142,8 +144,12 @@ Open: `http://localhost:5147/swagger`
 | Microsoft.EntityFrameworkCore | 8.x | Infrastructure | ORM |
 | Microsoft.EntityFrameworkCore.SqlServer | 8.x | Infrastructure | SQL Server provider |
 | Microsoft.EntityFrameworkCore.Tools | 8.x | Infrastructure | Migrations |
-| xUnit | 2.x | Domain.Tests | Unit test framework |
-| FluentAssertions | 8.9.0 | Domain.Tests | Assertion library (non-commercial only — see technical-debt.md) |
+| xUnit | 2.x | Domain.Tests, Application.Tests | Unit test framework |
+| FluentAssertions | 8.9.0 | Domain.Tests, Application.Tests | Assertion library (non-commercial only — see technical-debt.md) |
+| BCrypt.Net-Next | 4.0.3 | Infrastructure | Password hashing (salt embedded in hash — no PasswordSalt column) |
+| Microsoft.AspNetCore.Authentication.JwtBearer | 8.0.0 | Infrastructure | JWT Bearer middleware + token validation |
+| Moq | 4.20.72 | Application.Tests | Mocking interfaces in handler tests |
+| Microsoft.EntityFrameworkCore.InMemory | 8.0.0 | Application.Tests | In-memory DB for handler integration tests |
 
 > **Note:** `EHSPlatform.Infrastructure` uses `<FrameworkReference Include="Microsoft.AspNetCore.App" />` in its `.csproj` instead of a NuGet package for ASP.NET Core types (`IHttpContextAccessor`, etc.). This is the correct approach for class libraries targeting `net8.0` — no version number needed, picks up the app's framework version automatically.
 
@@ -883,6 +889,41 @@ The user experience: logs in once, stays logged in for weeks, with access tokens
 
 ---
 
+## Future Phase Design Decisions (Don't Build Early)
+
+### GDPR & Compliance — Phase 14+ concern
+The platform has not been formally designed for GDPR, OSHA, or ISO 45001 compliance yet. Key conflicts to resolve:
+- **Soft deletes vs Right to Erasure** — resolved via pseudonymisation (replace personal identifiers with anonymous tokens, keep audit records intact)
+- **Data minimisation** — only collect what's needed (currently fine)
+- **Data portability** — export a user's data on request (needs a future endpoint)
+- **Breach notification** — 72-hour window requirement
+- **Admin data access** — admins reading other users' data (even read-only "shadow mode") is a GDPR violation in many jurisdictions. Do not build impersonation or shadow mode without legal review.
+
+Add a formal GDPR/compliance phase before the platform goes near real clients.
+
+### Localisation / i18n — Phase 12+ concern
+All hardcoded error messages (e.g. "Invalid email or password.") need to go through a resource file or message catalogue when localisation is added. Flag every hardcoded user-facing string for this phase.
+
+### Resource-level Authorization — Phase 5/6 concern
+Users who are named on a record (author, approver, assignee) must retain permanent read access regardless of role changes. Authorization check:
+```
+canView = hasRolePermission OR isAuthor OR isApprover OR isAssignee
+```
+Design this properly when building the audit log (Phase 6).
+
+### Role Change & Audit Trail
+When a user's role changes, historical records they created/approved must remain attributed to them with their name permanently. Role changes do not rewrite history. Implement via immutable `ChangedById` on AuditLog — the name is resolved from User at read time, not stored inline.
+
+### Permissions Layer (Phase 8+)
+One role per user is correct for Phase 4. When needed:
+- Permissions layer sits on top of roles
+- A role is a preset bundle of permissions
+- Admins can add/remove individual permissions per user (overrides)
+- Org admins can customise what each role can do in their org (configurable per company)
+- Do NOT add multiple roles per user — use permission overrides instead
+
+---
+
 ## Anti-Procrastination Rules (Read This If Drifting)
 
 1. One phase at a time. Never plan Phase 5 while building Phase 1.
@@ -906,6 +947,7 @@ The user experience: logs in once, stays logged in for weeks, with access tokens
 | Session 5 | Apr 2026 | EHS-17, EHS-18, EHS-20 complete. Phase 1 DONE. GitHub + Jira connected to Claude Code. Docs repo cloned locally. Ready for Phase 2. |
 | Session 6 | Apr 2026 | Phase 2 DONE. EHS-21 through EHS-25 complete. State machine (TransitionTo), PaginatedList, UpdateIncident/UpdateStatus/AssignIncident commands, full controller with 6 endpoints. All tested via Swagger — 422 on invalid transitions confirmed working. Testing strategy locked: tests ship with code from Phase 3 onwards. |
 | Session 7 | May 2026 | Phase 3 DONE (from previous session). Phase 4 started. EHS-32/37/38 domain encapsulation debt paid off. EHS-39 User entity + migration done. EHS-40 ICurrentUserService in progress. Auth/JWT full cycle documented. Technical debt EHS-44 (error messages) logged and deferred. Collaboration rule locked: code changes are Parth's, doc changes are Claude's. |
+| Session 8 | May 2026 | EHS-41 DONE. AuthController + Register/Login commands + JWT generation + BCrypt hashing + 27 passing tests. Post-commit fixes: IsActive check on login, global email uniqueness enforced at DB level. EHSPlatform.Application.Tests project created. Deep design discussions: role-change audit trail, resource-level authorization, impersonation/shadow mode risks, GDPR compliance gap identified (needs future phase). |
 
 ---
 

@@ -16,7 +16,7 @@ Written so any AI assistant can resume this project with full context from any s
 
 **Practice machine:** Personal machine only. Never on company laptop.
 
-**Current status:** Phase 0 ✅ Phase 1 ✅ Phase 2 ✅ Phase 3 ✅ Phase 4 next.
+**Current status:** Phase 0 ✅ Phase 1 ✅ Phase 2 ✅ Phase 3 ✅ Phase 4 🔄 In Progress.
 
 
 
@@ -500,13 +500,11 @@ User
 
 - TenantId (Guid) → Organization
 
-- Email (string, unique per tenant)
+- Email (string, globally unique — enforced at DB level, EHS-41)
 
 - FullName (string)
 
-- PasswordHash (string)
-
-- PasswordSalt (string)
+- PasswordHash (string)    ← BCrypt embeds salt — no PasswordSalt column needed
 
 - Role (enum: OrganizationAdmin, SafetyOfficer, ComplianceManager, IncidentReviewer,
 
