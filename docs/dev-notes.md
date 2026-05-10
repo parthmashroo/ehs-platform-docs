@@ -84,7 +84,7 @@
 | EHS-39 | User entity, UserRole enum, EF config, migration | ✅ Done |
 | EHS-40 | ICurrentUserService interface + implementation | ✅ Done |
 | EHS-41 | AuthController — Register + Login + JWT generation + global email uniqueness + IsActive login guard | ✅ Done |
-| EHS-42 | [Authorize] on all endpoints + role restrictions + wire ICurrentUserService | ⬜ Open |
+| EHS-42 | [Authorize] on all endpoints + role restrictions + wire ICurrentUserService | ✅ Done |
 | EHS-43 | Phase 4 docs update | ⬜ Open |
 
 ---
@@ -948,6 +948,7 @@ One role per user is correct for Phase 4. When needed:
 | Session 6 | Apr 2026 | Phase 2 DONE. EHS-21 through EHS-25 complete. State machine (TransitionTo), PaginatedList, UpdateIncident/UpdateStatus/AssignIncident commands, full controller with 6 endpoints. All tested via Swagger — 422 on invalid transitions confirmed working. Testing strategy locked: tests ship with code from Phase 3 onwards. |
 | Session 7 | May 2026 | Phase 3 DONE (from previous session). Phase 4 started. EHS-32/37/38 domain encapsulation debt paid off. EHS-39 User entity + migration done. EHS-40 ICurrentUserService in progress. Auth/JWT full cycle documented. Technical debt EHS-44 (error messages) logged and deferred. Collaboration rule locked: code changes are Parth's, doc changes are Claude's. |
 | Session 8 | May 2026 | EHS-41 DONE. AuthController + Register/Login commands + JWT generation + BCrypt hashing + 27 passing tests. Post-commit fixes: IsActive check on login, global email uniqueness enforced at DB level. EHSPlatform.Application.Tests project created. Deep design discussions: role-change audit trail, resource-level authorization, impersonation/shadow mode risks, GDPR compliance gap identified (needs future phase). |
+| Session 9 | May 2026 | EHS-42 DONE. [Authorize] on IncidentsController + CorrectiveActionsController. [AllowAnonymous] on AuthController. ForbiddenAccessException → 403 in middleware. ReportedById wired from ICurrentUserService (removed from request body). Closed transition guarded to SafetyOfficer/OrganizationAdmin only. AssignIncidentHandler validates assignee exists and is active. 15 Application tests + 22 Domain tests all green. EHS-45 created: Architecture Spike — Concurrency, Consistency, Auditability and Traceability Strategy (identified during session as system-wide gap). |
 
 ---
 
