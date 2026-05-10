@@ -334,8 +334,8 @@ throughput under load, deadlock risk rises non-linearly with concurrent users.
 
 ### Gap 2 — Read-Write Inconsistency (Stale Reads)
 
-**Decision:** Direct DB reads until Phase 7. FusionCache with in-memory L1 in Phase 7.
-Redis as FusionCache L2 backend when horizontal scaling demands a shared cache.
+**Decision:** Direct DB reads until Phase 7. Redis for caching from Phase 7 onward.
+`IDistributedCache` abstraction (backed by StackExchange.Redis) wired in Phase 5 — no caching logic yet.
 
 **Scale threshold (corrected after multi-AI review):** "Direct DB reads are sufficient"
 expires at approximately 250 concurrent active tenants under the synchronised shift-change
@@ -348,12 +348,12 @@ burst pattern. Each worker check-in costs ~7 DB round-trips.
 | ~250 | ~3,500 | Direct reads becoming a liability |
 | 500+ | ~7,000+ | Redis required |
 
-**Phase 5:** Wire Redis in `docker-compose.yml` + register `IFusionCache` in DI.
+**Phase 5:** Wire Redis in `docker-compose.yml` + register `IDistributedCache` (StackExchange.Redis) in DI.
 No caching logic yet. Establish cache key convention: `tenant:{tenantId}:{entity}:{id}`.
 
-**Phase 7:** Activate FusionCache. Start in-memory only (zero infra cost, works for a single
-API instance). When 2+ instances are needed simultaneously, add Redis as L2 — one connection
-string change, no code changes in handlers.
+**Phase 7:** Activate Redis caching in query handlers. Start with reference data and aggregate counts.
+When horizontal scaling is needed (2+ API instances), the same Redis instance is already shared —
+zero code changes, only a connection string change for production.
 
 **Caching scope — critical rule, never cache live operational state with a TTL:**
 
@@ -372,11 +372,11 @@ string change, no code changes in handlers.
 | Early production | Self-hosted Redis on a £5-10/mo VM alongside the app | £5-10/mo |
 | Scale (250+ tenants) | Azure Cache for Redis Basic/Standard | £40-150/mo |
 
-**Why not CQRS projections / separate read store:** FusionCache covers us to 1,000+ tenants.
+**Why not CQRS projections / separate read store:** Redis covers us to 1,000+ tenants.
 Separate read infrastructure is not justified at our scale.
 
 **Why not Azure SQL Read Replicas:** Requires Business Critical SQL tier — ~4× the cost.
-FusionCache achieves the same outcome for the cost of a Docker container.
+Redis achieves the same outcome for the cost of a Docker container.
 
 **Implementation:** EHS-51 (Phase 5 plumbing only), Phase 7 (actual caching logic).
 
@@ -511,12 +511,12 @@ full API surface is known.
 | EHS-48 | TenantId on all existing entities + combined migration (with EHS-46 RowVersion) | Phase 5 |
 | EHS-49 | ClientContractor entity + EF config + migration | Phase 5 |
 | EHS-50 | EF Core Global Query Filters + TenantResolutionMiddleware | Phase 5 |
-| EHS-51 | Redis + FusionCache: docker-compose/Podman, DI wiring, cache key conventions | Phase 5 |
+| EHS-51 | Redis IDistributedCache: docker-compose/Podman, DI wiring, cache key conventions | Phase 5 |
 | EHS-52 | Elasticsearch + Kibana local Docker/Podman setup + SQL Full-Text comparison spike | Phase 5 (learning) |
 | EHS-53 | Phase 5 docs update | Phase 5, last step |
 | Phase 6 | EntityAuditLog + SecurityAuditLog + BusinessRuleAuditLog + Ledger Tables | Phase 6 |
-| Phase 7 | FusionCache tiered caching: explicit invalidation in write handlers | Phase 7 |
-| Phase 8 | Redis as FusionCache L2 + idempotency keys + rate limiting | Phase 8 |
+| Phase 7 | Redis caching: reference data + aggregate counts, explicit invalidation in write handlers | Phase 7 |
+| Phase 8 | Idempotency keys + rate limiting | Phase 8 |
 | Phase 9 | Outbox + domain events + Elasticsearch indexing + CausationId | Phase 9 |
 | Phase 11 | Elasticsearch production evaluation vs SQL Full-Text at real load | Phase 11 |
 
@@ -535,7 +535,7 @@ full API surface is known.
 | BinaryFormatter (Redis) | Obsolete in .NET 5+, use System.Text.Json instead |
 | Pessimistic DB locking | Holds connections across HTTP lifecycle, deadlocks under load |
 | Broad TTL caching of live operational data | Stale incident/permit status is a safety risk in compliance domain |
-| CQRS separate read store (current phases) | FusionCache covers us to 1,000+ tenants; separate read store is not justified yet |
+| CQRS separate read store (current phases) | Redis covers us to 1,000+ tenants; separate read store is not justified yet |
 | Event sourcing | AuditLog + RowVersion provides 95% of the benefit at 10% of the complexity |
 | Native iOS/Android mobile app | React web app with mobile-responsive design covers Phase 12 needs |
 
