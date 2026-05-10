@@ -299,6 +299,128 @@ tested once — not reimplemented per source. Real extensibility cost is predict
 
 ---
 
+## ADR-012: Concurrency, Consistency, Auditability, and Traceability Strategy
+
+**Context:** EHS-45 (Architecture Spike). Identified before Phase 5 as a system-wide gap.
+All four decisions below are locked. Do not revisit.
+
+---
+
+### Gap 1 — Write-Write Concurrency (Lost Updates)
+
+**Decision:** EF Core optimistic concurrency via `RowVersion` on `BaseEntity`.
+
+Add a `public byte[] RowVersion { get; set; }` property to `BaseEntity`. Configure it with
+`.IsRowVersion()` in each entity's EF configuration — EF Core automatically adds the
+`WHERE RowVersion = @originalRowVersion` check to every UPDATE and DELETE. If the row changed
+between read and write, EF throws `DbUpdateConcurrencyException`. Catch this in
+`ExceptionHandlingMiddleware` and return 409 Conflict with Problem Details.
+
+**Implementation timing:** EHS-46, done as the first step of Phase 5 (already touching all entities
+for TenantId, so one migration covers both).
+
+**Why not pessimistic locking:** Requires open DB connections across the HTTP request
+lifecycle, kills throughput, incompatible with stateless JWT API. Deadlock risk rises
+non-linearly with concurrent users.
+
+**Why not event sourcing:** A major architectural shift — store state as a sequence of
+immutable events rather than current state. Correct response if we needed full replay,
+CQRS projections, or temporal queries. We don't — our AuditLog (see Gap 3) satisfies all
+traceability needs at 5% of the complexity. Event sourcing before Phase 5 multi-tenancy
+would also need to be redesigned when TenantId lands. Deferred permanently — revisit only
+if a specific business requirement forces it.
+
+**Why not last-write-wins (status quo):** Silently corrupts data. In a compliance domain
+where incident records are legally significant, this is unacceptable.
+
+---
+
+### Gap 2 — Read-Write Inconsistency (Stale Reads)
+
+**Decision:** Direct DB reads (strongly consistent) until Phase 8. In Phase 8, Redis cache
+with explicit invalidation at write time.
+
+Until Phase 8: every query hits the DB directly. SQL Server read-committed isolation
+guarantees no stale reads within a transaction. No separate read model, no projections,
+no eventual consistency at this scale.
+
+Phase 8 cache invalidation contract: every write command handler that modifies an entity
+MUST call `ICacheService.Remove(cacheKey)` after `SaveChangesAsync` succeeds. The write
+and the cache eviction are not atomic — there is a narrow window where a reader can get
+stale cache after a write. This is acceptable. Staleness is bounded by the cache TTL
+(configurable, default 60s). Stale reads never show deleted records — `IsDeleted` filter
+is always applied on DB read.
+
+**Why not CQRS projections / separate read store:** Our user scale — hundreds of
+concurrent users per tenant, not millions — does not justify separate read infrastructure.
+Direct DB reads with proper indexes (added in Phase 5+) are sub-millisecond at this scale.
+A separate read store introduces synchronisation lag, additional infrastructure, and a
+full event publishing layer. None of that is justified here.
+
+---
+
+### Gap 3 — Audit Trail (Who Changed What, When)
+
+**Decision:** EF Core `SaveChangesInterceptor` (AuditInterceptor) in Phase 6. Scope
+confirmed and extended by this spike.
+
+The interceptor captures on every SaveChanges call:
+- `EntityName` — "Incident", "CorrectiveAction"
+- `EntityId` — the PK of the changed entity
+- `Action` — Created, Updated, Deleted
+- `ChangedById` — from `ICurrentUserService.UserId`
+- `ChangedAt` — `DateTime.UtcNow`
+- `OldValues` — JSON snapshot of changed properties before write
+- `NewValues` — JSON snapshot of changed properties after write
+- `CorrelationId` — the request's correlation ID (see Gap 4)
+
+AuditLog rows are immutable — no UPDATE or DELETE is ever issued against AuditLog.
+This is enforced by having AuditLog not implement any soft-delete interface and having
+no handler that writes to it directly (only the interceptor does).
+
+**Extended scope from this spike:** CorrelationId is now required on every AuditLog row.
+This was not in the original Phase 6 plan. It was identified as necessary during EHS-45
+to link audit records to the HTTP request that caused them.
+
+---
+
+### Gap 4 — Issue Replay and Traceability
+
+**Decision:** Structured Serilog logs + AuditLog table + CorrelationId provide complete
+traceability. No event sourcing. No distributed tracing infrastructure.
+
+The combination of:
+1. Serilog structured logs — every HTTP request, command, handler, exception logged with
+   CorrelationId as a structured property (via Serilog enricher, see EHS-47)
+2. AuditLog table (Phase 6) — every entity change recorded with CorrelationId
+3. CorrelationId propagated through both (the join key between logs and DB records)
+
+...gives full operation replay without event sourcing.
+
+**How to reconstruct any user session:**
+- By user: `SELECT * FROM AuditLogs WHERE ChangedById = @userId ORDER BY ChangedAt`
+- By record: `SELECT * FROM AuditLogs WHERE EntityId = @incidentId ORDER BY ChangedAt`
+- By request: `SELECT * FROM AuditLogs WHERE CorrelationId = @correlationId`
+- Cross-reference with Serilog logs for the full handler execution trace
+
+**Why this is sufficient:** "Replay" in event sourcing means reconstructing current state
+from events because state is not stored directly. We store state directly (the Incident row
+is always current state). What we need is to replay the *investigation history* — who did
+what to a record. AuditLog gives exactly that, with no event sourcing complexity.
+
+---
+
+### Implementation Tickets (Sequenced)
+
+| Ticket | Description | Phase |
+|---|---|---|
+| EHS-46 | Add RowVersion to BaseEntity + 409 handler in ExceptionHandlingMiddleware | Phase 5, step 1 |
+| EHS-47 | Wire CorrelationId through Serilog enricher (propagate on every log entry) | Phase 5 |
+| Phase 6 | AuditInterceptor with CorrelationId included — scope confirmed by EHS-45 | Phase 6 |
+| Phase 8 | Redis cache + explicit invalidation on all write commands | Phase 8 |
+
+---
+
 ## What We Deliberately Did NOT Do (and Why)
 
 | Rejected Approach | Why Rejected |
