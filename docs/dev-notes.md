@@ -29,7 +29,7 @@
 | Phase 1 — Core Domain + Incident Reporting | ✅ Complete |
 | Phase 2 — Incident Lifecycle (Status Machine) | ✅ Complete |
 | Phase 3 — Corrective Actions | ✅ Complete |
-| Phase 4 — Users & Authentication | 🔄 In Progress |
+| Phase 4 — Users & Authentication | ✅ Complete |
 | Phase 5+ | Not started |
 
 ---
@@ -85,7 +85,7 @@
 | EHS-40 | ICurrentUserService interface + implementation | ✅ Done |
 | EHS-41 | AuthController — Register + Login + JWT generation + global email uniqueness + IsActive login guard | ✅ Done |
 | EHS-42 | [Authorize] on all endpoints + role restrictions + wire ICurrentUserService | ✅ Done |
-| EHS-43 | Phase 4 docs update | ⬜ Open |
+| EHS-43 | Phase 4 docs update | ✅ Done |
 
 ---
 

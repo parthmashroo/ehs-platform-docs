@@ -16,7 +16,7 @@ Written so any AI assistant can resume this project with full context from any s
 
 **Practice machine:** Personal machine only. Never on company laptop.
 
-**Current status:** Phase 0 ✅ Phase 1 ✅ Phase 2 ✅ Phase 3 ✅ Phase 4 🔄 In Progress.
+**Current status:** Phase 0 ✅ Phase 1 ✅ Phase 2 ✅ Phase 3 ✅ Phase 4 ✅ Phase 5 next.
 
 
 
@@ -1316,7 +1316,7 @@ New concepts: One-to-many in EF, nested resources, cross-entity business rules.
 
 
 
-### Phase 4: Users & Authentication 🔄 IN PROGRESS
+### Phase 4: Users & Authentication ✅ COMPLETE
 
 **Goal:** Real users with JWT. Roles enforced on endpoints.
 
@@ -1326,25 +1326,31 @@ New concepts: JWT in .NET 8, role-based authorization, password hashing, ICurren
 
 
 
-- [ ] User entity + UserRole enum (all 8 roles)
+- [x] User entity + UserRole enum (all 8 roles)
 
-- [ ] AuthController: Register (creates Organization + first Admin user), Login
+- [x] AuthController: Register (creates Organization + first Admin user), Login
 
-- [ ] JWT generation with claims: userId, tenantId, companyType, email, role
+- [x] JWT generation with claims: userId, tenantId, companyType, email, role
 
-- [ ] ICurrentUserService + implementation via IHttpContextAccessor
+- [x] ICurrentUserService + implementation via IHttpContextAccessor
 
-- [ ] [Authorize] on all incident/CA endpoints
+- [x] [Authorize] on all incident/CA endpoints. [AllowAnonymous] on AuthController.
 
-- [ ] Role restrictions: only SafetyOfficer/OrganizationAdmin can close incidents
+- [x] ForbiddenAccessException → 403 in ExceptionHandlingMiddleware
 
-- [ ] ReportedById on Incident uses current user from JWT
+- [x] Role restrictions: only SafetyOfficer/OrganizationAdmin can close incidents (handler-level guard, Phase 8 replaces with permissions layer)
 
-- [ ] Commit: `"Phase 4: Authentication and authorization"`
+- [x] ReportedById on Incident wired from ICurrentUserService.UserId (removed from request body)
+
+- [x] AssignIncidentHandler validates assignee exists and is active in DB
+
+- [x] 15 Application tests + 22 Domain tests all passing
+
+- [x] EHS-45 logged: Architecture Spike — Concurrency, Consistency, Auditability & Traceability (to be resolved before Phase 5 code is written)
 
 
 
-**Done when:** Must login to use API. Role restrictions enforced.
+**Done when:** Must login to use API. Role restrictions enforced. ✅
 
 
 
@@ -1798,4 +1804,4 @@ dotnet run --project src/EHSPlatform.API
 
 
 
-**Current status: Phase 0 ✅ Phase 1 ✅ Phase 2 ✅ Phase 3 ✅ Phase 4 next.**
+**Current status: Phase 0 ✅ Phase 1 ✅ Phase 2 ✅ Phase 3 ✅ Phase 4 ✅ Phase 5 next.**
