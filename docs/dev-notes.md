@@ -94,8 +94,14 @@
 
 | Ticket | Description | Status |
 |---|---|---|
-| EHS-46 | Add RowVersion optimistic concurrency to BaseEntity + 409 handler | ⬜ To Do |
-| EHS-47 | Wire CorrelationId through Serilog enricher + IRequestContext interface | ⬜ To Do |
+| EHS-46 | RowVersion on BaseEntity + ETag/If-Match contract + 412/428/409 handler | ⬜ To Do |
+| EHS-47 | CorrelationId: Serilog enricher + IRequestContext + stamp on all audit rows | ⬜ To Do |
+| EHS-48 | TenantId on all existing entities + combined migration (with EHS-46 RowVersion) | ⬜ To Do |
+| EHS-49 | ClientContractor entity + EF config + migration | ⬜ To Do |
+| EHS-50 | EF Core Global Query Filters + TenantResolutionMiddleware | ⬜ To Do |
+| EHS-51 | Redis + FusionCache: docker-compose/Podman wiring + cache key conventions | ⬜ To Do |
+| EHS-52 | Elasticsearch + Kibana local Docker/Podman setup + SQL Full-Text comparison spike | ⬜ To Do |
+| EHS-53 | Phase 5 docs update | ⬜ To Do |
 
 ---
 
@@ -959,7 +965,7 @@ One role per user is correct for Phase 4. When needed:
 | Session 7 | May 2026 | Phase 3 DONE (from previous session). Phase 4 started. EHS-32/37/38 domain encapsulation debt paid off. EHS-39 User entity + migration done. EHS-40 ICurrentUserService in progress. Auth/JWT full cycle documented. Technical debt EHS-44 (error messages) logged and deferred. Collaboration rule locked: code changes are Parth's, doc changes are Claude's. |
 | Session 8 | May 2026 | EHS-41 DONE. AuthController + Register/Login commands + JWT generation + BCrypt hashing + 27 passing tests. Post-commit fixes: IsActive check on login, global email uniqueness enforced at DB level. EHSPlatform.Application.Tests project created. Deep design discussions: role-change audit trail, resource-level authorization, impersonation/shadow mode risks, GDPR compliance gap identified (needs future phase). |
 | Session 9 | May 2026 | EHS-42 DONE. [Authorize] on IncidentsController + CorrectiveActionsController. [AllowAnonymous] on AuthController. ForbiddenAccessException → 403 in middleware. ReportedById wired from ICurrentUserService (removed from request body). Closed transition guarded to SafetyOfficer/OrganizationAdmin only. AssignIncidentHandler validates assignee exists and is active. 15 Application tests + 22 Domain tests all green. EHS-45 created: Architecture Spike — Concurrency, Consistency, Auditability and Traceability Strategy (identified during session as system-wide gap). |
-| Session 10 | May 2026 | EHS-45 DONE. ADR-012 written: optimistic concurrency (RowVersion on BaseEntity), no event sourcing, no CQRS read models, direct DB reads until Phase 8, AuditInterceptor scope confirmed with CorrelationId on every row. EHS-46 created (RowVersion + 409 handler, Phase 5 step 1). EHS-47 created (CorrelationId Serilog enricher + IRequestContext, Phase 5). Phase 5 is next. |
+| Session 10 | May 2026 | EHS-45 DONE. ADR-012 written and then expanded after multi-AI review (ChatGPT, Gemini, Claude, LLM Council). Final decisions: RowVersion + ETag/If-Match (both header and body), three audit tables (Entity + Security + BusinessRule) + Azure SQL Ledger Tables, FusionCache in-memory first then Redis as L2, scale threshold corrected to ~250 tenants, Elasticsearch adopted progressively (local Docker for learning, SQL Full-Text in production until Phase 11), rate limiting and idempotency deferred as tech debt. Redis and Elasticsearch both finalized — local Docker/Podman free forever, self-hosted VM for early production. Audit table structure (shared 3 vs per-entity 3) left OPEN for Phase 6 decision. EHS-48 through EHS-53 created. Sprint 3 closed, Sprint 4 started for Phase 5. |
 
 ---
 

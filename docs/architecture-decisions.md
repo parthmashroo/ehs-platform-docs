@@ -301,112 +301,204 @@ tested once — not reimplemented per source. Real extensibility cost is predict
 
 ## ADR-012: Concurrency, Consistency, Auditability, and Traceability Strategy
 
-**Context:** EHS-45 (Architecture Spike). Identified before Phase 5 as a system-wide gap.
-All four decisions below are locked. Do not revisit.
+**Context:** EHS-45 (Architecture Spike). Finalised after review against 4 independent AI
+analyses and an LLM council synthesis. All decisions locked unless marked **OPEN**.
 
 ---
 
 ### Gap 1 — Write-Write Concurrency (Lost Updates)
 
-**Decision:** EF Core optimistic concurrency via `RowVersion` on `BaseEntity`.
+**Decision:** EF Core optimistic concurrency via `RowVersion` on `BaseEntity`. Exposed via
+**both** ETag headers (authoritative contract) and `rowVersion` field in response body (convenience).
 
-Add a `public byte[] RowVersion { get; set; }` property to `BaseEntity`. Configure it with
-`.IsRowVersion()` in each entity's EF configuration — EF Core automatically adds the
-`WHERE RowVersion = @originalRowVersion` check to every UPDATE and DELETE. If the row changed
-between read and write, EF throws `DbUpdateConcurrencyException`. Catch this in
-`ExceptionHandlingMiddleware` and return 409 Conflict with Problem Details.
+**API contract (locked):**
+- GET response: `ETag: W/"<base64-rowVersion>"` header AND `rowVersion` field in JSON body
+- PUT/PATCH on state-transition endpoints (Close, Reopen, Approve): `If-Match` is **mandatory**
+- PUT/PATCH on non-critical field edits (description, title): `If-Match` optional
+- Missing `If-Match` on mandatory endpoints → `428 Precondition Required`
+- Stale `If-Match` → `412 Precondition Failed`
+- `DbUpdateConcurrencyException` (domain-level conflict) → `409 Conflict`
 
-**Implementation timing:** EHS-46, done as the first step of Phase 5 (already touching all entities
-for TenantId, so one migration covers both).
+**Why ETags, not body-only:** HTTP caching infrastructure (CDN, proxies, conditional GETs)
+understands ETags natively. The 412 vs 409 distinction is forensically significant in compliance
+audits — "client sent stale token" is a different audit event from "domain state makes this impossible."
 
-**Why not pessimistic locking:** Requires open DB connections across the HTTP request
-lifecycle, kills throughput, incompatible with stateless JWT API. Deadlock risk rises
-non-linearly with concurrent users.
+**Why not pessimistic locking:** Holds DB connections across HTTP request lifecycle, kills
+throughput under load, deadlock risk rises non-linearly with concurrent users.
 
-**Why not event sourcing:** A major architectural shift — store state as a sequence of
-immutable events rather than current state. Correct response if we needed full replay,
-CQRS projections, or temporal queries. We don't — our AuditLog (see Gap 3) satisfies all
-traceability needs at 5% of the complexity. Event sourcing before Phase 5 multi-tenancy
-would also need to be redesigned when TenantId lands. Deferred permanently — revisit only
-if a specific business requirement forces it.
+**Why not event sourcing:** AuditLog (Gap 3) satisfies all traceability needs. Deferred permanently.
 
-**Why not last-write-wins (status quo):** Silently corrupts data. In a compliance domain
-where incident records are legally significant, this is unacceptable.
+**Implementation:** EHS-46, Phase 5 first step.
 
 ---
 
 ### Gap 2 — Read-Write Inconsistency (Stale Reads)
 
-**Decision:** Direct DB reads (strongly consistent) until Phase 8. In Phase 8, Redis cache
-with explicit invalidation at write time.
+**Decision:** Direct DB reads until Phase 7. FusionCache with in-memory L1 in Phase 7.
+Redis as FusionCache L2 backend when horizontal scaling demands a shared cache.
 
-Until Phase 8: every query hits the DB directly. SQL Server read-committed isolation
-guarantees no stale reads within a transaction. No separate read model, no projections,
-no eventual consistency at this scale.
+**Scale threshold (corrected after multi-AI review):** "Direct DB reads are sufficient"
+expires at approximately 250 concurrent active tenants under the synchronised shift-change
+burst pattern. Each worker check-in costs ~7 DB round-trips.
 
-Phase 8 cache invalidation contract: every write command handler that modifies an entity
-MUST call `ICacheService.Remove(cacheKey)` after `SaveChangesAsync` succeeds. The write
-and the cache eviction are not atomic — there is a narrow window where a reader can get
-stale cache after a write. This is acceptable. Staleness is bounded by the cache TTL
-(configurable, default 60s). Stale reads never show deleted records — `IsDeleted` filter
-is always applied on DB read.
+| Active tenants | Peak DB ops/sec at shift change | Verdict |
+|---|---|---|
+| Up to 50 | ~700 | Comfortable — direct DB fine |
+| 100 | ~1,400 | Manageable |
+| ~250 | ~3,500 | Direct reads becoming a liability |
+| 500+ | ~7,000+ | Redis required |
 
-**Why not CQRS projections / separate read store:** Our user scale — hundreds of
-concurrent users per tenant, not millions — does not justify separate read infrastructure.
-Direct DB reads with proper indexes (added in Phase 5+) are sub-millisecond at this scale.
-A separate read store introduces synchronisation lag, additional infrastructure, and a
-full event publishing layer. None of that is justified here.
+**Phase 5:** Wire Redis in `docker-compose.yml` + register `IFusionCache` in DI.
+No caching logic yet. Establish cache key convention: `tenant:{tenantId}:{entity}:{id}`.
+
+**Phase 7:** Activate FusionCache. Start in-memory only (zero infra cost, works for a single
+API instance). When 2+ instances are needed simultaneously, add Redis as L2 — one connection
+string change, no code changes in handlers.
+
+**Caching scope — critical rule, never cache live operational state with a TTL:**
+
+| Cache this ✅ | Do NOT cache this ❌ |
+|---|---|
+| Site / SiteArea lookup data | Live incident or permit status |
+| Organisation settings | Corrective action state |
+| User permission maps | Any record where stale = safety risk |
+| Dashboard aggregate counts (explicit invalidation on write) | |
+
+**Redis infrastructure path:**
+
+| Stage | Setup | Cost |
+|---|---|---|
+| Dev / Learning | Local Docker or Podman | Free forever |
+| Early production | Self-hosted Redis on a £5-10/mo VM alongside the app | £5-10/mo |
+| Scale (250+ tenants) | Azure Cache for Redis Basic/Standard | £40-150/mo |
+
+**Why not CQRS projections / separate read store:** FusionCache covers us to 1,000+ tenants.
+Separate read infrastructure is not justified at our scale.
+
+**Why not Azure SQL Read Replicas:** Requires Business Critical SQL tier — ~4× the cost.
+FusionCache achieves the same outcome for the cost of a Docker container.
+
+**Implementation:** EHS-51 (Phase 5 plumbing only), Phase 7 (actual caching logic).
 
 ---
 
 ### Gap 3 — Audit Trail (Who Changed What, When)
 
-**Decision:** EF Core `SaveChangesInterceptor` (AuditInterceptor) in Phase 6. Scope
-confirmed and extended by this spike.
+**Decision:** Three separate, immutable audit tables. All marked as Azure SQL Ledger Tables.
 
-The interceptor captures on every SaveChanges call:
-- `EntityName` — "Incident", "CorrectiveAction"
-- `EntityId` — the PK of the changed entity
-- `Action` — Created, Updated, Deleted
-- `ChangedById` — from `ICurrentUserService.UserId`
-- `ChangedAt` — `DateTime.UtcNow`
-- `OldValues` — JSON snapshot of changed properties before write
-- `NewValues` — JSON snapshot of changed properties after write
-- `CorrelationId` — the request's correlation ID (see Gap 4)
+| Table | Written by | Captures | Primary reader |
+|---|---|---|---|
+| `EntityAuditLog` | EF `SaveChangesInterceptor` | Every successful mutation: EntityName, EntityId, Action, OldValues (JSON), NewValues (JSON), ChangedById, ChangedAt, CorrelationId | Compliance auditor, support |
+| `SecurityAuditLog` | MediatR `SecurityAuditBehavior` | 401s, 403s, cross-tenant access attempts | Security team, incident response |
+| `BusinessRuleAuditLog` | MediatR `SecurityAuditBehavior` | Domain rule violations, invalid state transitions, concurrency conflicts (409s) | Compliance auditor, app support |
 
-AuditLog rows are immutable — no UPDATE or DELETE is ever issued against AuditLog.
-This is enforced by having AuditLog not implement any soft-delete interface and having
-no handler that writes to it directly (only the interceptor does).
+**What NOT to audit:** Validation failures (400s — missing fields, bad format). Noise, not compliance.
 
-**Extended scope from this spike:** CorrelationId is now required on every AuditLog row.
-This was not in the original Phase 6 plan. It was identified as necessary during EHS-45
-to link audit records to the HTTP request that caused them.
+**Azure SQL Ledger Tables:** All three tables created with `LEDGER = ON` in the Phase 6 migration.
+Creates cryptographic digests in Azure Storage — makes post-commit tampering provably detectable.
+Half a day of additional work. Negligible cost.
+
+**Separate DbContext for security/business-rule audit:** Written via a dedicated `IAuditDbContext`
+with its own transaction, independent of the main application context. Ensures security audit records
+persist even when the main transaction rolls back.
+
+**Rate-limit 401 logging:** Max 1 row per IP per minute after 10 failed attempts. Prevents
+log-flood DoS from credential-stuffing bots.
+
+**OPEN — Audit table structure at scale:** EntityAuditLog at full scale (17 modules, 1,000 tenants,
+5 years) could reach 500M+ rows. Two options under active discussion, not yet decided:
+
+- **Option A (current plan):** Three shared tables for all 17 modules. Managed via indexes on
+  `(TenantId, EntityName, EntityId, ChangedAt)` and date-based archiving.
+- **Option B:** Three tables per master entity — `IncidentEntityAuditLog`, `CorrectiveActionEntityAuditLog`,
+  etc. Smaller tables, cleaner per-module retention policies, ~51 audit tables at 17 modules.
+
+Revisit at Phase 6 with the full module list known. Start with Option A. Split only if
+measurements at that point justify it.
+
+**Implementation:** Phase 6.
 
 ---
 
 ### Gap 4 — Issue Replay and Traceability
 
-**Decision:** Structured Serilog logs + AuditLog table + CorrelationId provide complete
-traceability. No event sourcing. No distributed tracing infrastructure.
+**Decision:** Serilog structured logs + three audit tables + CorrelationId as the shared join key.
+No event sourcing. No distributed tracing infrastructure.
 
-The combination of:
-1. Serilog structured logs — every HTTP request, command, handler, exception logged with
-   CorrelationId as a structured property (via Serilog enricher, see EHS-47)
-2. AuditLog table (Phase 6) — every entity change recorded with CorrelationId
-3. CorrelationId propagated through both (the join key between logs and DB records)
+**CorrelationId wiring (EHS-47):**
+- `CorrelationIdMiddleware` checks for an inbound `traceparent` header (W3C Trace Context standard).
+  Uses it if present and valid. Generates a new GUID if absent.
+- `LogContext.PushProperty("CorrelationId", id)` wraps the entire request — every Serilog entry
+  for that request automatically carries it. No changes needed to individual log statements.
+- `IRequestContext` interface defined in Application layer, implemented in Infrastructure via
+  `IHttpContextAccessor`. Phase 9 background workers implement it separately — reading CorrelationId
+  from the OutboxMessage row being processed. Do NOT inject `IHttpContextAccessor` directly into handlers.
+- CorrelationId always emitted on the response header.
 
-...gives full operation replay without event sourcing.
+**How to reconstruct any incident:**
+- By record: `SELECT * FROM EntityAuditLog WHERE EntityId = @id ORDER BY ChangedAt`
+- By user: `SELECT * FROM EntityAuditLog WHERE ChangedById = @userId ORDER BY ChangedAt`
+- By request: `SELECT * FROM EntityAuditLog WHERE CorrelationId = @id`
+- Failed attempts: `SELECT * FROM SecurityAuditLog WHERE Resource = 'Incident:{id}'`
+- Cross-reference all with Serilog logs via CorrelationId for full execution trace.
 
-**How to reconstruct any user session:**
-- By user: `SELECT * FROM AuditLogs WHERE ChangedById = @userId ORDER BY ChangedAt`
-- By record: `SELECT * FROM AuditLogs WHERE EntityId = @incidentId ORDER BY ChangedAt`
-- By request: `SELECT * FROM AuditLogs WHERE CorrelationId = @correlationId`
-- Cross-reference with Serilog logs for the full handler execution trace
+**CausationId (Phase 9 note):** When Outbox worker starts chaining operations (request → domain
+event → downstream action), add `CausationId` alongside `CorrelationId`. CorrelationId = originating
+request. CausationId = immediate parent operation. Design at Phase 9, not before.
 
-**Why this is sufficient:** "Replay" in event sourcing means reconstructing current state
-from events because state is not stored directly. We store state directly (the Incident row
-is always current state). What we need is to replay the *investigation history* — who did
-what to a record. AuditLog gives exactly that, with no event sourcing complexity.
+**Why not event sourcing:** Entity row is always current state. AuditLog is a secondary forensic
+record. These are different roles. AuditLog answers "what changed?" — not "what is the state?"
+
+**Implementation:** EHS-47, Phase 5.
+
+---
+
+### Additional Decision — Elasticsearch
+
+**Decision:** Elasticsearch adopted as the future search and reporting layer, introduced progressively.
+SQL Server Full-Text Search used first in production. Both run locally for learning.
+
+**Path:**
+
+| Stage | What | Cost |
+|---|---|---|
+| Now (EHS-52 spike) | Local Docker/Podman — `elasticsearch:8.x` + `kibana:8.x`. Learning and comparison only. | Free |
+| Phase 5–10 (production) | SQL Server Full-Text Search only. Already in SQL Server, zero new infrastructure. | Free |
+| Phase 11+ (production) | Evaluate Elasticsearch when SQL Full-Text hits limits. Introduced via Phase 9 Outbox worker. | Free self-hosted → £10-20/mo VM → managed when revenue justifies |
+
+**SQL Full-Text vs Elasticsearch:**
+
+| | SQL Full-Text | Elasticsearch |
+|---|---|---|
+| Setup | Zero — already in SQL Server | Docker locally; service in production |
+| Fuzzy matching | Weak | Excellent |
+| Relevance ranking | Basic | Sophisticated |
+| Faceted aggregations at scale | Slow | Fast |
+| Dual-write required | No | Yes |
+| Right phase | Phase 1–10 | Phase 11+ evaluation |
+
+**Free alternatives if managed cost is not yet justified:** Meilisearch, Typesense, OpenSearch —
+all self-hostable, open source. Elasticsearch concepts transfer directly.
+
+---
+
+### Additional Decision — Rate Limiting
+
+**Decision:** Per-tenant rate limiting deferred as documented tech debt.
+
+Built-in `.NET RateLimiting` middleware (~30-50 lines, free) handles this at code level.
+Azure API Management handles it at infrastructure level (additional cost). Deferred until
+a misbehaving tenant causes a production incident. Not a Phase 5 blocker.
+
+---
+
+### Additional Decision — Idempotency Keys
+
+**Decision:** Idempotency keys for critical commands deferred to Phase 8.
+
+Platform is a mobile-responsive React web app (Phase 12) — not a native iOS/Android app.
+Browser HTTP clients have more predictable retry behaviour. Design at Phase 8 when the
+full API surface is known.
 
 ---
 
@@ -414,10 +506,19 @@ what to a record. AuditLog gives exactly that, with no event sourcing complexity
 
 | Ticket | Description | Phase |
 |---|---|---|
-| EHS-46 | Add RowVersion to BaseEntity + 409 handler in ExceptionHandlingMiddleware | Phase 5, step 1 |
-| EHS-47 | Wire CorrelationId through Serilog enricher (propagate on every log entry) | Phase 5 |
-| Phase 6 | AuditInterceptor with CorrelationId included — scope confirmed by EHS-45 | Phase 6 |
-| Phase 8 | Redis cache + explicit invalidation on all write commands | Phase 8 |
+| EHS-46 | RowVersion on BaseEntity + ETag/If-Match contract + 412/428/409 handler | Phase 5, step 1 |
+| EHS-47 | CorrelationId: Serilog enricher + IRequestContext + stamp on all audit rows | Phase 5 |
+| EHS-48 | TenantId on all existing entities + combined migration (with EHS-46 RowVersion) | Phase 5 |
+| EHS-49 | ClientContractor entity + EF config + migration | Phase 5 |
+| EHS-50 | EF Core Global Query Filters + TenantResolutionMiddleware | Phase 5 |
+| EHS-51 | Redis + FusionCache: docker-compose/Podman, DI wiring, cache key conventions | Phase 5 |
+| EHS-52 | Elasticsearch + Kibana local Docker/Podman setup + SQL Full-Text comparison spike | Phase 5 (learning) |
+| EHS-53 | Phase 5 docs update | Phase 5, last step |
+| Phase 6 | EntityAuditLog + SecurityAuditLog + BusinessRuleAuditLog + Ledger Tables | Phase 6 |
+| Phase 7 | FusionCache tiered caching: explicit invalidation in write handlers | Phase 7 |
+| Phase 8 | Redis as FusionCache L2 + idempotency keys + rate limiting | Phase 8 |
+| Phase 9 | Outbox + domain events + Elasticsearch indexing + CausationId | Phase 9 |
+| Phase 11 | Elasticsearch production evaluation vs SQL Full-Text at real load | Phase 11 |
 
 ---
 
@@ -432,6 +533,11 @@ what to a record. AuditLog gives exactly that, with no event sourcing complexity
 | Hard deletes | Compliance domain requires full audit trail |
 | Quartz.NET | .NET BackgroundService is sufficient, less infrastructure |
 | BinaryFormatter (Redis) | Obsolete in .NET 5+, use System.Text.Json instead |
+| Pessimistic DB locking | Holds connections across HTTP lifecycle, deadlocks under load |
+| Broad TTL caching of live operational data | Stale incident/permit status is a safety risk in compliance domain |
+| CQRS separate read store (current phases) | FusionCache covers us to 1,000+ tenants; separate read store is not justified yet |
+| Event sourcing | AuditLog + RowVersion provides 95% of the benefit at 10% of the complexity |
+| Native iOS/Android mobile app | React web app with mobile-responsive design covers Phase 12 needs |
 
 ---
 
