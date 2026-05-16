@@ -97,7 +97,7 @@
 
 | Ticket | Description | Status |
 |---|---|---|
-| EHS-46 | RowVersion on BaseEntity + ETag/If-Match contract + 412/428/409 handler | ⬜ To Do |
+| EHS-46 | RowVersion on BaseEntity + .IsRowVersion() on all 6 EF configs + DbUpdateConcurrencyException → 409 + migration + concurrency test | ✅ Done |
 | EHS-47 | CorrelationId: Serilog enricher + IRequestContext + stamp on all audit rows | ⬜ To Do |
 | EHS-48 | TenantId on all existing entities + combined migration (with EHS-46 RowVersion) | ⬜ To Do |
 | EHS-49 | ClientContractor entity + EF config + migration | ⬜ To Do |
@@ -228,8 +228,11 @@ public abstract class BaseEntity
     public Guid Id { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 }
 ```
+
+> `RowVersion` is a SQL Server `timestamp`/`rowversion` column — auto-updated by the DB on every write. All 6 entity EF configurations call `.IsRowVersion()`. EF Core adds `WHERE RowVersion = @original` to every UPDATE/DELETE, throwing `DbUpdateConcurrencyException` if another user modified the record first.
 
 ### ITenantEntity (EHSPlatform.Domain/Common/ITenantEntity.cs)
 
@@ -697,6 +700,7 @@ public class IncidentsController : ControllerBase
 | `ForbiddenException` | 403 |
 | `InvalidStatusTransitionException` | 422 |
 | `ValidationException` (FluentValidation) | 400 |
+| `DbUpdateConcurrencyException` | 409 |
 | Any other | 500 |
 
 ### Middleware Pipeline Order (Program.cs)
@@ -970,6 +974,7 @@ One role per user is correct for Phase 4. When needed:
 | Session 9 | May 2026 | EHS-42 DONE. [Authorize] on IncidentsController + CorrectiveActionsController. [AllowAnonymous] on AuthController. ForbiddenAccessException → 403 in middleware. ReportedById wired from ICurrentUserService (removed from request body). Closed transition guarded to SafetyOfficer/OrganizationAdmin only. AssignIncidentHandler validates assignee exists and is active. 15 Application tests + 22 Domain tests all green. EHS-45 created: Architecture Spike — Concurrency, Consistency, Auditability and Traceability Strategy (identified during session as system-wide gap). |
 | Session 10 | May 2026 | EHS-45 DONE. ADR-012 written and then expanded after multi-AI review (ChatGPT, Gemini, Claude, LLM Council). Final decisions: RowVersion + ETag/If-Match (both header and body), three audit tables (Entity + Security + BusinessRule) + Azure SQL Ledger Tables, FusionCache in-memory first then Redis as L2, scale threshold corrected to ~250 tenants, Elasticsearch adopted progressively (local Docker for learning, SQL Full-Text in production until Phase 11), rate limiting and idempotency deferred as tech debt. Redis and Elasticsearch both finalized — local Docker/Podman free forever, self-hosted VM for early production. Audit table structure (shared 3 vs per-entity 3) left OPEN for Phase 6 decision. EHS-48 through EHS-53 created. Sprint 3 closed, Sprint 4 started for Phase 5. |
 | Session 11 | May 2026 | Carried-over fixes done: EHS-35 (FK constraints on Incidents + re-open from Closed role guard + 7 new tests), EHS-36 (PATCH /assign returns 200 with status body instead of 204), EHS-44 (DomainValidationException → 422, entity-agnostic InvalidStatusTransitionException, ToDisplayName() enum extensions, plain-language NotFoundException without raw GUIDs, UpdateCorrectiveAction terminal-state guard fixed from 500 → 422). 22 tests all green. Phase 5 next. |
+| Session 12 | May 2026 | EHS-46 DONE. RowVersion optimistic concurrency: added byte[] RowVersion to BaseEntity, .IsRowVersion() on all 6 EF configs (Incident, CorrectiveAction, User, Organization, Site, SiteArea), DbUpdateConcurrencyException → 409 in ExceptionHandlingMiddleware, AddRowVersion migration. Migration FK conflict resolved by dropping orphaned dev data and rebuilding DB. 45 tests all green (23 application, 22 domain). |
 
 ---
 
