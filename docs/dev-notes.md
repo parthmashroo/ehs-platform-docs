@@ -87,6 +87,9 @@
 | EHS-42 | [Authorize] on all endpoints + role restrictions + wire ICurrentUserService | ✅ Done |
 | EHS-43 | Phase 4 docs update | ✅ Done |
 | EHS-45 | Architecture Spike — Concurrency, Consistency, Auditability & Traceability | ✅ Done |
+| EHS-35 | FK constraints for ReportedById/AssignedToId + re-open from Closed role guard | ✅ Done |
+| EHS-36 | PATCH /assign returns 200 with updated status instead of 204 | ✅ Done |
+| EHS-44 | Fix user-facing error messages — DomainValidationException, entity-agnostic InvalidStatusTransitionException, ToDisplayName() extensions, plain-language NotFoundException, UpdateCorrectiveAction 500 → 422 | ✅ Done |
 
 ---
 
@@ -966,6 +969,7 @@ One role per user is correct for Phase 4. When needed:
 | Session 8 | May 2026 | EHS-41 DONE. AuthController + Register/Login commands + JWT generation + BCrypt hashing + 27 passing tests. Post-commit fixes: IsActive check on login, global email uniqueness enforced at DB level. EHSPlatform.Application.Tests project created. Deep design discussions: role-change audit trail, resource-level authorization, impersonation/shadow mode risks, GDPR compliance gap identified (needs future phase). |
 | Session 9 | May 2026 | EHS-42 DONE. [Authorize] on IncidentsController + CorrectiveActionsController. [AllowAnonymous] on AuthController. ForbiddenAccessException → 403 in middleware. ReportedById wired from ICurrentUserService (removed from request body). Closed transition guarded to SafetyOfficer/OrganizationAdmin only. AssignIncidentHandler validates assignee exists and is active. 15 Application tests + 22 Domain tests all green. EHS-45 created: Architecture Spike — Concurrency, Consistency, Auditability and Traceability Strategy (identified during session as system-wide gap). |
 | Session 10 | May 2026 | EHS-45 DONE. ADR-012 written and then expanded after multi-AI review (ChatGPT, Gemini, Claude, LLM Council). Final decisions: RowVersion + ETag/If-Match (both header and body), three audit tables (Entity + Security + BusinessRule) + Azure SQL Ledger Tables, FusionCache in-memory first then Redis as L2, scale threshold corrected to ~250 tenants, Elasticsearch adopted progressively (local Docker for learning, SQL Full-Text in production until Phase 11), rate limiting and idempotency deferred as tech debt. Redis and Elasticsearch both finalized — local Docker/Podman free forever, self-hosted VM for early production. Audit table structure (shared 3 vs per-entity 3) left OPEN for Phase 6 decision. EHS-48 through EHS-53 created. Sprint 3 closed, Sprint 4 started for Phase 5. |
+| Session 11 | May 2026 | Carried-over fixes done: EHS-35 (FK constraints on Incidents + re-open from Closed role guard + 7 new tests), EHS-36 (PATCH /assign returns 200 with status body instead of 204), EHS-44 (DomainValidationException → 422, entity-agnostic InvalidStatusTransitionException, ToDisplayName() enum extensions, plain-language NotFoundException without raw GUIDs, UpdateCorrectiveAction terminal-state guard fixed from 500 → 422). 22 tests all green. Phase 5 next. |
 
 ---
 
