@@ -296,6 +296,25 @@ Handler calls `ca.SoftDelete(request.Reason)` instead of setting fields directly
 
 ---
 
+## Phase 5 Review — EHS-46 RowVersion (May 2026)
+
+### 🟡 ETag/If-Match HTTP contract missing — RowVersion invisible to clients
+**Finding:** `RowVersion` is wired at the DB layer (SQL Server `timestamp` column, `DbUpdateConcurrencyException` → 409), but the HTTP API contract is incomplete. `GET` endpoints don't return an `ETag` response header, and `PUT`/`PATCH` endpoints don't check an `If-Match` request header. A real client has no way to read the current `RowVersion` or send it back on a write — the 409 can never be intentionally triggered by a legitimate caller.
+
+**Risk:** The concurrency protection exists in the DB but is invisible and unreachable through the API. Any client doing a read-then-write will never get a 409 — it will silently overwrite because it has no way to supply the current `RowVersion`. The DB-level protection only fires if two clients somehow send the exact same stale token, which can't happen without the API contract.
+
+**Fix:** For every mutable endpoint (PUT/PATCH on Incidents, CorrectiveActions):
+1. `GET /api/incidents/{id}` → include `ETag: "<base64-rowversion>"` response header
+2. `PUT /api/incidents/{id}` → read `If-Match` header, populate `RowVersion` on the loaded entity before `SaveChangesAsync`. If header absent → 428 Precondition Required. If header mismatches → 409 Conflict.
+
+**Why deferred from EHS-46:** The DB-side work (RowVersion column + 409 handler) ships independently and gives partial protection against internal race conditions. The HTTP contract layer is a separate concern that touches every controller and query handler — better scoped as its own ticket.
+
+**Target phase:** Phase 5 (alongside EHS-48 TenantId work)
+**Ticket:** Needs creation — suggest EHS-54
+**Status:** ⬜ Open
+
+---
+
 ## Summary Table
 
 | # | Finding | Severity | Target | Ticket | Status |
@@ -304,11 +323,12 @@ Handler calls `ca.SoftDelete(request.Reason)` instead of setting fields directly
 | 2 | Auto-transition rule in handler, not domain | 🔴 High | Phase 3 | EHS-32 | ✅ Fixed |
 | 3 | Unstable pagination — no sort tiebreaker | 🟡 Medium | Phase 3 | EHS-33 | ✅ Fixed |
 | 4 | No pageSize cap — memory bomb | 🟡 Medium | Phase 3 | EHS-33 | ✅ Fixed |
-| 5 | No optimistic concurrency — silent data loss | 🔴 High | Phase 4 | EHS-34 | ⬜ Open |
-| 6 | AssignedToId/ReportedById — no FK or existence check | 🟡 Medium | Phase 4 | EHS-35 | ⬜ Open |
-| 7 | PATCH /assign returns 204 — status change invisible | 🟢 Low | Phase 4/12 | EHS-36 | ⬜ Open |
-| 8 | Re-open from Closed unrestricted | 🟢 Low | Phase 4 | EHS-35 | ⬜ Open |
+| 5 | No optimistic concurrency — silent data loss | 🔴 High | Phase 4 | EHS-34/46 | ✅ Fixed |
+| 6 | AssignedToId/ReportedById — no FK or existence check | 🟡 Medium | Phase 4 | EHS-35 | ✅ Fixed |
+| 7 | PATCH /assign returns 204 — status change invisible | 🟢 Low | Phase 4/12 | EHS-36 | ✅ Fixed |
+| 8 | Re-open from Closed unrestricted | 🟢 Low | Phase 4 | EHS-35 | ✅ Fixed |
 | 9 | UpdateCorrectiveAction edits terminal states — audit trail risk | 🟡 Medium | Phase 3 | EHS-37 | ✅ Fixed |
 | 10 | SoftDelete logic in handler, not domain — inconsistent, no seam for future guard | 🟡 Medium | Phase 3 | EHS-38 | ✅ Fixed |
 | 11 | All detail endpoints embed child lists — system-wide pattern should be count + lazy load | 🟢 Low | Phase 12 | — | ⬜ Open |
-| 12 | User-facing error messages: developer language + wrong HTTP status codes | 🔴 High | Error sprint | EHS-44 | ⬜ Open |
+| 12 | User-facing error messages: developer language + wrong HTTP status codes | 🔴 High | Error sprint | EHS-44 | ✅ Fixed |
+| 13 | ETag/If-Match HTTP contract missing — RowVersion invisible to clients | 🟡 Medium | Phase 5 | — | ⬜ Open |
