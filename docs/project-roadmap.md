@@ -1652,27 +1652,33 @@ Screens:
 
 
 
-### Phase 17: AI Integration
+### Phase 17: AI-First Integration
 
-**Goal:** AI adds genuine value to an EHS platform.
+**Goal:** Not "AI as a feature" — the platform built so AI agents can operate it natively.
 
+Full strategic rationale: see [ai-first-strategy.md](ai-first-strategy.md)
 
-
-Features:
-
+**Domain AI features (original scope — kept):**
 - **Incident Classification:** AI suggests Type and Severity from description text
-
 - **Pattern Detection:** "You've had 5 similar incidents in 30 days — review X procedure"
-
 - **Risk Scoring:** AI scores new incidents for likely severity escalation
-
 - **Compliance Report Generation:** AI narrative summary for a date range (streaming)
-
 - **Form Template Generator:** Describe what you need, AI generates a form template
 
+**AI-Native Infrastructure (added scope):**
+- **EHS MCP Server** — production MCP server exposing the full API surface as typed AI tools.
+  Any AI assistant (Claude, Copilot, etc.) can call our platform directly.
+  MCP tools map 1:1 to existing MediatR Commands/Queries — no new business logic.
+- **AI Service Principal** — a user type representing an AI agent. All agent actions are
+  fully attributed and audited like human actions.
+- **Domain Event Subscriptions** — AI agents subscribe to Outbox events (incident created,
+  CA overdue, permit expiring) and react without polling.
+- **ERP/CRM Integration via AI** — AI orchestrator mediates between our MCP server and
+  ERP MCP servers (SAP, Oracle EAM, Dynamics 365). Intent-based, not field-mapping-based.
+  Work Permit (Phase 13) is the primary ERP integration bridge.
 
-
-Tech: Claude API (Anthropic SDK for .NET), streaming responses for reports.
+**Tech:** Claude API (Anthropic .NET SDK), `ModelContextProtocol` NuGet for MCP server,
+streaming responses for reports. Runs in the same API process — no new infrastructure.
 
 
 
