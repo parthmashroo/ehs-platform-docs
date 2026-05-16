@@ -98,7 +98,7 @@
 | Ticket | Description | Status |
 |---|---|---|
 | EHS-46 | RowVersion on BaseEntity + .IsRowVersion() on all 6 EF configs + DbUpdateConcurrencyException → 409 + migration + concurrency test | ✅ Done |
-| EHS-47 | CorrelationId: Serilog enricher + IRequestContext + stamp on all audit rows | ⬜ To Do |
+| EHS-47 | CorrelationId: Serilog enricher + IRequestContext + stamp on all audit rows | ✅ Done |
 | EHS-48 | TenantId on all existing entities + combined migration (with EHS-46 RowVersion) | ⬜ To Do |
 | EHS-49 | ClientContractor entity + EF config + migration | ⬜ To Do |
 | EHS-50 | EF Core Global Query Filters + TenantResolutionMiddleware | ⬜ To Do |
@@ -718,6 +718,37 @@ public class IncidentsController : ControllerBase
 
 ---
 
+## Design Q&A — Decisions Captured During Development
+
+### CorrelationId scope — why not link across requests?
+
+**Q:** If a user clicks something and nothing happens, then clicks again and gets an error — both have different CorrelationIds. How do you get the full picture?
+
+**A:** CorrelationId is per-request scope only. The full user journey is solved by the Phase 6 AuditLog, not by chaining CorrelationIds. The audit table records every write by `UserId` in order — each row carries its own CorrelationId as a link to that request's logs. Filter audit rows by `UserId` for the journey; use CorrelationId to drill into any single request's logs.
+
+| Concern | Tool |
+|---|---|
+| Single request trace | CorrelationId (EHS-47) |
+| User journey over time | AuditLog (Phase 6) |
+| Cross-service trace | OpenTelemetry (future) |
+
+### Does logging/auditing block the request?
+
+**Q:** Should logging and auditing run in a separate service so there's no added latency?
+
+**A:**
+- **Serilog** — zero blocking cost. Buffers internally, writes async. `LogContext.PushProperty` is in-memory only.
+- **Phase 6 AuditLog** — small intentional cost. Writes in the same DB transaction as the business write. If the write rolls back, the audit row rolls back too. That consistency is worth the microsecond overhead.
+- **True async separation** — already on the roadmap as Phase 9 (Outbox Pattern). Notifications, emails, downstream events write to an Outbox table; a background worker processes them. The request completes instantly.
+
+### Should auditing be a toggleable module per customer?
+
+**Q:** If a customer doesn't want auditing, should it be easy to turn off? Should features be sold as separate modules?
+
+**A:** Yes, but the mechanism is feature flags / tenant configuration, not separate services. MediatR pipeline behaviours (`AuditBehaviour`, `LoggingBehaviour`) are already modular — they can be conditionally skipped per tenant config. A full "sell modules separately" entitlement system is a Phase 14+ commercial concern. Going microservices to solve this now would be massive over-engineering. Clean Architecture already gives you the extraction seams — use them when you actually need to, not speculatively.
+
+---
+
 ## Architectural Decisions (Locked — Never Revisit)
 
 | Decision | Choice | Why |
@@ -975,6 +1006,7 @@ One role per user is correct for Phase 4. When needed:
 | Session 10 | May 2026 | EHS-45 DONE. ADR-012 written and then expanded after multi-AI review (ChatGPT, Gemini, Claude, LLM Council). Final decisions: RowVersion + ETag/If-Match (both header and body), three audit tables (Entity + Security + BusinessRule) + Azure SQL Ledger Tables, FusionCache in-memory first then Redis as L2, scale threshold corrected to ~250 tenants, Elasticsearch adopted progressively (local Docker for learning, SQL Full-Text in production until Phase 11), rate limiting and idempotency deferred as tech debt. Redis and Elasticsearch both finalized — local Docker/Podman free forever, self-hosted VM for early production. Audit table structure (shared 3 vs per-entity 3) left OPEN for Phase 6 decision. EHS-48 through EHS-53 created. Sprint 3 closed, Sprint 4 started for Phase 5. |
 | Session 11 | May 2026 | Carried-over fixes done: EHS-35 (FK constraints on Incidents + re-open from Closed role guard + 7 new tests), EHS-36 (PATCH /assign returns 200 with status body instead of 204), EHS-44 (DomainValidationException → 422, entity-agnostic InvalidStatusTransitionException, ToDisplayName() enum extensions, plain-language NotFoundException without raw GUIDs, UpdateCorrectiveAction terminal-state guard fixed from 500 → 422). 22 tests all green. Phase 5 next. |
 | Session 12 | May 2026 | EHS-46 DONE. RowVersion optimistic concurrency: added byte[] RowVersion to BaseEntity, .IsRowVersion() on all 6 EF configs (Incident, CorrectiveAction, User, Organization, Site, SiteArea), DbUpdateConcurrencyException → 409 in ExceptionHandlingMiddleware, AddRowVersion migration. Migration FK conflict resolved by dropping orphaned dev data and rebuilding DB. 45 tests all green (23 application, 22 domain). |
+| Session 13 | May 2026 | EHS-47 DONE. CorrelationId wired through Serilog enricher: CorrelationIdMiddleware (generates/reads X-Correlation-Id header, stores in HttpContext.Items, pushes to Serilog LogContext), IRequestContext interface in Application, RequestContext implementation in Infrastructure, Enrich.FromLogContext() + output template in Program.cs. CorrelationId verified in console output — same ID on all log lines per request. .claude/ added to .gitignore. Design Q&A documented: CorrelationId vs session tracing, async logging cost, modular tenant feature flags. |
 
 ---
 
