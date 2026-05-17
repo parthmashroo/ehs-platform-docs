@@ -74,7 +74,40 @@ Accepted limitations (not our problem to solve):
    AI-assisted migration (Claude reads their CSV + our domain model, generates mapping) makes
    this a hours-not-weeks effort per tenant. Charged as enterprise onboarding add-on.
 
-**Issue 3 — Regulatory Language Is Not AI-Friendly Without Grounding** ← NEXT
+**Issue 3 — Regulatory Language Is Not AI-Friendly Without Grounding ✅ DISCUSSED**
+
+Verdict: We are the bridge between structured EHS data and regulatory documentation —
+not the regulatory expert. Honest about the gap. Architecture is ready for when the gap closes.
+
+What we DO NOT build:
+- General-purpose regulatory Q&A chatbot → hallucination risk + legal liability → never
+
+What we BUILD (Phase 17):
+- Structured report pre-population: AI reads typed IncidentDto, pre-fills OSHA 300 /
+  RIDDOR report template from system data. AI is the scribe; practitioner is the authority.
+  Accurate because it comes from our typed data, not LLM knowledge. "Review before submission."
+- Contextual regulatory links: when Incident.Type = LostTime, surface link to OSHA 300
+  official guidance. Link to official source only — never interpret it.
+- RegulatoryReference on form fields: already in FormFieldDescriptor (Phase 7).
+  When compliance-critical field fails, show the regulation name and link. Not interpretation.
+- "May need to report" flag: "Incidents of this type are typically reportable — verify
+  with your EHS manager." Signal not advice. Human confirms.
+- RegulatoryContent extensible table: we build the shelf. Enterprise customers with legal
+  teams populate their jurisdiction's requirements. Industry partners provide content packs.
+
+The architectural moat — forward-looking:
+By the time Phase 17 is built, the regulatory content landscape will have evolved:
+- OSHA eCFR has a public API today. UK legislation.gov.uk has a public API today.
+- EU EUR-Lex is machine-readable today.
+- Wolters Kluwer, Thomson Reuters — as MCP becomes enterprise standard (2026-2027),
+  specialist regulatory content providers are likely to ship MCP servers exposing
+  curated, maintained regulatory knowledge bases.
+- When that happens: our RegulatoryContent hook + MCP architecture can consume it
+  immediately. No architectural change needed. We built the shelf. We plug in the content
+  when a trusted source makes it available at the right quality level.
+- We do not have to be Wolters Kluwer. We have to be ready to connect to them.
+
+**Issue 4 — Black Box AI Is Unacceptable to EHS Practitioners** ← NEXT
 
 **Issue 3 — Regulatory Language Is Not AI-Friendly Without Grounding**
 General LLMs hallucinate regulatory content (OSHA, RIDDOR, CDM). Wolters Kluwer Enablon
