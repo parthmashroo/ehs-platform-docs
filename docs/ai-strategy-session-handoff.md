@@ -49,11 +49,32 @@ All in `C:\Projects\ehs-platform-docs\docs\`:
 
 These come from `ai-capabilities-research.md` Section 2:
 
-**Issue 2 — Data Quality Is the Blocking Problem**
-AI classification and prediction require clean, structured, consistent historical data.
-35% of EHS orgs cite siloed data as top AI barrier. Only 12% have AI-ready data quality.
-Question to discuss: How does our typed domain model + mandatory field enforcement + audit
-trail help? What's still missing?
+**Issue 2 — Data Quality Is the Blocking Problem ✅ DISCUSSED**
+
+Verdict: Genuine advantage on structural quality. Two accepted limitations.
+
+What we solve:
+- Typed enums + FluentValidation block garbage at the API boundary (422, not stored)
+- CorrectiveAction.Status state machine enforces close-out discipline
+- Single FK-linked domain model eliminates siloed data
+- Semantic form engine enforces typed constraints even on custom fields
+- Scoring on form submissions gives AI a summary signal without reading every field
+
+Accepted limitations (not our problem to solve):
+
+1. Near-miss under-reporting — workers don't report because of manager culture, fear of
+   retaliation, office politics, and futility. This is a human/cultural problem that software
+   cannot fundamentally fix. We can lower friction (Phase 12 mobile-first 3-tap reporting)
+   and build trust via closed-loop notifications, but we cannot change workplace culture.
+   This is an accepted data gap, not a platform failure.
+
+2. Legacy data migration — new tenants have 5-15 years of history in CSVs, old systems,
+   or paper. Strategy: onboard them first, get them using and loving the system, migrate
+   historical data over time as a supported professional service (not a self-serve feature).
+   AI-assisted migration (Claude reads their CSV + our domain model, generates mapping) makes
+   this a hours-not-weeks effort per tenant. Charged as enterprise onboarding add-on.
+
+**Issue 3 — Regulatory Language Is Not AI-Friendly Without Grounding** ← NEXT
 
 **Issue 3 — Regulatory Language Is Not AI-Friendly Without Grounding**
 General LLMs hallucinate regulatory content (OSHA, RIDDOR, CDM). Wolters Kluwer Enablon
