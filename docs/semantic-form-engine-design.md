@@ -5,6 +5,11 @@
 >
 > Problem identified during EHS-48 session. Research-backed. No prior published solution exists
 > specifically in EHS SaaS — this is novel design territory.
+>
+> **Companion documents:**
+> - `architecture-decisions.md` ADR-013 — locked architectural decision for this design
+> - `ai-first-strategy.md` — how the form engine fits the broader AI-native architecture
+> - `ai-strategy-session-handoff.md` — Issue 1 verdict documents the AI-readability gap this solves
 
 ---
 

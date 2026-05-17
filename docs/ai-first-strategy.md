@@ -3,6 +3,12 @@
 > Written May 2026. 18-month forward view. Not a features list — an architectural position.
 >
 > This is not "AI as a feature." This is the platform built from the inside as an AI-native system.
+>
+> **Companion documents (read together):**
+> - `ai-capabilities-research.md` — market research, competitor analysis, practitioner survey data
+> - `ai-strategy-session-handoff.md` — all 7 AI capability gaps, verdicts locked
+> - `semantic-form-engine-design.md` — Phase 7 form engine AI-readability design
+> - `architecture-decisions.md` ADR-014 — locked AI architecture decisions
 
 ---
 

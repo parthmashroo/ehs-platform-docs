@@ -3,6 +3,11 @@
 > Written May 2026. Evidence-based market research and strategic synthesis.
 > Companion to `ai-first-strategy.md` — do not read one without the other.
 > This document covers the external landscape. The strategy doc covers our internal architecture position.
+>
+> **Companion documents:**
+> - `ai-first-strategy.md` — internal architecture response to this research
+> - `ai-strategy-session-handoff.md` — all 7 gaps from Section 2 reviewed, verdicts locked
+> - `architecture-decisions.md` ADR-014 — locked decisions derived from this research
 
 ---
 
