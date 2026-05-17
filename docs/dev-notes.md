@@ -99,7 +99,7 @@
 |---|---|---|
 | EHS-46 | RowVersion on BaseEntity + .IsRowVersion() on all 6 EF configs + DbUpdateConcurrencyException → 409 + migration + concurrency test | ✅ Done |
 | EHS-47 | CorrelationId: Serilog enricher + IRequestContext + stamp on all audit rows | ✅ Done |
-| EHS-48 | TenantId on all existing entities + combined migration (with EHS-46 RowVersion) | ⬜ To Do |
+| EHS-48 | TenantId on all existing entities + combined migration (with EHS-46 RowVersion) | ✅ Done |
 | EHS-49 | ClientContractor entity + EF config + migration | ⬜ To Do |
 | EHS-50 | EF Core Global Query Filters + TenantResolutionMiddleware | ⬜ To Do |
 | EHS-51 | Redis + FusionCache: docker-compose/Podman wiring + cache key conventions | ⬜ To Do |
@@ -1007,6 +1007,7 @@ One role per user is correct for Phase 4. When needed:
 | Session 11 | May 2026 | Carried-over fixes done: EHS-35 (FK constraints on Incidents + re-open from Closed role guard + 7 new tests), EHS-36 (PATCH /assign returns 200 with status body instead of 204), EHS-44 (DomainValidationException → 422, entity-agnostic InvalidStatusTransitionException, ToDisplayName() enum extensions, plain-language NotFoundException without raw GUIDs, UpdateCorrectiveAction terminal-state guard fixed from 500 → 422). 22 tests all green. Phase 5 next. |
 | Session 12 | May 2026 | EHS-46 DONE. RowVersion optimistic concurrency: added byte[] RowVersion to BaseEntity, .IsRowVersion() on all 6 EF configs (Incident, CorrectiveAction, User, Organization, Site, SiteArea), DbUpdateConcurrencyException → 409 in ExceptionHandlingMiddleware, AddRowVersion migration. Migration FK conflict resolved by dropping orphaned dev data and rebuilding DB. 45 tests all green (23 application, 22 domain). |
 | Session 13 | May 2026 | EHS-47 DONE. CorrelationId wired through Serilog enricher: CorrelationIdMiddleware (generates/reads X-Correlation-Id header, stores in HttpContext.Items, pushes to Serilog LogContext), IRequestContext interface in Application, RequestContext implementation in Infrastructure, Enrich.FromLogContext() + output template in Program.cs. CorrelationId verified in console output — same ID on all log lines per request. .claude/ added to .gitignore. Design Q&A documented: CorrelationId vs session tracing, async logging cost, modular tenant feature flags. |
+| Session 14 | May 2026 | EHS-48 DONE. TenantId (Guid, required, non-nullable) added to Incident, CorrectiveAction, Site, SiteArea — all implement ITenantEntity. EF configs updated with IsRequired() + FK to Organization (Restrict) for each. AddTenantIdToEntities migration applied. 45 tests all green. Side session: AI-first strategy formalised — ai-first-strategy.md, ai-capabilities-research.md, semantic-form-engine-design.md all written and pushed to ehs-platform-docs. Semantic form engine design (three-layer: AiDescription metadata + IFormSemanticContextBuilder + ODK-style entity mapping) solves the AI-readability gap for Phase 7 dynamic forms — novel in EHS SaaS space. |
 
 ---
 
