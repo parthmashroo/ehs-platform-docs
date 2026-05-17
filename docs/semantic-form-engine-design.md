@@ -263,6 +263,185 @@ depend on this foundation being in place.*
 
 ---
 
+## Mental Model — Three Types of Fields
+
+> This section exists because the distinction between typed fields, mappable fields, and
+> purely custom fields is the most commonly misunderstood part of this design.
+> Read this before touching any implementation.
+
+### The Core Rule
+
+The form engine and the typed domain model are **two different things that work together**.
+The typed domain model never changes because a tenant builds a form. A tenant cannot
+redesign `Incident` or add a field to `Contractor` through the form engine. Those are
+locked. The form engine is for **supplementary data** collected on top of core entities.
+
+### TYPE 1 — Fixed Typed Fields (Developer only, never in the form engine)
+
+These are C# entity properties, EF Core columns, enforced by the domain layer.
+
+```
+Incident.Severity    Incident.Status      Incident.Type
+CorrectiveAction.DueDate                  CorrectiveAction.Status
+WorkPermit.Type      Contractor.Name      Contractor.TenantId
+```
+
+- Developer defines in C# entities, EF Core migrates to SQL
+- AI reads directly from typed DTOs via MCP — no form lookup needed
+- Tenant admin has no access to these
+
+### TYPE 2 — Mappable Form Fields (Developer pre-registers; rare)
+
+A small set of fields (~10–20 across the whole platform) where data is collected via a
+form but is also important enough to live on the typed entity — either because domain
+business logic depends on it, or because the AI should be able to read it directly without
+digging through form submissions.
+
+The developer registers these in `EntityPropertyRegistry`:
+```csharp
+["Contractor.HasValidInduction"] = (entity, val) =>
+    ((Contractor)entity).HasValidInduction = (bool?)val,
+```
+
+When a tenant admin builds a form, they can optionally pick from this pre-registered list.
+The value is then written to BOTH: the form JSON blob AND the typed entity property.
+
+**Decision rule for whether something belongs here:**
+- Is there domain business logic that depends on this value? → Typed property (Type 1 or Type 2)
+- Is it universally important enough that the AI should read it without a form lookup? → Type 2
+- Is it supplementary, tenant-specific, or reporting-only? → Type 3 (never needs mapping)
+
+### TYPE 3 — Purely Custom Form Fields (Tenant admin invents freely)
+
+Anything the tenant admin wants to collect. `CASignature`, `WeatherConditions`,
+`WitnessName`, `EquipmentSerialNumber`, regulatory checklist items, open text, photos.
+No developer involvement. No typed property.
+
+- Stored as JSON blob in `FormSubmission.Values`
+- AI reads via `IFormSemanticContextBuilder` → semantic context string
+- `AiDescription` written by the tenant admin makes the field meaningful to the AI
+- Nothing breaks when a field has no `EntityPropertyPath` — it simply stores as form data
+
+### The `CASignature` Example
+
+```
+Tenant admin creates "CASignature" field
+         │
+Does a typed property exist?  NO
+         │
+Does anything break?          NO — stores as form blob
+         │
+Can the AI read it?           YES — via IFormSemanticContextBuilder
+         │
+Developer involvement needed? NONE
+```
+
+### Full Lifecycle — Who Does What
+
+```
+DEVELOPER (once, at build time)
+  │  Creates typed entities (Incident, Contractor, WorkPermit...)
+  │  Registers ~10-20 mappable paths in EntityPropertyRegistry
+  ▼
+
+TENANT ADMIN (whenever a new form is needed)
+  │  Opens form builder
+  │  Adds fields freely — whatever the business needs
+  │  For each field: writes AiDescription, sets compliance flag
+  │  Optionally selects EntityPropertyPath from developer's registered list
+  │  Fields without a path? Fine — they store as form data
+  ▼
+
+FIELD WORKER (daily)
+  │  Opens rendered form (RJSF renders from schema)
+  │  Fills in fields including any custom ones
+  │  Submits
+  ▼
+
+SYSTEM (on submission)
+  │  Stores ALL fields as FormSubmission JSON blob
+  │  For fields WITH EntityPropertyPath → also writes to typed entity
+  │  For fields WITHOUT → stored in blob only (no error, no gap)
+  ▼
+
+AI (on demand via MCP)
+     Reads typed entity directly (fast, typed, precise)
+  +  Calls IFormSemanticContextBuilder for supplementary context
+  =  Full picture: typed domain + semantic form data
+```
+
+---
+
+## Pre-Built Industry Form Templates
+
+> Design decision: May 2026. Implement in Phase 7 alongside the form engine.
+
+### The Idea
+
+The platform ships a library of **system form templates** — pre-built, pre-described,
+organised by industry and regulatory standard. Tenants can use them as-is or clone and
+customise. All `AiDescription`, `SemanticConcept`, and `RegulatoryReference` fields are
+pre-populated by the developer.
+
+This solves three problems at once:
+1. Tenants get instant value on day one — no blank-canvas problem
+2. The `AiDescription` authoring burden is handled by the developer for common forms
+3. Regulatory standard forms become a moat — no competitor ships semantically-enriched
+   ISO/OSHA/CDM templates out of the box
+
+### Entity Design
+
+```csharp
+public class FormTemplate : BaseEntity, ITenantEntity
+{
+    public Guid TenantId { get; set; }        // Null for system templates
+    public bool IsSystemTemplate { get; set; } // System templates: read-only, not deletable
+    public string? IndustryTag { get; set; }   // "Construction", "OilAndGas", "Mining", "Generic"
+    public string? StandardReference { get; set; } // "ISO 45001:2018", "OSHA 1904", "UK CDM 2015"
+    public Guid? ClonedFromTemplateId { get; set; } // Audit trail of which system template was cloned
+    // ... existing fields
+}
+```
+
+### Tenant Workflow
+
+```
+Tenant Admin opens Form Library
+         │
+         ├── My Templates (tenant-created)
+         │
+         └── System Templates (platform-provided, read-only)
+                  │
+                  ├── [ISO 45001] Hazard Identification Checklist
+                  ├── [OSHA 300]  Incident Investigation Supplement
+                  ├── [UK CDM 2015] Contractor Safety Induction
+                  ├── [Construction] Pre-Task Safety Briefing
+                  ├── [Oil & Gas]  Permit to Work Checklist
+                  └── ...
+                  │
+                  Use as-is ──► rendered directly, all AI descriptions pre-written
+                  OR
+                  Clone ──────► creates a copy in My Templates → customise freely
+```
+
+### Phase 7 Starter Pack (first-party templates to ship)
+
+| Template | Standard | Industry |
+|---|---|---|
+| Contractor Safety Induction | UK CDM 2015 / ISO 45001 | Generic |
+| Incident Investigation Supplement | OSHA 1904 / RIDDOR 2013 | Generic |
+| Hazard Identification Checklist | ISO 45001:2018 Cl. 6.1 | Generic |
+| Pre-Task Safety Briefing (JSA/JHA) | OSHA General Industry | Construction |
+| Hot Work Permit Checklist | NFPA 51B | Construction / Oil & Gas |
+| Confined Space Entry Checklist | OSHA 1910.146 | Manufacturing / Oil & Gas |
+| LOTO Pre-Task Verification | OSHA 1910.147 | Manufacturing |
+| Environmental Spill Response | EPA / ISO 14001 | Generic |
+
+Each template: all `AiDescription` fields written, `RegulatoryReference` populated,
+`IsComplianceCritical` flags set. Ready for AI reasoning on day one.
+
+---
+
 ## Form Builder Library Selection
 
 > Researched May 2026. Decision locked for Phase 7.
