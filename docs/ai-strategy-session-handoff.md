@@ -107,16 +107,106 @@ By the time Phase 17 is built, the regulatory content landscape will have evolve
   when a trusted source makes it available at the right quality level.
 - We do not have to be Wolters Kluwer. We have to be ready to connect to them.
 
-**Issue 4 — Black Box AI Is Unacceptable to EHS Practitioners** ← NEXT
+**Issue 4 — Black Box AI Is Unacceptable to EHS Practitioners ✅ DISCUSSED**
 
-**Issue 3 — Regulatory Language Is Not AI-Friendly Without Grounding**
-General LLMs hallucinate regulatory content (OSHA, RIDDOR, CDM). Wolters Kluwer Enablon
-uses expert-curated knowledge bases. We do not have this. Honest gap to explore.
+Verdict: Non-issue for current architecture. Fully addressed for Phase 17.
 
-**Issue 4 — Black Box AI Is Unacceptable to EHS Practitioners**
-Practitioners need to explain AI decisions to regulators and in legal proceedings.
-Gartner: 60% of large enterprises adopting AI governance/explainability tools by 2026.
-How does our audit trail (Phase 6) + AI service principal pattern address this?
+Core posture: Our AI never makes decisions. It surfaces patterns from typed historical data.
+All actions in the system are taken by named humans. The audit trail records who did what,
+when, with what data visible to them. When an OSHA inspector asks "walk me through what
+happened" — every action is attributable to a named human. There is no "AI decided X."
+
+Phase 17 nuance: When AI suggestions are added (incident classification, CA recommendations),
+the AI Service Principal pattern records BOTH the AI suggestion AND the human decision in
+the same audit trail. Regulator can see: AI said High severity, named human overrode to
+Medium, with timestamp and reason. That is explainable, defensible, auditable.
+
+One-line verdict: We don't have a black box problem because our AI doesn't make decisions.
+When Phase 17 adds suggestions, the audit trail records suggestion + human override.
+Legally defensible by design. "AI outputs are advisory not determinative" — Morgan Lewis.
+
+---
+
+## AI Provider Strategy & Subscription Gating (Phase 17 Technical Design)
+
+> Captured during Issue 4 discussion. Locked decisions for Phase 17 implementation.
+
+### How AI Suggestions Work Technically
+
+AI receives: typed data (IncidentDto, valid enum values as constraints) + domain prompt.
+AI returns: JSON with suggested enum value + confidence score.
+AI cannot suggest values outside our enums — hallucination is structurally limited.
+Result is recorded via AI Service Principal before human sees it.
+
+### Provider Landscape
+
+| Provider | Models | Cost | Free Tier | Best For |
+|---|---|---|---|---|
+| Anthropic | Claude Haiku 4.5 / Sonnet 4.6 | $0.80–$15/MTok | None | Default. Best reasoning quality. Already in our ecosystem. |
+| Groq | Llama 3.3 70B, Gemma, Mistral | $0.05–0.59/MTok | ✅ 14,400 req/day | Cheap tasks. Fastest inference available. |
+| DeepSeek | V3, R1 | $0.14–0.55/MTok | ✅ Free quota | Very cheap. Strong reasoning for cost. |
+| Mistral AI | Small / Medium | $0.10–0.30/MTok | ✅ Free tier | Cheap classification tasks. |
+| Google Gemini | 2.0 Flash, Gemma 4 | Very cheap | ✅ 15 req/min free | Development + free-tier tenants. |
+| Ollama | Llama, Mistral, Qwen (local) | $0 | ✅ Always free | Local development — zero API calls while coding. |
+
+### "Proprietary AI" — The Honest Answer
+
+No EHS vendor has trained their own model. Benchmark Gensuite "Genny AI", VelocityEHS
+"VelocityAI", Cority "Applied AI" — all are foundation model APIs (OpenAI / Anthropic /
+Azure OpenAI) with domain-specific prompt engineering and data context on top.
+
+What IS proprietary and IS our IP:
+- Prompt engineering for EHS domain tasks
+- IFormSemanticContextBuilder output fed as context
+- Constrained output (AI picks from our typed enums only)
+- AI Service Principal audit recording pattern
+- How suggestions surface to the user
+- The integration layer connecting AI to the typed domain
+
+Marketing language: "[Platform Name] AI" or "EHS Intelligence" — same as Salesforce
+"Einstein AI." Never say "proprietary AI model" — inaccurate.
+
+### Architecture — IAiSuggestionService Abstraction
+
+Application layer defines the interface. Infrastructure layer implements per provider.
+Swap provider via appsettings.json — no application code changes.
+
+```csharp
+// Application layer
+public interface IAiSuggestionService
+{
+    Task<IncidentClassificationSuggestion> SuggestClassificationAsync(
+        string description,
+        IReadOnlyList<string> validTypes,
+        IReadOnlyList<string> validSeverities,
+        CancellationToken ct);
+}
+
+// Infrastructure — register one based on config
+// ClaudeAiSuggestionService | GroqAiSuggestionService
+// GeminiAiSuggestionService | OllamaAiSuggestionService
+```
+
+### Subscription Tier Gating
+
+AI features are gated by tenant subscription tier. Free tenants get zero AI calls.
+A single check in each AI handler: `if (!features.IsAiEnabled) return NotAvailable()`.
+Per-tenant monthly quota tracked and enforced. No AI cost for non-paying tenants.
+
+| Tier | AI Features | Quota | Model Tier |
+|---|---|---|---|
+| Free | None | 0 | — |
+| Standard | Incident classification + CA suggestions | 100/month | Fast (Groq/Haiku) |
+| Professional | + Pattern detection + report generation | 1,000/month | Full (Sonnet) |
+| Enterprise | + Compliance agent + custom config | Unlimited | Configurable |
+
+Provider routing by tier: Free tenants → no calls. Standard → Groq free tier.
+Professional → Haiku. Enterprise → Sonnet. Costs scale with revenue.
+
+Development strategy:
+- Local dev: Ollama (zero cost, no API calls while coding)
+- Testing: Gemini free tier or DeepSeek free quota
+- Production: Groq (cheap) → Haiku (medium) → Sonnet (complex) by task
 
 **Issue 5 — Worker Surveillance Backlash**
 46% of construction workers reject tracking devices. 59% reject biometric sensors.
