@@ -231,11 +231,41 @@ encourages it. "PPE was not worn" not "worker forgot PPE." "Procedure gap identi
 notification, pattern report, investigation template is Just Culture compliant by default.
 No EHS competitor is doing this explicitly. Directly reduces under-reporting. Sales point.
 
-**Issue 6 — No Vendor Has Solved ERP Integration at the Permit Level**
-Prometheus Group (SAP SOLEX) is the closest but still point-to-point field mapping.
-Our MCP + AI orchestrator pattern is the new approach. SAP and Dynamics 365 have shipped
-MCP servers (2025-2026). This is the biggest potential moat. Discuss honestly:
-what's real now vs. 18 months out?
+**Issue 6 — No Vendor Has Solved ERP Integration at the Permit Level ✅ DISCUSSED**
+
+Verdict: Tiered integration strategy. Tier 1 (screenshot AI) is the practical differentiator.
+MCP is the long-term moat. Both are real — at different timelines.
+
+Phase 13 — Work Permit Mobile Experience (standalone, no ERP needed):
+- QR code per permit. Worker scans with phone (no app install — browser).
+- Mobile page shows permit status (Active/Expired/Suspended) with controls required.
+- Entry register: worker taps Enter/Exit → records identity, timestamp, geolocation.
+- Supervisor verification: scan QR → see live entrant list.
+- Offline support: queues scans, syncs on reconnect.
+- Emergency muster: shows who is still on site right now.
+- This alone exceeds most EHS platform permit experiences.
+
+ERP integration tiers (offered as a menu — customer picks their tier):
+- Tier 0: Manual ERP work order reference field. Zero effort. Always available.
+- Tier 1: Screenshot/PDF upload + AI extraction. Operator uploads ERP work order
+  screenshot or PDF. AI extracts work order number, asset, description, dates.
+  Pre-fills permit. Operator confirms. Works with ANY ERP. No IT project. No consultant.
+  ~85% extraction accuracy. THIS IS THE DIFFERENTIATOR — no competitor offers this.
+- Tier 2: CSV/Excel import + AI column mapping. ERP team exports work orders weekly.
+  AI maps columns to permit fields. Draft permits created automatically.
+- Tier 3: iPaaS/middleware. We expose clean REST API + webhooks. Customer uses their
+  existing Azure Logic Apps / MuleSoft / Boomi / n8n to connect SAP → our API.
+  Zero effort on our side — just document the API properly.
+- Tier 4: Direct ERP API adapter (SAP OData / Oracle REST). Professional services
+  engagement, not a product feature. Charged separately. Per-ERP, per-version.
+- Tier 5: MCP orchestration (Phase 17 + 12-18 month market maturity).
+  SAP/Dynamics MCP servers ↔ AI Orchestrator ↔ our MCP server. Architecture ready.
+
+Build plan: Phase 13 = Tier 0 + Tier 1 + mobile QR experience.
+Phase 17 = Tier 2 + Tier 5 + REST API docs for Tier 3.
+Tier 4 = on-demand professional services engagement.
+
+**Issue 7 — Agentic AI Is Still Mostly Announcement, Not Production** ← NEXT
 
 **Issue 7 — Agentic AI Is Still Mostly Announcement, Not Production**
 Benchmark Gensuite announced "first AI Agent framework for EHS" October 2025 — launch
