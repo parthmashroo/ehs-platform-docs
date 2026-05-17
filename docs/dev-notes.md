@@ -720,6 +720,26 @@ public class IncidentsController : ControllerBase
 
 ## Design Q&A — Decisions Captured During Development
 
+### Soft-deleted user with active JWT — known gap (fix in Phase 8)
+
+**Q:** If a user is soft-deleted, can they still use their existing JWT?
+
+**A:** Yes — for up to 12 hours (current JWT expiry). The `HasQueryFilter(x => !x.IsDeleted)` on `User` blocks new logins immediately. But a JWT already in the client's hands is cryptographically valid until it expires. `TenantResolutionMiddleware` only checks for the `tid` claim — it does not validate that the user still exists or is not deleted.
+
+**Why it's hard to catch later:** Requires two concurrent sessions to reproduce. The window is up to 12 hours and leaves no error in logs — access just silently continues.
+
+**Fix:** Phase 8 (Redis). When a user is soft-deleted, write their JWT `jti` claim to a Redis blocklist with TTL = remaining token expiry. `TenantResolutionMiddleware` checks the blocklist on every authenticated request. Requires adding `jti` claim to `LoginCommandHandler` first.
+
+| State | Behaviour |
+|---|---|
+| Deleted user attempts new login | Blocked — query filter returns no user |
+| Deleted user uses existing JWT | Allowed until expiry — **gap** |
+| After Phase 8 blocklist | Blocked immediately on deletion |
+
+Tracked as Jira ticket — resolve in Phase 8 alongside Redis introduction.
+
+---
+
 ### CorrelationId scope — why not link across requests?
 
 **Q:** If a user clicks something and nothing happens, then clicks again and gets an error — both have different CorrelationIds. How do you get the full picture?
