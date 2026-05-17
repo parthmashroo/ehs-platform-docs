@@ -267,11 +267,47 @@ Tier 4 = on-demand professional services engagement.
 
 **Issue 7 — Agentic AI Is Still Mostly Announcement, Not Production** ← NEXT
 
-**Issue 7 — Agentic AI Is Still Mostly Announcement, Not Production**
-Benchmark Gensuite announced "first AI Agent framework for EHS" October 2025 — launch
-announcement, not years of production data. Legal liability frameworks for AI agent actions
-are unclear. Morgan Lewis (Feb 2026) recommends "AI outputs are advisory not determinative."
-How does our architecture position us for when this matures?
+**Issue 7 — Agentic AI Is Still Mostly Announcement, Not Production ✅ DISCUSSED**
+
+Verdict: Our architecture is more genuinely agentic than any current EHS launch announcement.
+AI advises. Human decides. Always. This is the correct posture legally, ethically, and
+commercially for a safety-critical domain.
+
+Benchmark Gensuite's "first AI Agent framework for EHS" (Oct 2025) is a product announcement.
+We built a foundation. Products get announced. Foundations compound.
+
+What makes our architecture legitimately agentic:
+- MCP server (Phase 17): AI-callable tools over full typed domain
+- Outbox (Phase 9): reliable event-driven AI triggers — no polling
+- AI Service Principal: every AI action attributed, timestamped, audited
+- IAiSuggestionService: provider-agnostic, swappable, cost-optimised by tier
+- Typed domain model: AI reasons precisely, not on form blobs
+- Semantic form engine: even custom forms are AI-readable
+- Just Culture language enforcement: AI-generated text follows safety communication standards
+
+What our AI does (agentic read + detect + notify + suggest):
+✅ Reads data on demand via MCP tools
+✅ Detects conditions from Outbox events (CA overdue, permit expiring, silence anomaly)
+✅ Sends notifications attributed to AI Service Principal — fully audited
+✅ Generates reports, summaries, pre-filled regulatory documents
+✅ Suggests classifications — human confirms, audit records both
+
+What our AI never does (legal documents, determinative decisions):
+❌ Approves permits | ❌ Signs JSAs | ❌ Creates CAs autonomously
+❌ Changes severity without confirmation | ❌ Answers regulatory questions
+
+Liability posture (Morgan Lewis Feb 2026): "AI outputs are advisory not determinative."
+Every AI action is attributed, timestamped, paired with the human decision that followed.
+If a regulator asks "what did your AI do" — we have a complete immutable answer.
+That is not possible on platforms where AI writes to form fields with no audit trail.
+
+---
+
+## ALL 7 ISSUES COMPLETE ✅
+
+This discussion is fully documented. All verdicts locked.
+See individual issue entries above for full detail.
+Next: return to implementation (EHS-42 and Phase 4 completion).
 
 ---
 
