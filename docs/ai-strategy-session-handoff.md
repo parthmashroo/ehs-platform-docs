@@ -208,11 +208,28 @@ Development strategy:
 - Testing: Gemini free tier or DeepSeek free quota
 - Production: Groq (cheap) → Haiku (medium) → Sonnet (complex) by task
 
-**Issue 5 — Worker Surveillance Backlash**
-46% of construction workers reject tracking devices. 59% reject biometric sensors.
-Computer vision AI faces workforce trust and GDPR problems. How should we position?
-(Hint: we are NOT building computer vision — the research says don't. But how do we
-frame what we DO for worker safety vs. surveillance?)
+**Issue 5 — Worker Surveillance Backlash ✅ DISCUSSED**
+
+Verdict: Not our jurisdiction. Platform neutral. One genuine feature worth building.
+
+Platform neutrality: We provide tools. Client decides their rollout strategy, communication
+approach, union consultation, pace of adoption. We do not mandate surveillance or prevent it.
+Gradual rollout is standard ISO 45001 practice — workers adopt Phase 1 (frictionless reporting)
+before Phase 2 (closed-loop notifications) before Phase 3 (deeper analytics). Our modular
+per-tenant feature gating supports this naturally.
+
+What we don't build: Computer vision, biometric monitoring, tracking devices.
+If client has computer vision: they write to our MCP — we are the system of record.
+Positioning: "We give workers a voice, not a camera pointed at them."
+
+Just Culture language enforcement (Phase 17 — novel, build this):
+Every piece of AI-generated text in the platform passes through a Just Culture system prompt
+component. Just Culture (Sidney Dekker, aviation safety, ISO 45001) says accidents are system
+failures not individual failures. Blame language suppresses reporting. System-focused language
+encourages it. "PPE was not worn" not "worker forgot PPE." "Procedure gap identified" not
+"employee violated rule." One system prompt addition. Every AI-generated CA description,
+notification, pattern report, investigation template is Just Culture compliant by default.
+No EHS competitor is doing this explicitly. Directly reduces under-reporting. Sales point.
 
 **Issue 6 — No Vendor Has Solved ERP Integration at the Permit Level**
 Prometheus Group (SAP SOLEX) is the closest but still point-to-point field mapping.
