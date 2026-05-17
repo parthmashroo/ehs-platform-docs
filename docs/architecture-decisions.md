@@ -558,3 +558,134 @@ problems in MAISAAS that influenced our architecture decisions:
 | BinaryFormatter for Redis | System.Text.Json |
 | No tests | Full xUnit test suite planned |
 | Files stored on local disk | Azure Blob Storage (Phase 10) |
+
+---
+
+## ADR-013: Semantic Form Engine Architecture (Phase 7)
+
+**Context:** The original Phase 7 design used an EAV (Entity-Attribute-Value) pattern —
+`FormTemplate → FormSection → FormField → FormSubmission → FormFieldAnswer`. This was
+replaced in May 2026 after identifying that the EAV pattern has the same AI-readability
+limitation as all form-engine-based EHS competitors. Full design: `semantic-form-engine-design.md`.
+
+**Decision:** Three-layer semantic form engine replacing the EAV design.
+
+**Layer 1 — FormTemplate with JSON column:**
+`FormTemplate` stores `List<FormFieldDescriptor>` as a single EF Core 8 JSON column.
+No normalised field-per-row table. Each `FormFieldDescriptor` carries:
+- `AiDescription` — machine-oriented explanation for LLM consumption (not the display label)
+- `SemanticConcept` — dot-notation namespace e.g. `"ContractorCompliance.InductionStatus"`
+- `RegulatoryReference` — e.g. `"HSE CDM 2015 Regulation 12"`
+- `IsComplianceCritical` — flags fields that determine compliance pass/fail
+- `EntityPropertyPath` — optional path to write value back to a typed domain entity
+- `MaxScore` / `ScoreMap` — scoring per field for audit/inspection scoring
+
+**Layer 2 — FormSubmission envelope:**
+Stores `Dictionary<string, object?> Values` as JSON. Always carries `FormTemplateId` +
+`FormTemplateVersion` (pinned at submission time) + `ParentEntityId` + `ParentEntityType`
+to anchor supplementary data to the typed domain. Computed score fields on save.
+
+**Layer 3 — IFormSemanticContextBuilder:**
+Application-layer service that joins submission values to field descriptors and produces
+a structured semantic context string for LLM consumption. AI never sees `field_23: "yes"`.
+It sees field name, AiDescription, allowed values, compliance flag, and the submitted value
+with a compliance verdict. Fully unit testable — no HTTP, no LLM calls.
+
+**EntityPropertyRegistry:**
+Developer-maintained dictionary of ~10–20 paths where form field values should also be
+written back to typed entity properties. Validated at template save time — invalid paths
+fail immediately, not silently at submission. Tenant admins can only map to registered paths.
+
+**Form Builder Library:**
+`@rjsf/core` (React JSON Schema Form, Apache 2.0) as the renderer. Custom widgets replace
+RJSF defaults for EHS-specific field types (toggle, camera capture, signature, severity picker).
+Phase 7 builder: structured admin page (add/configure/reorder + live RJSF preview). Future
+upgrade path to WYSIWYG canvas (Joyfill-quality) without any data model changes.
+SurveyJS explicitly rejected: `survey-creator` (builder) is commercial ~$573/dev/year.
+Form.io explicitly rejected: OSL-3.0 licence covers SaaS deployment.
+
+**Pre-built industry templates:**
+Platform ships a library of `IsSystemTemplate = true` templates with all `AiDescription`,
+`SemanticConcept`, and `RegulatoryReference` fields pre-populated. Tenants use as-is or clone.
+Starter pack: ISO 45001 Hazard ID, OSHA 1904 Incident Supplement, CDM 2015 Contractor Induction,
+NFPA 51B Hot Work Permit Checklist, OSHA 1910.146 Confined Space, OSHA 1910.147 LOTO, and more.
+
+**Why not EAV (original design):**
+- EAV produces `field_23: "yes"` — opaque to LLMs without additional context
+- Same AI-readability limitation that affects SafetyCulture, Intelex, Cority configurable modules
+- JSON column with `AiDescription` per field gives LLMs semantic context at no extra query cost
+
+**Why not OWL/RDF ontology:**
+`SemanticConcept` dot-notation gives ~80% of the value of a full OWL URI at 5% of the complexity.
+LLMs understand dot-namespaced concepts without dereferencing a URI. Full OWL is a future
+optimisation if data volume justifies it. See `semantic-form-engine-design.md` for full reasoning.
+
+---
+
+## ADR-014: AI-First Architecture (Phase 17)
+
+**Context:** Finalised during AI strategy review, May 2026. All 7 AI capability gaps in the
+EHS market were reviewed and verdicts locked. Full research: `ai-capabilities-research.md`.
+Full strategy: `ai-first-strategy.md`. All verdicts: `ai-strategy-session-handoff.md`.
+
+**Core Posture — AI Advises, Human Decides. Always.**
+Our AI never makes decisions, never approves documents, never changes severity autonomously,
+never creates corrective actions without human confirmation. AI surfaces patterns from typed
+historical data. All actions in the system are taken by named humans. This is the correct
+posture for a safety-critical compliance domain and satisfies Morgan Lewis (Feb 2026):
+"AI outputs are advisory rather than determinative."
+
+**IAiSuggestionService — Provider Abstraction:**
+Application layer defines the interface. Infrastructure implements per provider.
+Providers: Anthropic Claude (default), Groq, DeepSeek, Gemini, Ollama (local dev).
+Swap provider via `appsettings.json` — no application code changes.
+Development: Ollama (free, no API calls). Production: Groq/Haiku for cheap tasks, Sonnet for complex.
+AI suggestions are constrained to our typed enum values — hallucination is structurally limited.
+
+**AI Service Principal — Full Audit Attribution:**
+Every AI action is attributed to a named AI service principal (not "system"), recorded before
+the human sees it, and paired with the human's accept/override decision in the same audit trail.
+Regulators and legal proceedings get a complete record: "AI suggested X, named human overrode to Y."
+
+**Subscription Tier Gating:**
+AI features are gated by tenant subscription tier. Free tenants: zero AI calls.
+Single check in each AI handler: `if (!features.IsAiEnabled) return NotAvailable()`.
+Per-tenant monthly quota tracked. AI cost scales with revenue, not ahead of it.
+
+**Just Culture Language Enforcement:**
+All AI-generated text (CA descriptions, notifications, investigation templates, pattern reports)
+passes through a Just Culture system prompt component. "PPE was not worn" not "worker forgot PPE."
+System-focused language encourages reporting; blame language suppresses it. One system prompt
+addition applied to every AI text generation call.
+
+**What NOT to build (locked):**
+- No autonomous permit approval (legal document — named human required)
+- No autonomous severity changes (determines regulatory reporting threshold)
+- No general-purpose regulatory Q&A chatbot (hallucination + legal liability)
+- No fully autonomous CA creation (accountability implications)
+- No computer vision monitoring (GDPR Article 9, workforce resistance, wrong domain)
+- No AI-generated ESG reports for public disclosure (material disclosure, executive sign-off required)
+
+**ERP Integration — Tiered Strategy:**
+Tier 1 (Phase 13): Screenshot/PDF upload + AI extraction. Operator uploads ERP work order;
+AI extracts work order number, asset, description, dates; pre-fills permit. Works with any ERP.
+Tier 3 (Phase 17): Clean REST API + webhooks for iPaaS tools (MuleSoft, Azure Logic Apps, n8n).
+Tier 5 (Phase 17): MCP orchestration when SAP/Dynamics MCP servers mature (12-18 months).
+Tier 4: Direct ERP API adapters as professional services engagements, not product features.
+
+**RegulatoryContent extensibility hook:**
+`RegulatoryContent` table stores jurisdiction, standard, clause, official URL, and trigger condition.
+Platform builds the shelf; enterprise customers populate their jurisdiction's requirements.
+When regulatory content MCP servers emerge (Wolters Kluwer, OSHA eCFR API, EU EUR-Lex),
+our architecture plugs them in with no structural changes. We build the shelf; partners bring content.
+
+**Provider cost strategy:**
+| Task | Provider | Approx cost |
+|---|---|---|
+| Incident classification | Groq Llama / Haiku | ~$0.001/call |
+| CA suggestions | Groq / Haiku | ~$0.002/call |
+| Pattern detection | Sonnet | ~$0.15/report |
+| Report generation | Sonnet | ~$0.05/report |
+| Per tenant per month | — | ~$3–8 |
+
+Full detail: `ai-first-strategy.md` and `ai-strategy-session-handoff.md`.

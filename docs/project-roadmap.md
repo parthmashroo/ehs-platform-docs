@@ -138,13 +138,14 @@ The developer is a self-identified procrastinator and overthinker. These rules p
 
 
 
-### ISO Templates
+### Form Engine & Templates
 
-- Seed a small number of example templates when the form engine is built (Phase 7) to prove it works.
-
-- ISO-compliant template packs (ISO 45001, ISO 9001, OSHA) are a **commercial product decision** —
-
-  built when paying customers ask for them. Not before.
+- Phase 7 ships 8 pre-built industry/regulatory templates with full `AiDescription` pre-populated.
+  These are `IsSystemTemplate = true` — read-only, tenants clone and customise.
+- Standards covered in Phase 7 starter pack: ISO 45001, OSHA 1904, CDM 2015, NFPA 51B,
+  OSHA 1910.146, OSHA 1910.147 (see ADR-013 and `semantic-form-engine-design.md`).
+- Additional regulatory packs (ISO 9001, ISO 14001, RIDDOR, sector-specific) are a commercial
+  product decision — built when paying customers request them.
 
 
 
@@ -1420,35 +1421,34 @@ New concepts: EF Core SaveChanges interceptors, immutable audit tables, change t
 
 
 
-### Phase 7: Dynamic Form Engine
+### Phase 7: Semantic Form Engine
 
-**Goal:** Generic form builder. Companies can create custom assessment forms.
+**Goal:** AI-readable supplementary form engine. Tenant admins build custom forms.
+Core typed entities (Incident, CorrectiveAction, etc.) stay typed — forms are supplementary only.
 
-Seed 2-3 example templates (risk assessment, site inspection).
+Full design: `semantic-form-engine-design.md`. Architecture decision: ADR-013.
 
+- [ ] `FormTemplate` entity + EF config + JSON column for `List<FormFieldDescriptor>`
+- [ ] `FormFieldDescriptor` with: `AiDescription`, `SemanticConcept`, `RegulatoryReference`,
+      `IsComplianceCritical`, `EntityPropertyPath`, `MaxScore`, `ScoreMap`, `AllowedValues`
+- [ ] `FormSubmission` entity + `ParentEntityId` + `ParentEntityType` + `Values` JSON +
+      `TotalScore`, `MaxPossibleScore`, `ScorePercentage`, `ScoreRating`
+- [ ] `IFormSemanticContextBuilder` + `SemanticFormContext` + `ToAiContextString()`
+- [ ] `EntityPropertyRegistry` — developer-registered mappable paths (~10-20 total)
+- [ ] Entity mapper — writes form field values to typed entity properties on submission
+- [ ] `IsSystemTemplate` flag + `IndustryTag` + `StandardReference` + `ClonedFromTemplateId`
+- [ ] Pre-built industry templates (8 templates with full `AiDescription` pre-populated):
+      ISO 45001 Hazard ID, OSHA 1904 Incident Supplement, CDM 2015 Contractor Induction,
+      NFPA 51B Hot Work Permit, OSHA 1910.146 Confined Space, OSHA 1910.147 LOTO,
+      Pre-Task Safety Briefing (JSA/JHA), Environmental Spill Response
+- [ ] CRUD API for FormTemplate (create, get, clone system template)
+- [ ] Submit form endpoint (FormSubmission + score computation)
+- [ ] Structured admin builder UI (React — add/configure/reorder fields + RJSF live preview)
+- [ ] RJSF renderer (`@rjsf/core` + `@rjsf/shadcn-ui`) with custom EHS widgets
+- [ ] Commit: `"Phase 7: Semantic form engine"`
 
-
-New concepts: Dynamic/data-driven UI patterns, JSON-stored config, EAV-adjacent patterns.
-
-
-
-- [ ] FormTemplate, FormSection, FormField entities + migration
-
-- [ ] FormSubmission, FormFieldAnswer entities
-
-- [ ] CRUD for FormTemplate (create, get, clone)
-
-- [ ] Submit a form (FormSubmission + answers)
-
-- [ ] Link submission to an entity (LinkedEntityType, LinkedEntityId)
-
-- [ ] Seed 2-3 example templates
-
-- [ ] Commit: `"Phase 7: Dynamic form engine"`
-
-
-
-**Done when:** Can create a form template, submit responses, retrieve answers.
+**Done when:** Tenant admin can create a template with AI metadata, worker submits form,
+AI can read semantic context via `IFormSemanticContextBuilder`, score computed on save.
 
 
 
@@ -1679,6 +1679,27 @@ Full strategic rationale: see [ai-first-strategy.md](ai-first-strategy.md)
 
 **Tech:** Claude API (Anthropic .NET SDK), `ModelContextProtocol` NuGet for MCP server,
 streaming responses for reports. Runs in the same API process — no new infrastructure.
+
+**Architecture decisions (locked — ADR-014):**
+- `IAiSuggestionService` abstraction — provider-agnostic. Swap Anthropic/Groq/DeepSeek/Gemini/Ollama
+  via `appsettings.json`. Application layer never knows which provider is active.
+- AI suggestions constrained to typed enum values — hallucination structurally limited.
+- AI Service Principal — all AI actions attributed, timestamped, paired with human decision in audit trail.
+- Subscription tier gating — Free: no AI. Standard: classification only. Professional: full AI.
+  Enterprise: unlimited + configurable provider.
+- Just Culture language enforcement — all AI-generated text passes through a system prompt
+  component enforcing blame-free, system-focused safety language.
+- `RegulatoryContent` extensibility table — platform builds the shelf; customers/partners bring content.
+  Designed to plug in regulatory MCP servers (OSHA eCFR, Wolters Kluwer) when they emerge.
+
+**What NOT to build (locked — see ai-capabilities-research.md Section 7):**
+- No autonomous permit approval, no autonomous severity changes
+- No general-purpose regulatory Q&A chatbot
+- No fully autonomous CA creation
+- No computer vision monitoring
+- No AI-generated ESG reports for public disclosure
+
+Full rationale: `ai-first-strategy.md`, `ai-capabilities-research.md`, `ai-strategy-session-handoff.md`
 
 
 
