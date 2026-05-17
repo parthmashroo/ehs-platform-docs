@@ -260,3 +260,82 @@ With this design:
 
 *Designed May 2026. Implement in Phase 7. The AI features that consume this (Phase 17)
 depend on this foundation being in place.*
+
+---
+
+## Form Builder Library Selection
+
+> Researched May 2026. Decision locked for Phase 7.
+
+### Decision
+
+**RJSF (`@rjsf/core`, Apache 2.0) as the renderer + a custom lightweight admin builder page.**
+
+SurveyJS renderer (MIT, never the creator package) is a valid fallback if RJSF proves insufficient for rendering complexity. The builder is a custom admin UI regardless.
+
+---
+
+### Library Comparison
+
+| Library | Licence | Builder UI | Renderer | Custom Metadata | GitHub Health | Verdict |
+|---|---|---|---|---|---|---|
+| **RJSF** | Apache 2.0 ✓ | Community add-on only (low activity) | Excellent — MUI/Bootstrap/shadcn themes | Arbitrary keys pass through silently. No registration needed. | 15.8k stars, 358 contributors, active 2025 | **Recommended** |
+| **JSON Forms** | MIT ✓ | Research/PoC only — not production | Very good — React/Angular/Vue | `x-` prefixed extensions documented | 2.6k stars, active 2025 | Runner-up |
+| **Formily** | MIT ✓ | `@formily/designable` (Ant Design-coupled, slowing) | Excellent reactive forms | `x-*` extensions first-class in schema | 12.7k stars, docs mostly Chinese | Conditional — wrong stack fit |
+| **SurveyJS renderer** | MIT ✓ | **Creator is COMMERCIAL ~$573/dev** | Best-in-class, lazy load, React/Vue | `Survey.Serializer.addProperty()` — works cleanly | Renderer 4.3k stars, active | Fallback renderer only |
+| **SurveyJS creator** | **Commercial ✗** | Polished, best drag-drop | N/A | Same as renderer | 1.3k stars | **Never use without licence** |
+| **Form.io** | OSL-3.0 ✗ | Full stack Node.js | Good | Proprietary schema | — | **Hard disqualified** — OSL-3.0 copyleft covers SaaS deployment |
+| **RHF + Zod + custom** | MIT ✓ | Would have to build from scratch | Would have to build from scratch | Full control | 42k stars (RHF alone) | Last resort only |
+
+---
+
+### Why RJSF
+
+1. **Licence is unambiguous.** Apache 2.0 — commercial SaaS use is explicitly permitted. No surprise commercial tiers.
+2. **Custom metadata requires zero ceremony.** Our `aiDescription`, `semanticConcept`, `regulatoryReference`, `isComplianceCritical`, `entityPropertyPath` fields live directly on each field's JSON Schema entry. RJSF passes unknown keys through to custom widgets — no registration, no schema extensions.
+3. **Native .NET backend fit.** JSON Schema Draft 7 is natively supported by `NJsonSchema` and `System.Text.Json` in .NET 8. Schema stored as EF Core 8 JSON column, served via REST, consumed directly by `<Form schema={...} />`. No translation layer.
+4. **Builder gap is not a problem here.** The EHS admin template builder is a structured authoring UI for trained super-admins, not a public drag-drop canvas. It needs: add field (type picker), fill AI metadata, reorder/delete, real-time preview. That is 1–2 sprint tickets using `<Form schema={...} />` as the preview. No off-the-shelf builder needed.
+5. **Ecosystem size.** 15.8k stars, 358 contributors, MUI/Bootstrap/shadcn/Ant Design theme packages maintained separately. Bug reports get responses.
+
+---
+
+### SurveyJS — The Licence Trap to Avoid
+
+SurveyJS markets itself as open source. This is misleading:
+
+- `survey-library` (renderer): **MIT. Genuinely free.**
+- `survey-creator` (builder): **Commercial licence. ~$573 USD per developer per year (Basic plan).**
+
+If a future engineer installs `survey-creator` without reading the licence, the project has a commercial licence violation. The renderer is safe to use as a fallback for rendering quality. The creator must never enter the codebase.
+
+---
+
+### Integration Pattern with Our Semantic Layer
+
+RJSF's JSON Schema for a single field:
+
+```json
+{
+  "type": "boolean",
+  "title": "Contractor has valid induction certificate?",
+  "aiDescription": "Confirms contractor completed mandatory site induction before starting work. True = compliant. False = non-compliant — contractor must not begin work until induction is completed.",
+  "semanticConcept": "ContractorCompliance.InductionStatus",
+  "regulatoryReference": "HSE CDM 2015 Regulation 12",
+  "isComplianceCritical": true,
+  "entityPropertyPath": "Contractor.HasValidInduction"
+}
+```
+
+RJSF passes `aiDescription`, `semanticConcept`, `regulatoryReference`, `isComplianceCritical`, and `entityPropertyPath` through to our custom widgets and to the `IFormSemanticContextBuilder` without touching them. The backend stores the full schema (custom fields included) as an EF Core 8 JSON column. Round-trip is lossless.
+
+---
+
+### Bundle Size
+
+- RJSF core: ~150–175 KB gzipped
+- With MUI theme: adds ~32% overhead
+- Acceptable for enterprise B2B — not a consumer app where first-paint matters
+
+---
+
+*Researched May 2026. Supersedes any prior assumption about SurveyJS being the default choice.*
