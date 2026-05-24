@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interview Prep — Parth Mashroo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #f1f5f9; min-height: 100vh; padding: 48px 24px; }
+    .container { max-width: 860px; margin: 0 auto; }
+    h1 { font-size: 28px; font-weight: 700; margin-bottom: 6px; }
+    .subtitle { color: #64748b; font-size: 14px; margin-bottom: 48px; }
+    .section-title {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.12em; color: #475569; margin-bottom: 16px;
+      padding-bottom: 8px; border-bottom: 1px solid #1e293b;
+    }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; margin-bottom: 48px; }
+    .card {
+      background: #1e293b; border: 1px solid #334155; border-radius: 14px;
+      padding: 24px; text-decoration: none; display: block;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+    .card:hover { border-color: #3b82f6; transform: translateY(-2px); }
+    .card-number { font-size: 11px; font-weight: 700; color: #475569; margin-bottom: 10px; letter-spacing: 0.05em; }
+    .card-title { font-size: 15px; font-weight: 600; color: #f1f5f9; margin-bottom: 8px; line-height: 1.4; }
+    .card-meta { font-size: 12px; color: #64748b; }
+    .tag {
+      display: inline-block; padding: 3px 10px; border-radius: 999px;
+      font-size: 11px; font-weight: 600; margin-bottom: 10px;
+    }
+    .tag-resume { background: #1d4ed8; color: #93c5fd; }
+    .tag-project { background: #166534; color: #86efac; }
+    .coming-soon {
+      background: #111827; border: 1px dashed #1e293b; border-radius: 14px;
+      padding: 24px; color: #374151; font-size: 13px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .stats { display: flex; gap: 24px; margin-bottom: 48px; }
+    .stat { background: #1e293b; border-radius: 12px; padding: 20px 28px; }
+    .stat-number { font-size: 32px; font-weight: 700; color: #3b82f6; }
+    .stat-label { font-size: 12px; color: #64748b; margin-top: 2px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Interview Prep</h1>
+    <p class="subtitle">Parth Mashroo — Senior Software Engineer · .NET 8 · C# · SQL Server · Azure</p>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-number">7</div>
+        <div class="stat-label">Resume Cards</div>
+      </div>
+      <div class="stat">
+        <div class="stat-number">0</div>
+        <div class="stat-label">Project Cards</div>
+      </div>
+      <div class="stat">
+        <div class="stat-number">7</div>
+        <div class="stat-label">Total Cards</div>
+      </div>
+    </div>
+
+    <div class="section-title">Resume — Experience Stories</div>
+    <div class="grid">
+      <a class="card" href="resume/R01-observability.html">
+        <div class="card-number">R01</div>
+        <span class="tag tag-resume">Observability · Duck Creek</span>
+        <div class="card-title">Walk me through how you approached observability across a suite of background processing services.</div>
+        <div class="card-meta">OpenTelemetry · Grafana · Windows Services · .NET 8</div>
+      </a>
+      <a class="card" href="resume/R02-deadlock-resolution.html">
+        <div class="card-number">R02</div>
+        <span class="tag tag-resume">SQL Server · Duck Creek</span>
+        <div class="card-title">Tell me about a production database performance problem you diagnosed and resolved under pressure.</div>
+        <div class="card-meta">Deadlocks · Temp Tables · Locking Patterns · Stored Procedures</div>
+      </a>
+      <a class="card" href="resume/R03-api-design.html">
+        <div class="card-number">R03</div>
+        <span class="tag tag-resume">API Design · Duck Creek</span>
+        <div class="card-title">Tell me about an API you designed that had a meaningful performance impact on the system.</div>
+        <div class="card-meta">Server-side Filtering · Predicate Pushdown · Session Load</div>
+      </a>
+      <a class="card" href="resume/R04-commission-engine.html">
+        <div class="card-number">R04</div>
+        <span class="tag tag-resume">Financial Domain · Duck Creek</span>
+        <div class="card-title">Tell me about debugging complex financial calculation logic where correctness is non-negotiable.</div>
+        <div class="card-meta">Pro-rata · Clawback · Commission Engine · Regression Tests</div>
+      </a>
+      <a class="card" href="resume/R05-azure-functions.html">
+        <div class="card-number">R05</div>
+        <span class="tag tag-resume">Azure · Magnit Global</span>
+        <div class="card-title">Tell me about a cloud migration you worked on — what drove it and what was the outcome?</div>
+        <div class="card-meta">Azure Functions · Timer Trigger · Serverless · Legacy Modernization</div>
+      </a>
+      <a class="card" href="resume/R06-api-integration-framework.html">
+        <div class="card-number">R06</div>
+        <span class="tag tag-resume">Architecture · Magnit Global</span>
+        <div class="card-title">Tell me about a reusable component or framework you built that had broad impact.</div>
+        <div class="card-meta">Adapter Pattern · HttpClient · Audit Logging · Third-party APIs</div>
+      </a>
+      <a class="card" href="resume/R07-library-upgrade.html">
+        <div class="card-number">R07</div>
+        <span class="tag tag-resume">Risk Management · Duck Creek</span>
+        <div class="card-title">Tell me about a high-risk upgrade on a production system — how did you manage the risk?</div>
+        <div class="card-meta">Impact Analysis · Regression Coverage · Major Version Upgrade</div>
+      </a>
+    </div>
+
+    <div class="section-title">EHS Platform — Architecture &amp; Patterns</div>
+    <div class="grid">
+      <div class="coming-soon">Cards added after each ticket ↗</div>
+    </div>
+  </div>
+</body>
+</html>
