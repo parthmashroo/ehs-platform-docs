@@ -74,6 +74,7 @@
     .t-medium   { background: #fef9c3; color: #854d0e; }
     .t-advanced { background: #fee2e2; color: #991b1b; }
     .t-resume   { background: #dbeafe; color: #1e40af; }
+    .t-ehs      { background: #d1fae5; color: #065f46; }
 
     .q-text { font-size: 21px; font-weight: 600; line-height: 1.55; flex: 1; margin-bottom: 28px; }
 
@@ -142,7 +143,8 @@
 <div class="header">
   <div class="header-title">Interview Prep</div>
   <div class="header-right">
-    <span class="card-counter" id="counter">Card 1 of 25</span>
+    <a href="ehs-deep.html" style="font-size:13px;font-weight:600;color:#065f46;background:#d1fae5;padding:7px 14px;border-radius:8px;text-decoration:none;border:1px solid #a7f3d0;">🏗 EHS Deep Dive</a>
+    <span class="card-counter" id="counter">Card 1 of 26</span>
     <button class="view-btn" id="viewToggle" onclick="toggleView()">List View</button>
   </div>
 </div>
@@ -457,15 +459,15 @@ const Q = [
     ]
   },
   {
-    id: 26, cat: 'dotnet', level: 'advanced', resume: false,
-    q: 'You added an ICacheService abstraction over IDistributedCache instead of injecting IDistributedCache directly into handlers. Why — what does that abstraction actually buy you?',
+    id: 26, cat: 'dotnet', level: 'advanced', resume: false, tag: 'EHS',
+    q: "You're reviewing a PR where a MediatR handler injects IDistributedCache directly. You reject it and ask for a caching abstraction. Walk me through your reasoning — what's the architectural problem, and what does the abstraction concretely buy you?",
     answer: [
-      { t: 'text', l: 'The concept', v: "Clean Architecture dependency rule: Application defines what it needs, Infrastructure fulfills it. IDistributedCache is an Infrastructure concern — it couples handlers to a specific transport. ICacheService is the contract; handlers never know what backs it." },
-      { t: 'text', l: 'How it works', v: "ICacheService in Application/Common/Interfaces exposes GetAsync<T>, SetAsync<T>, RemoveAsync. DistributedCacheService in Infrastructure implements it using IDistributedCache as the backend, with JSON serialization via System.Text.Json. DI registration: services.AddScoped<ICacheService, DistributedCacheService>()." },
-      { t: 'text', l: 'The Dapr swap', v: "Phase 8 evaluates Dapr State as the cache backend. With ICacheService in place, that swap is one DI line: replace DistributedCacheService with DaprCacheService. Every handler is unaffected. Without the abstraction, every handler injecting IDistributedCache directly needs to change." },
-      { t: 'text', l: 'Cost vs benefit', v: "One interface file, one implementation file — that is the full cost. The payoff: handlers are testable with a trivial Moq mock, the backend is swappable at DI, and Application never references an Infrastructure type. Three tests cover the GetAsync hit, miss, and RemoveAsync delegation paths." },
-      { t: 'terms', l: 'Key terms', v: ['ICacheService', 'IDistributedCache', 'DistributedCacheService', 'Clean Architecture', 'DI swap point', 'Dapr State', 'layer isolation'] },
-      { t: 'fu', v: 'How would you test a handler that uses ICacheService — what does the mock setup look like?' }
+      { t: 'text', l: 'The architectural problem', v: "IDistributedCache is an Infrastructure type. When Application-layer handlers inject it directly, Application imports an Infrastructure concern — the layer dependency rule is violated. Application should define what it needs (the contract), not know how it's fulfilled (which transport backs it)." },
+      { t: 'text', l: 'The fix', v: "ICacheService interface in Application/Common/Interfaces: GetAsync<T>, SetAsync<T>, RemoveAsync. DistributedCacheService in Infrastructure implements it using IDistributedCache as the actual backend, with JSON serialization. One DI line wires them: services.AddScoped<ICacheService, DistributedCacheService>()." },
+      { t: 'text', l: 'Payoff 1 — backend swap', v: "If the team evaluates Dapr State as the cache backend at a later phase, the swap is one DI line: replace DistributedCacheService with DaprCacheService. Every handler is untouched. Without the abstraction, every handler that injects IDistributedCache directly needs its constructor changed." },
+      { t: 'text', l: 'Payoff 2 — testability', v: "Mocking ICacheService in a handler test is 3 lines of Moq. Mocking IDistributedCache directly means setting up byte[] serialization in test code — you end up testing the transport, not the handler. The abstraction makes tests fast and readable." },
+      { t: 'terms', l: 'Key terms', v: ['ICacheService', 'IDistributedCache', 'Clean Architecture dependency rule', 'DI swap point', 'layer isolation', 'Dapr State'] },
+      { t: 'fu', v: 'Where does cache key generation logic live — inside the abstraction, in a constants file, or do callers decide?' }
     ]
   }
 ];
@@ -570,6 +572,7 @@ function render() {
 
   let tags = tagHtml(cat.cls, cat.label) + tagHtml(levelCls, levelLabel);
   if (q.resume) tags += tagHtml('t-resume', '📋 Resume-linked');
+  if (q.tag) tags += tagHtml('t-ehs', '🏗 EHS');
 
   let cardHtml = `
     <div class="q-label">Question</div>
@@ -637,6 +640,7 @@ function renderList(list) {
               ${tagHtml(cat.cls, cat.label)}
               ${tagHtml(`t-${q.level}`, levelLabel)}
               ${q.resume ? tagHtml('t-resume', '📋 Resume-linked') : ''}
+              ${q.tag ? tagHtml('t-ehs', '🏗 EHS') : ''}
             </div>
           </div>
           <div class="li-chev">▶</div>

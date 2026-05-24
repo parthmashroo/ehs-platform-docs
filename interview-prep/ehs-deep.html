@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EHS Deep Dive | Interview Prep</title>
+  <style>
+    :root {
+      --bg: #f0ebe2; --card: #ffffff; --border: #e2ddd6;
+      --text: #1a1a2e; --muted: #94a3b8; --secondary: #64748b;
+      --active-bg: #1e293b; --active-text: #ffffff;
+      --radius: 12px; --radius-lg: 20px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .header { display: flex; align-items: center; justify-content: space-between; padding: 28px 28px 0; max-width: 860px; margin: 0 auto; }
+    .header-left { display: flex; align-items: center; gap: 16px; }
+    .back-link { font-size: 13px; color: var(--secondary); text-decoration: none; font-weight: 500; padding: 7px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); }
+    .back-link:hover { color: var(--text); background: #f5f0e8; }
+    .header-title { font-size: 22px; font-weight: 700; }
+    .header-sub { font-size: 13px; color: var(--muted); margin-left: 4px; }
+    .header-right { display: flex; align-items: center; gap: 14px; }
+    .card-counter { font-size: 14px; color: var(--secondary); font-weight: 500; }
+    .view-btn { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text); transition: all 0.15s; }
+    .view-btn:hover { background: #f5f0e8; }
+    .view-btn.active { background: var(--active-bg); color: var(--active-text); border-color: var(--active-bg); }
+    .filters { padding: 20px 28px 16px; max-width: 860px; margin: 0 auto; }
+    .filter-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 8px; }
+    .filter-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+    .fbtn { padding: 7px 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--card); font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text); transition: all 0.15s; white-space: nowrap; }
+    .fbtn:hover { border-color: #94a3b8; }
+    .fbtn.on { background: var(--active-bg); color: white; border-color: var(--active-bg); }
+    .fbtn.l-basic.on  { background: #16a34a; border-color: #16a34a; }
+    .fbtn.l-medium.on { background: #d97706; border-color: #d97706; }
+    .fbtn.l-advanced.on { background: #dc2626; border-color: #dc2626; }
+    .card-view { padding: 0 28px 16px; max-width: 860px; margin: 0 auto; }
+    .q-card { background: var(--card); border-radius: var(--radius-lg); box-shadow: 0 4px 24px rgba(0,0,0,0.10); padding: 40px; min-height: 280px; display: flex; flex-direction: column; }
+    .q-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 14px; }
+    .q-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+    .tag { padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .t-clean-arch    { background: #ede9fe; color: #6d28d9; }
+    .t-cqrs          { background: #f3e8ff; color: #7c3aed; }
+    .t-ef-core       { background: #ccfbf1; color: #0f766e; }
+    .t-auth          { background: #fef3c7; color: #92400e; }
+    .t-multi-tenancy { background: #ffe4e6; color: #be123c; }
+    .t-caching       { background: #e0f2fe; color: #0369a1; }
+    .t-observability { background: #fce7f3; color: #9d174d; }
+    .t-domain        { background: #d1fae5; color: #065f46; }
+    .t-basic    { background: #dcfce7; color: #166534; }
+    .t-medium   { background: #fef9c3; color: #854d0e; }
+    .t-advanced { background: #fee2e2; color: #991b1b; }
+    .t-coding   { background: #1e293b; color: #7dd3fc; }
+    .q-text { font-size: 20px; font-weight: 600; line-height: 1.55; flex: 1; margin-bottom: 28px; }
+    .reveal-area { text-align: center; padding-top: 20px; border-top: 1px solid var(--border); color: var(--muted); font-size: 14px; cursor: pointer; transition: color 0.15s; }
+    .reveal-area:hover { color: var(--secondary); }
+    .answer { border-top: 1px solid var(--border); padding-top: 24px; margin-top: 4px; }
+    .a-block { margin-bottom: 16px; }
+    .a-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #2563eb; margin-bottom: 6px; }
+    .a-text { font-size: 14px; color: #374151; line-height: 1.7; }
+    .a-code { background: #1e293b; color: #e2e8f0; padding: 16px; border-radius: 8px; font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 12px; line-height: 1.6; overflow-x: auto; white-space: pre; margin-top: 4px; }
+    .a-terms { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+    .a-term { background: #f1f5f9; color: #1e40af; padding: 3px 10px; border-radius: 6px; font-size: 12px; font-family: monospace; }
+    .follow-up { background: #fffbeb; border-left: 3px solid #f59e0b; padding: 12px 16px; border-radius: 0 8px 8px 0; margin-top: 16px; }
+    .fu-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #92400e; margin-bottom: 4px; }
+    .fu-text { font-size: 13px; color: #78350f; line-height: 1.5; }
+    .fu-link { display: inline-block; margin-top: 8px; font-size: 12px; font-weight: 600; color: #2563eb; cursor: pointer; text-decoration: underline; }
+    .fu-link:hover { color: #1d4ed8; }
+    .score-btns { display: flex; gap: 10px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); }
+    .sbtn { flex: 1; padding: 12px; border-radius: 10px; border: 2px solid; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s; background: white; }
+    .sbtn-n { border-color: #16a34a; color: #16a34a; } .sbtn-n:hover { background: #16a34a; color: white; }
+    .sbtn-o { border-color: #2563eb; color: #2563eb; } .sbtn-o:hover { background: #2563eb; color: white; }
+    .sbtn-w { border-color: #dc2626; color: #dc2626; } .sbtn-w:hover { background: #dc2626; color: white; }
+    .nav { display: flex; align-items: center; justify-content: space-between; padding: 8px 28px 36px; max-width: 860px; margin: 0 auto; }
+    .nav-btn { padding: 11px 24px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); font-size: 14px; font-weight: 500; cursor: pointer; color: var(--text); transition: all 0.15s; }
+    .nav-btn:hover:not(:disabled) { background: #f5f0e8; }
+    .nav-btn.primary { background: var(--active-bg); color: white; border-color: var(--active-bg); }
+    .nav-btn.primary:hover:not(:disabled) { background: #334155; }
+    .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .nav-pos { font-size: 14px; color: var(--secondary); font-weight: 500; }
+    .empty { text-align: center; padding: 80px 20px; color: var(--muted); }
+    .empty-icon { font-size: 36px; margin-bottom: 12px; }
+    .empty-text { font-size: 15px; }
+    .list-view { padding: 0 28px 48px; max-width: 860px; margin: 0 auto; }
+    .list-count { font-size: 13px; color: var(--secondary); margin-bottom: 14px; font-weight: 500; }
+    .li { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 8px; overflow: hidden; }
+    .li-head { padding: 16px 20px; cursor: pointer; display: flex; align-items: flex-start; gap: 12px; }
+    .li-head:hover { background: #faf9f7; }
+    .li-num { font-size: 12px; color: var(--muted); min-width: 26px; font-weight: 700; padding-top: 2px; }
+    .li-body { flex: 1; }
+    .li-q { font-size: 14px; font-weight: 600; margin-bottom: 8px; line-height: 1.4; }
+    .li-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+    .li-chev { color: var(--muted); font-size: 11px; padding-top: 2px; transition: transform 0.2s; }
+    .li.open .li-chev { transform: rotate(90deg); }
+    .li-ans { display: none; padding: 0 20px 20px 58px; }
+    .li.open .li-ans { display: block; border-top: 1px solid var(--border); padding-top: 16px; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <a href="index.html" class="back-link">← All Cards</a>
+    <div>
+      <div class="header-title">EHS Deep Dive</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="card-counter" id="counter"></span>
+    <button class="view-btn" id="viewToggle" onclick="toggleView()">List View</button>
+  </div>
+</div>
+
+<div class="filters">
+  <div class="filter-label">Topic</div>
+  <div class="filter-row" id="topicFilters">
+    <button class="fbtn on" onclick="setFilter('topic','all',this)">All Topics</button>
+    <button class="fbtn" onclick="setFilter('topic','clean-arch',this)">Clean Architecture</button>
+    <button class="fbtn" onclick="setFilter('topic','cqrs',this)">CQRS + MediatR</button>
+    <button class="fbtn" onclick="setFilter('topic','ef-core',this)">EF Core</button>
+    <button class="fbtn" onclick="setFilter('topic','auth',this)">Auth + JWT</button>
+    <button class="fbtn" onclick="setFilter('topic','multi-tenancy',this)">Multi-tenancy</button>
+    <button class="fbtn" onclick="setFilter('topic','caching',this)">Caching</button>
+    <button class="fbtn" onclick="setFilter('topic','observability',this)">Observability</button>
+    <button class="fbtn" onclick="setFilter('topic','domain',this)">Domain Design</button>
+  </div>
+  <div class="filter-label">Level</div>
+  <div class="filter-row" id="levelFilters">
+    <button class="fbtn on" onclick="setFilter('level','all',this)">All Levels</button>
+    <button class="fbtn l-basic"    onclick="setFilter('level','basic',this)">Basic</button>
+    <button class="fbtn l-medium"   onclick="setFilter('level','medium',this)">Medium</button>
+    <button class="fbtn l-advanced" onclick="setFilter('level','advanced',this)">Advanced</button>
+  </div>
+</div>
+
+<div class="card-view" id="cardView">
+  <div class="q-card" id="qCard"></div>
+</div>
+<div id="navBar">
+  <div class="nav">
+    <button class="nav-btn" id="btnPrev" onclick="go(-1)">← Prev</button>
+    <span class="nav-pos" id="navPos"></span>
+    <button class="nav-btn primary" id="btnNext" onclick="go(1)">Next →</button>
+  </div>
+</div>
+
+<div class="list-view hidden" id="listView">
+  <div>
+    <div class="list-count" id="listCount"></div>
+    <div id="listItems"></div>
+  </div>
+</div>
+
+<script>
+const TOPIC_META = {
+  'clean-arch':    { label: 'Clean Architecture', cls: 't-clean-arch' },
+  'cqrs':          { label: 'CQRS + MediatR',     cls: 't-cqrs' },
+  'ef-core':       { label: 'EF Core',             cls: 't-ef-core' },
+  'auth':          { label: 'Auth + JWT',          cls: 't-auth' },
+  'multi-tenancy': { label: 'Multi-tenancy',       cls: 't-multi-tenancy' },
+  'caching':       { label: 'Caching',             cls: 't-caching' },
+  'observability': { label: 'Observability',       cls: 't-observability' },
+  'domain':        { label: 'Domain Design',       cls: 't-domain' }
+};
+
+const Q = [
+  {
+    id: 1, topic: 'clean-arch', level: 'basic',
+    q: 'What are the 4 layers of Clean Architecture and what is the single rule that governs all of them?',
+    answer: [
+      { t: 'text', l: 'The 4 layers', v: 'Domain: entities, enums, domain methods — zero external dependencies. Application: CQRS handlers, interface contracts, use cases — depends only on Domain. Infrastructure: EF Core, Redis, external APIs — implements Application interfaces. API: controllers, middleware — depends on Application via MediatR. Each is a separate project.' },
+      { t: 'text', l: 'The one rule', v: 'Dependencies point inward only. Outer layers reference inner layers. Inner layers must never reference outer layers. If a handler ever imports Microsoft.EntityFrameworkCore, the rule is violated. If Infrastructure imports a controller type, the rule is violated. The compiler enforces this via project references — set them wrong and it does not build.' },
+      { t: 'terms', l: 'Key terms', v: ['Dependency Rule', 'Domain', 'Application', 'Infrastructure', 'API layer', 'inward dependencies'] },
+      { t: 'fu', v: 'IApplicationDbContext lives in Application, ApplicationDbContext lives in Infrastructure. Why that split — and what does it prevent?', fuLink: 2 }
+    ]
+  },
+  {
+    id: 2, topic: 'clean-arch', level: 'medium',
+    q: 'IApplicationDbContext is defined in Application but implemented in Infrastructure. Why that split — and what architectural violation does it prevent?',
+    answer: [
+      { t: 'text', l: 'The split', v: 'Application defines the contract: DbSet<Incident> Incidents, DbSet<CorrectiveAction> CorrectiveActions, Task<int> SaveChangesAsync(). Infrastructure implements it: ApplicationDbContext extends DbContext AND implements IApplicationDbContext. Handlers inject IApplicationDbContext — they never import Microsoft.EntityFrameworkCore.' },
+      { t: 'text', l: 'What it prevents', v: 'If handlers injected ApplicationDbContext directly, Application would depend on Infrastructure — the dependency rule reverses. Swapping the ORM, adding an InMemory test implementation, or extracting Application to a separate service would require touching every handler. The interface is the seam that makes all of that invisible to handlers.' },
+      { t: 'text', l: 'In tests', v: 'Application.Tests uses an InMemory DbContext that implements IApplicationDbContext. The handler cannot tell the difference — it uses the same interface. No mocking needed for DB in handler tests.' },
+      { t: 'terms', l: 'Key terms', v: ['IApplicationDbContext', 'DI seam', 'interface as boundary', 'InMemory provider', 'layer isolation'] },
+      { t: 'fu', v: 'A developer proposes a shared Common project both Application and Infrastructure reference. What is the architectural problem?', fuLink: 3 }
+    ]
+  },
+  {
+    id: 3, topic: 'clean-arch', level: 'advanced',
+    q: 'A developer proposes a shared "Common" project that both Application and Infrastructure can reference. What is the architectural problem — and how do you shut it down?',
+    answer: [
+      { t: 'text', l: 'The problem', v: 'A shared project creates implicit coupling. If someone adds an Infrastructure type to Common (DbContext base, Redis key constants, connection helpers), Application transitively depends on Infrastructure — the dependency rule breaks silently. The compiler does not catch it because the reference path is Application → Common ← Infrastructure, not Application → Infrastructure directly.' },
+      { t: 'text', l: 'The correct alternative', v: 'Types shared across layers have exactly one right home: domain concepts (enums, value objects, base entity) belong in Domain. Application contracts (interfaces, DTOs, exceptions) belong in Application. Infrastructure knows about everything above it — it does not need to share upward. If you feel the pull toward a Common project, that is a signal of a conceptual gap in your layering.' },
+      { t: 'terms', l: 'Key terms', v: ['transitive dependency', 'dependency inversion', 'shared kernel anti-pattern', 'layer boundary', 'implicit coupling'] },
+      { t: 'fu', v: 'Which NuGet packages are allowed in each layer — and what happens if you install MediatR in the Infrastructure project?' }
+    ]
+  },
+  {
+    id: 4, topic: 'cqrs', level: 'basic',
+    q: 'What is CQRS? Why separate commands from queries — what concrete problem does the separation solve?',
+    answer: [
+      { t: 'text', l: 'The pattern', v: 'Command Query Responsibility Segregation. Commands = writes (create, update, delete, status change). Queries = reads (get one, get list, search, aggregate). They are distinct request objects with distinct handlers — never mixed.' },
+      { t: 'text', l: 'Why separate them', v: 'Commands need: FluentValidation, transaction management, domain rule enforcement, optimistic concurrency. Queries need: projections, pagination, caching, joins. When mixed in one service class, validation bleeds into read paths and query performance work bleeds into write paths. Separation lets each evolve independently — you can add Redis cache to a query handler without touching the command handler at all.' },
+      { t: 'text', l: 'At scale', v: 'This system will have ~215 command/query folders by Phase 17. Each folder is one intent, one handler, one test surface. The alternative — a service class with 20 methods — becomes a 3000-line maintenance problem by year 2.' },
+      { t: 'terms', l: 'Key terms', v: ['Command', 'Query', 'Handler', 'MediatR', 'ISender', 'separation of concerns'] },
+      { t: 'fu', v: 'Walk me through every class that handles a POST /api/incidents request from controller to DB write.', fuLink: 5 }
+    ]
+  },
+  {
+    id: 5, topic: 'cqrs', level: 'medium',
+    q: 'Walk me through every class that processes POST /api/incidents — from the HTTP request arriving to the row being committed to the database.',
+    answer: [
+      { t: 'text', l: 'The full chain', v: '1. CorrelationIdMiddleware: generates or reads X-Correlation-Id, pushes to Serilog LogContext. 2. ExceptionHandlingMiddleware: wraps the rest in try/catch, maps exceptions to Problem Details. 3. JWT middleware: validates signature, builds ClaimsPrincipal. 4. TenantResolutionMiddleware: reads tid claim, validates it is present. 5. IncidentsController.Create(): deserializes body into CreateIncidentCommand, calls ISender.Send(command, ct). 6. MediatR pipeline: ValidationBehaviour runs FluentValidation — throws 400 on failure. 7. CreateIncidentCommandHandler: creates Incident entity, stamps TenantId + ReportedById from ICurrentUserService, calls _context.SaveChangesAsync(). 8. EF Core emits INSERT to SQL Server. 9. Controller returns 201 Created with Location header.' },
+      { t: 'terms', l: 'Key terms', v: ['middleware pipeline order', 'MediatR pipeline', 'ValidationBehaviour', 'ISender', 'ICurrentUserService', 'TenantResolutionMiddleware'] },
+      { t: 'fu', v: 'Why use ISender in controllers instead of IMediator — what does IMediator expose that controllers should not access?', fuLink: 6 }
+    ]
+  },
+  {
+    id: 6, topic: 'cqrs', level: 'medium',
+    q: 'Why does this system inject ISender into controllers instead of IMediator? What does IMediator expose that controllers should not touch?',
+    answer: [
+      { t: 'text', l: 'The difference', v: 'ISender exposes one method: Send(IRequest, CancellationToken). IMediator also exposes Publish() for domain events. Controllers have no business publishing domain events directly — that is a handler concern triggered after a command succeeds. Using IMediator would allow a developer to call Publish() from a controller, bypassing the command layer entirely.' },
+      { t: 'text', l: 'Interface segregation', v: 'Give callers only what they need. Controllers need to dispatch requests and receive responses. Nothing else. The narrower the interface, the smaller the surface area for misuse. ISender is the interface segregation principle applied to the MediatR surface.' },
+      { t: 'terms', l: 'Key terms', v: ['ISender', 'IMediator', 'Publish()', 'interface segregation principle', 'domain events', 'misuse prevention'] },
+      { t: 'fu', v: 'Write a MediatR pipeline behaviour that logs the command name and execution time.', fuLink: 7 }
+    ]
+  },
+  {
+    id: 7, topic: 'cqrs', level: 'advanced', coding: true,
+    q: 'CODING: Write a MediatR pipeline behaviour that measures and logs handler execution time. What interface do you implement, how do you register it, and does registration order matter?',
+    answer: [
+      { t: 'code', l: 'LoggingBehaviour', v: `public class LoggingBehaviour<TRequest, TResponse>
+    : IPipelineBehavior<TRequest, TResponse>
+    where TRequest : notnull
+{
+    private readonly ILogger<LoggingBehaviour<TRequest, TResponse>> _logger;
+
+    public LoggingBehaviour(ILogger<LoggingBehaviour<TRequest, TResponse>> logger)
+        => _logger = logger;
+
+    public async Task<TResponse> Handle(
+        TRequest request,
+        RequestHandlerDelegate<TResponse> next,
+        CancellationToken ct)
+    {
+        var name = typeof(TRequest).Name;
+        var sw = Stopwatch.StartNew();
+        var response = await next();
+        _logger.LogInformation("{Command} completed in {Ms}ms",
+            name, sw.ElapsedMilliseconds);
+        return response;
+    }
+}` },
+      { t: 'text', l: 'Registration', v: 'services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehaviour<,>)) in Application DI. The open generic covers all commands and queries automatically.' },
+      { t: 'text', l: 'Registration order', v: 'Yes — order matters. MediatR runs behaviours in registration order. Register ValidationBehaviour first if you want validation to fail fast before timing begins. Register LoggingBehaviour second to time only the handler, not the validation step.' },
+      { t: 'terms', l: 'Key terms', v: ['IPipelineBehavior<TRequest,TResponse>', 'RequestHandlerDelegate', 'open generic registration', 'Stopwatch', 'pipeline ordering'] },
+      { t: 'fu', v: 'What is the difference between a behaviour that wraps next() vs one that short-circuits before calling next()? When would you short-circuit?' }
+    ]
+  },
+  {
+    id: 8, topic: 'ef-core', level: 'basic',
+    q: 'What is a Code-First migration? What does "add migration" generate, what does "database update" execute, and what should you always check before running update?',
+    answer: [
+      { t: 'text', l: 'What add migration generates', v: '"dotnet ef migrations add AddWorkPermit" diffs the current DbContext model against the last migration snapshot (_ModelSnapshot.cs). It generates a C# class with Up() — the forward change (CREATE TABLE, ADD COLUMN, ADD INDEX) — and Down() — the rollback (DROP TABLE, DROP COLUMN).' },
+      { t: 'text', l: 'What database update does', v: 'Executes all pending Up() methods in order. EF tracks applied migrations in __EFMigrationsHistory table. Running update twice is safe — it skips already-applied migrations. If the table does not exist, EF creates it first.' },
+      { t: 'text', l: 'Always review before update', v: 'Check: correct table name, correct column types and nullability, FK constraints present, no unexpected DROP statements from unintended model changes, filtered indexes where needed. A migration that drops a column in production is hard to undo.' },
+      { t: 'terms', l: 'Key terms', v: ['migration', '_ModelSnapshot', 'Up()', 'Down()', '__EFMigrationsHistory', 'Code-First'] },
+      { t: 'fu', v: 'What is optimistic concurrency and how does RowVersion implement it at the SQL level?', fuLink: 9 }
+    ]
+  },
+  {
+    id: 9, topic: 'ef-core', level: 'medium',
+    q: 'What is optimistic concurrency? How does RowVersion implement it in SQL Server — what SQL does EF Core actually emit?',
+    answer: [
+      { t: 'text', l: 'Optimistic concurrency', v: 'Assumes conflicts are rare. Instead of locking the row on read (pessimistic), it checks at write time: has anyone modified this row since I read it? If yes, reject the write — do not silently overwrite their change.' },
+      { t: 'text', l: 'How RowVersion works', v: 'RowVersion is a SQL Server timestamp column: an 8-byte value SQL Server auto-increments atomically on every write, regardless of which columns changed. EF reads the original rowversion when you fetch the entity. On UPDATE, EF emits: UPDATE Incidents SET ... WHERE Id = @id AND RowVersion = @originalRowVersion. If another writer committed first, their rowversion changed — EF finds 0 rows affected and throws DbUpdateConcurrencyException.' },
+      { t: 'text', l: 'In this API', v: 'DbUpdateConcurrencyException is caught in ExceptionHandlingMiddleware and mapped to 409 Conflict. The client must re-fetch the resource with its current rowversion and retry. Phase 8 exposes rowversion as an ETag header so the client can detect staleness before submitting.' },
+      { t: 'terms', l: 'Key terms', v: ['optimistic concurrency', 'RowVersion', 'timestamp column', 'DbUpdateConcurrencyException', '409 Conflict', 'ETag'] },
+      { t: 'fu', v: 'CODING: Write the EF configuration for an entity with RowVersion, combined soft-delete + tenant filter, and a filtered unique index.', fuLink: 10 }
+    ]
+  },
+  {
+    id: 10, topic: 'ef-core', level: 'advanced', coding: true,
+    q: 'CODING: Write the EF Core configuration for a WorkPermit entity: RowVersion, a combined TenantId + IsDeleted query filter, and a filtered unique index on (TenantId, PermitNumber) that ignores soft-deleted rows.',
+    answer: [
+      { t: 'code', l: 'WorkPermitConfiguration', v: `public class WorkPermitConfiguration : IEntityTypeConfiguration<WorkPermit>
+{
+    public void Configure(EntityTypeBuilder<WorkPermit> builder)
+    {
+        builder.ToTable("WorkPermits");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.PermitNumber).IsRequired().HasMaxLength(50);
+        builder.Property(x => x.IsDeleted).IsRequired().HasDefaultValue(false);
+        builder.Property(x => x.CreatedAt).IsRequired();
+        builder.Property(x => x.UpdatedAt).IsRequired();
+        builder.Property(x => x.RowVersion).IsRowVersion();
+
+        // Single HasQueryFilter call — calling it twice silently discards the first
+        builder.HasQueryFilter(x => !x.IsDeleted && x.TenantId == _tenantId);
+
+        // Filtered index: unique among active records only
+        // Without HasFilter, soft-deleted rows block permit number reuse
+        builder.HasIndex(x => new { x.TenantId, x.PermitNumber })
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
+    }
+}` },
+      { t: 'text', l: 'The double HasQueryFilter trap', v: 'If you call HasQueryFilter twice on the same entity, EF Core silently keeps only the last call. A common bug: add IsDeleted in entity config, add TenantId filter in a base config — the first one disappears. Always combine both conditions into a single lambda.' },
+      { t: 'terms', l: 'Key terms', v: ['IsRowVersion()', 'HasQueryFilter', 'HasFilter', 'filtered unique index', 'partial index', 'SQL Server'] },
+      { t: 'fu', v: 'You call IgnoreQueryFilters() in a handler to include soft-deleted records. What do you accidentally expose?', fuLink: 11 }
+    ]
+  },
+  {
+    id: 11, topic: 'ef-core', level: 'advanced',
+    q: 'You call IgnoreQueryFilters() in a handler to include soft-deleted records for an audit report. What do you accidentally expose — and what is the safe pattern?',
+    answer: [
+      { t: 'text', l: 'What you expose', v: 'IgnoreQueryFilters() bypasses ALL query filters on that DbSet — the IsDeleted filter AND the TenantId filter. You get soft-deleted records from every tenant, not just the current one. This is a silent cross-tenant data leak. No exception is thrown. The handler just returns more rows than intended.' },
+      { t: 'text', l: 'Safe pattern', v: 'Never call IgnoreQueryFilters() in a tenant-scoped handler. For audit operations that need soft-deleted records: call IgnoreQueryFilters() then immediately chain .Where(x => x.TenantId == _currentUser.TenantId) to restore tenant isolation manually. Or: create a separate admin-only DbContext without any filters, registered under a different interface, protected by OrganizationAdmin authorization.' },
+      { t: 'terms', l: 'Key terms', v: ['IgnoreQueryFilters()', 'cross-tenant data leak', 'defense in depth', 'admin context', 'query filter bypass'] },
+      { t: 'fu', v: 'Write an integration test that proves TenantA data is invisible to TenantB — what does that test set up and assert?' }
+    ]
+  },
+  {
+    id: 12, topic: 'auth', level: 'basic',
+    q: 'What are the 3 parts of a JWT? Which part provides the security guarantee — and why is the payload NOT secret even though it contains user data?',
+    answer: [
+      { t: 'text', l: 'The 3 parts', v: 'Header: base64url JSON with algorithm ("HS256") and type ("JWT"). Payload: base64url JSON with claims — uid, tid, role, exp, iat. Signature: HMAC-SHA256(base64(header) + "." + base64(payload), server_secret_key).' },
+      { t: 'text', l: 'Security guarantee', v: 'The signature. If you change any byte in the header or payload, the signature no longer matches — the server rejects it. Tamper-proofing, not secrecy.' },
+      { t: 'text', l: 'Why payload is not secret', v: 'Base64 is encoding, not encryption. Anyone can decode the payload and read the claims. Never put sensitive data (passwords, card numbers, SSNs) in JWT claims. The assumption is: the claims are readable but unmodifiable.' },
+      { t: 'terms', l: 'Key terms', v: ['HMAC-SHA256', 'base64url', 'claims', 'exp', 'tamper-proofing', 'symmetric key'] },
+      { t: 'fu', v: 'This system uses 4 custom claims: uid, tid, ClaimTypes.Role, ctype. Why custom names instead of standard OIDC ones?', fuLink: 13 }
+    ]
+  },
+  {
+    id: 13, topic: 'auth', level: 'medium',
+    q: 'This system uses 4 custom JWT claims: uid, tid, ClaimTypes.Role, ctype. Why custom names instead of standard OIDC claims like "sub" or "email"?',
+    answer: [
+      { t: 'text', l: 'Why custom names', v: '"sub" by OIDC convention is the IdP string subject identifier — not our Guid primary key. "uid" is our DB primary key, unambiguous. "tid" is our TenantId — there is no standard claim for this concept. Custom names also prevent collisions with IdP-issued claims when Azure AD is added in Phase 14.' },
+      { t: 'text', l: 'What handlers get for free', v: 'Every handler injecting ICurrentUserService gets UserId (Guid), TenantId (Guid), Role (enum), CompanyType (enum) — all decoded from JWT claims with zero DB lookups. The token carries exactly what is needed per request.' },
+      { t: 'text', l: 'Phase 14 plan', v: 'When Azure AD arrives, their token is validated once at login. We extract identity, look up our DB, issue our own JWT with our claim names. CurrentUserService never changes. Handlers never change. The IdP swap is fully contained to the login flow.' },
+      { t: 'terms', l: 'Key terms', v: ['uid', 'tid', 'ctype', 'custom claims', 'ICurrentUserService', 'stateless auth', 'claim namespace'] },
+      { t: 'fu', v: 'A user is soft-deleted mid-session with 11 hours left on their JWT. What happens on their next request — and what is the fix?', fuLink: 14 }
+    ]
+  },
+  {
+    id: 14, topic: 'auth', level: 'advanced',
+    q: 'A user is soft-deleted mid-session. They have a valid JWT with 11 hours remaining. Walk through what happens on their next request — then design the complete fix.',
+    answer: [
+      { t: 'text', l: 'What happens now', v: 'The request succeeds. HasQueryFilter blocks new logins immediately — but the JWT is cryptographically valid until expiry. TenantResolutionMiddleware reads the tid claim only; it does not verify the user still exists. The soft-deleted user can read and write for up to 11 more hours.' },
+      { t: 'text', l: 'The fix: Redis blocklist', v: 'On soft-delete: write the JWT jti claim (unique token ID) to Redis with TTL = remaining token lifetime. In TenantResolutionMiddleware, after extracting the tid claim, check: is this jti in the Redis blocklist? If yes, return 401. The Redis entry auto-expires when the token would have expired anyway — no cleanup job needed.' },
+      { t: 'text', l: 'What must be added first', v: 'A jti (JWT ID) claim must be added to LoginCommandHandler before any of this works — it is not added by default. Then SoftDeleteUserCommandHandler writes jti → Redis on delete. TenantResolutionMiddleware reads jti → checks Redis.' },
+      { t: 'text', l: 'Trade-off', v: 'Every authenticated request adds one Redis read (~1ms local, ~3ms remote). Acceptable. Shorter token lifetime + refresh tokens solves a different problem — you still need the blocklist for immediate revocation regardless of lifetime.' },
+      { t: 'terms', l: 'Key terms', v: ['jti claim', 'Redis blocklist', 'token revocation', 'TTL', 'stateless JWT trade-off', 'TenantResolutionMiddleware'] },
+      { t: 'fu', v: 'What is the difference between a short-lived access token and a refresh token — and when do you need both?' }
+    ]
+  },
+  {
+    id: 15, topic: 'multi-tenancy', level: 'basic',
+    q: 'What is row-level multi-tenancy? How does it differ from schema-per-tenant and database-per-tenant — and what are the real trade-offs of each?',
+    answer: [
+      { t: 'text', l: 'Row-level', v: 'One database, one schema, one table set. All tenant data co-located. A TenantId column on every row is the only isolation. EF Core Global Query Filters auto-append WHERE TenantId = @tid. Cheapest to run. Hardest to get isolation right — one missing filter leaks cross-tenant data with no exception.' },
+      { t: 'text', l: 'Schema-per-tenant', v: 'Same DB, separate SQL schema per tenant (TenantA.Incidents, TenantB.Incidents). Better SQL-level blast radius. A query bug in TenantA cannot return TenantB rows — they are in different schemas. Migrations are complex: must run per schema. No native EF Core support.' },
+      { t: 'text', l: 'Database-per-tenant', v: 'Separate database per tenant. Maximum isolation — independently backed up, moved, deleted. Expensive at scale. Connection pool complexity. Reserved for high-compliance, high-value clients who demand it contractually.' },
+      { t: 'text', l: 'Why row-level here', v: 'Portfolio project, learning context. EF Global Query Filters make isolation automatic when implemented correctly. Mitigated by TenantIsolationTests that prove TenantA data is invisible to TenantB after every commit.' },
+      { t: 'terms', l: 'Key terms', v: ['row-level', 'schema-per-tenant', 'database-per-tenant', 'Global Query Filters', 'TenantId', 'blast radius'] },
+      { t: 'fu', v: 'EF Core Global Query Filters add WHERE TenantId = @tid automatically. Name 3 ways this filter can silently fail.', fuLink: 16 }
+    ]
+  },
+  {
+    id: 16, topic: 'multi-tenancy', level: 'medium',
+    q: 'EF Core Global Query Filters add TenantId isolation automatically. What SQL do they generate — and name 3 ways the filter silently fails to protect you?',
+    answer: [
+      { t: 'text', l: 'The SQL generated', v: 'For GetIncidentsQuery: SELECT i.* FROM Incidents i WHERE i.TenantId = @p0 AND i.IsDeleted = 0 ORDER BY i.CreatedAt DESC. The WHERE is injected by EF into every LINQ query on that DbSet without you writing it. @p0 is the TenantId captured at DbContext scope.' },
+      { t: 'text', l: '3 failure modes', v: '(1) IgnoreQueryFilters() — bypasses all filters. Both TenantId and IsDeleted gone. (2) ExecuteSqlRaw() / ExecuteSqlInterpolated() — raw SQL bypasses EF query filters entirely. You must write the WHERE TenantId manually. (3) Singleton DbContext — if DbContext is not scoped per request, the TenantId captured at construction time persists across requests from different tenants.' },
+      { t: 'text', l: 'The defense', v: 'TenantIsolationTest: register TenantA with an incident, create a DbContext scoped to TenantB, query incidents, assert empty. Run this test after every change to EF config.' },
+      { t: 'terms', l: 'Key terms', v: ['HasQueryFilter', 'IgnoreQueryFilters', 'ExecuteSqlRaw', 'DbContext scope', 'Singleton lifetime bug'] },
+      { t: 'fu', v: 'You call IgnoreQueryFilters() to fetch soft-deleted records. What cross-tenant data do you accidentally expose?', fuLink: 11 }
+    ]
+  },
+  {
+    id: 17, topic: 'multi-tenancy', level: 'advanced',
+    q: 'TenantResolutionMiddleware reads TenantId from the JWT claim. Name 3 attack vectors this does not protect against — and rate their real-world severity.',
+    answer: [
+      { t: 'text', l: 'Attack 1: Signing key compromise (Critical)', v: 'If the symmetric HMAC key leaks (config file, logs, insider), an attacker can forge any JWT with any TenantId and any Role. Every tenant is exposed. Mitigation: RSA or ECDSA asymmetric signing. Private key signs (never leaves the server). Public key verifies (safe to expose). Rotate keys on a schedule. Store in Azure Key Vault or AWS KMS — never in appsettings.json.' },
+      { t: 'text', l: 'Attack 2: Role claim escalation (Medium, if key is safe)', v: 'An attacker with a valid JWT who could modify the role claim could escalate from Employee to OrganizationAdmin. This requires breaking the signature first — prevented if the signing key is safe. The risk is contingent on key security.' },
+      { t: 'text', l: 'Attack 3: Deleted user with live JWT (Medium)', v: 'Covered separately — a soft-deleted user with a valid token can still act until expiry. No attack required; just a timing window. Fix is the Redis blocklist.' },
+      { t: 'text', l: 'Production recommendation', v: 'Symmetric keys are acceptable for single-server portfolio. Production multi-tenant: asymmetric keys, key rotation schedule, Key Vault storage.' },
+      { t: 'terms', l: 'Key terms', v: ['symmetric vs asymmetric signing', 'RSA', 'ECDSA', 'key rotation', 'Key Vault', 'JWT forgery'] },
+      { t: 'fu', v: 'What is the difference between authentication and authorization — where does each happen in the middleware pipeline?' }
+    ]
+  },
+  {
+    id: 18, topic: 'caching', level: 'basic',
+    q: 'What is the difference between IDistributedCache and ICacheService in this project — and why does one live in Application while the other is in Infrastructure?',
+    answer: [
+      { t: 'text', l: 'IDistributedCache (Microsoft)', v: 'Speaks bytes: GetAsync() returns byte[], SetAsync() takes byte[]. Transport contract only — Redis, SQL Server distributed cache, and Memcached all implement it. It has no concept of your domain types.' },
+      { t: 'text', l: 'ICacheService (ours)', v: 'Speaks generics: GetAsync<T>() returns T?, SetAsync<T>() takes T. JSON serialization is handled internally by DistributedCacheService. Handlers work with domain objects and never see byte[].' },
+      { t: 'text', l: 'Why Application vs Infrastructure', v: '"Caching things" is a use-case concern — Application. "Which byte transport backs the cache" is a deployment concern — Infrastructure. The interface lives in Application so handlers can depend on it without knowing Redis exists. DistributedCacheService in Infrastructure bridges the two.' },
+      { t: 'terms', l: 'Key terms', v: ['IDistributedCache', 'ICacheService', 'DistributedCacheService', 'DI swap point', 'transport abstraction', 'layer isolation'] },
+      { t: 'fu', v: 'You want to swap Redis for Dapr State at Phase 8. Exactly how many files change and why is it only that many?', fuLink: 19 }
+    ]
+  },
+  {
+    id: 19, topic: 'caching', level: 'medium',
+    q: 'You decide to swap Redis for Dapr State at Phase 8. Exactly how many files change — walk through each one and explain why everything else stays untouched.',
+    answer: [
+      { t: 'text', l: '2 files change', v: '(1) New file: DaprCacheService.cs in Infrastructure/Caching — implement ICacheService using Dapr State API. GetAsync calls Dapr state GET. SetAsync calls Dapr state SET. RemoveAsync calls Dapr state DELETE. (2) DependencyInjection.cs — change one line: services.AddScoped<ICacheService, DistributedCacheService>() becomes services.AddScoped<ICacheService, DaprCacheService>().' },
+      { t: 'text', l: 'Why nothing else changes', v: 'ICacheService.cs (Application) — the contract is unchanged. Every handler injecting ICacheService — they never knew Redis existed. Every test mocking ICacheService — mocking the interface, not the implementation. No other layer has a reference to DistributedCacheService directly.' },
+      { t: 'text', l: 'The principle', v: 'Dependency Inversion: high-level modules (handlers) depend on abstractions (ICacheService). Low-level modules (Redis, Dapr) depend on the same abstraction. The DI container is the only place that knows which concrete class backs the interface.' },
+      { t: 'terms', l: 'Key terms', v: ['Dependency Inversion Principle', 'DI container as seam', 'ICacheService', 'Dapr State', 'abstraction stability'] },
+      { t: 'fu', v: 'What is cache stampede and how would you add stampede protection to ICacheService without breaking the interface?', fuLink: 20 }
+    ]
+  },
+  {
+    id: 20, topic: 'caching', level: 'advanced',
+    q: 'What is cache stampede? How would you add stampede protection to this ICacheService design without changing the interface signature that handlers already depend on?',
+    answer: [
+      { t: 'text', l: 'What is cache stampede', v: 'A popular key expires. 500 concurrent requests all get a cache miss simultaneously. All 500 hit the database at once. The DB is overwhelmed — latency spikes, potentially OOM. Also called thundering herd.' },
+      { t: 'text', l: 'Fix without breaking the interface', v: 'Add a new method to ICacheService: GetOrSetAsync<T>(string key, Func<CancellationToken, Task<T>> factory, TimeSpan? expiry). The factory is the DB fallback. DistributedCacheService implements it with a per-key SemaphoreSlim: only one concurrent caller executes the factory, others wait on the semaphore. When the first call populates the cache, others read from it.' },
+      { t: 'code', l: 'Signature to add', v: `Task<T> GetOrSetAsync<T>(
+    string key,
+    Func<CancellationToken, Task<T>> factory,
+    TimeSpan? expiry = null,
+    CancellationToken ct = default);` },
+      { t: 'text', l: 'Current state', v: 'ICacheService has no stampede protection — acceptable at current scale. This is tracked as tech debt for Phase 8. FusionCache (rejected for this project) has built-in stampede protection — that is the cost of the rejection.' },
+      { t: 'terms', l: 'Key terms', v: ['cache stampede', 'thundering herd', 'SemaphoreSlim', 'GetOrSetAsync', 'factory pattern', 'per-key locking'] },
+      { t: 'fu', v: 'CODING: Write the handler code to fetch an incident from cache with a DB fallback, including the correct cache key.', fuLink: 21 }
+    ]
+  },
+  {
+    id: 21, topic: 'caching', level: 'advanced', coding: true,
+    q: 'CODING: Write handler code that fetches an incident by ID from ICacheService first, falls back to DB, then populates the cache. What does the cache key look like and why?',
+    answer: [
+      { t: 'code', l: 'Handler code', v: `public async Task<IncidentDto> Handle(
+    GetIncidentByIdQuery request, CancellationToken ct)
+{
+    var key = $"tenant:{_currentUser.TenantId}:incident:{request.Id}";
+
+    var cached = await _cache.GetAsync<IncidentDto>(key, ct);
+    if (cached is not null) return cached;
+
+    var dto = await _context.Incidents
+        .Where(x => x.Id == request.Id)
+        .Select(x => new IncidentDto { Id = x.Id, Title = x.Title, /* ... */ })
+        .FirstOrDefaultAsync(ct)
+        ?? throw new NotFoundException(nameof(Incident), request.Id);
+
+    await _cache.SetAsync(key, dto, TimeSpan.FromMinutes(5), ct);
+    return dto;
+}` },
+      { t: 'text', l: 'Why the tenant prefix', v: 'Incident Guid abc123 could exist in both TenantA and TenantB. Without the tenant prefix, TenantA writes to key "incident:abc123", TenantB reads the same key and gets TenantA\'s data — silent cross-tenant cache leak. The tenant prefix is the cache-level multi-tenant isolation.' },
+      { t: 'text', l: 'Cache invalidation', v: 'The UPDATE handler must call _cache.RemoveAsync(key) using the same key formula. If it does not, stale data is served for up to 5 minutes. Every write must know which cache keys to invalidate — this is the fundamental cache consistency problem.' },
+      { t: 'terms', l: 'Key terms', v: ['cache-aside pattern', 'cache key convention', 'tenant prefix', 'cache invalidation', 'TTL', 'stale data'] },
+      { t: 'fu', v: 'What is cache stampede and how do you prevent it?', fuLink: 20 }
+    ]
+  },
+  {
+    id: 22, topic: 'observability', level: 'basic',
+    q: 'What is a CorrelationId and why does every HTTP request need one — what problem does it solve in production?',
+    answer: [
+      { t: 'text', l: 'The problem without it', v: 'Under load, hundreds of concurrent requests generate interleaved log lines. A support ticket arrives: "incident creation failed at 14:32." You have 10,000 log lines from that minute with no way to find all lines belonging to that one request.' },
+      { t: 'text', l: 'What CorrelationId does', v: 'CorrelationIdMiddleware generates a UUID per request (or reads X-Correlation-Id from the incoming header if provided by the client or API gateway). It pushes this to Serilog LogContext. Every log line for that request — through middleware, handler, EF, exceptions — carries the same CorrelationId in structured output.' },
+      { t: 'text', l: 'In practice', v: 'User reports: "I got an error, here is my CorrelationId." You grep structured logs: CorrelationId = "abc-123". You get the complete lifecycle of that request in order — every method, every DB call, the exact exception. This is the foundation of distributed tracing.' },
+      { t: 'terms', l: 'Key terms', v: ['CorrelationId', 'X-Correlation-Id', 'Serilog LogContext', 'structured logging', 'request tracing'] },
+      { t: 'fu', v: 'How does Serilog LogContext.PushProperty work — is it thread-safe, what is the scope, and what happens when the scope ends?', fuLink: 23 }
+    ]
+  },
+  {
+    id: 23, topic: 'observability', level: 'medium',
+    q: 'How does Serilog LogContext.PushProperty work under the hood — is it thread-safe, what is the scope, and what breaks it in async code?',
+    answer: [
+      { t: 'text', l: 'How it works', v: 'LogContext.PushProperty returns an IDisposable. Internally it pushes onto a stack stored in AsyncLocal<T> — a value that flows automatically with async continuations. When you await inside a using block, the continuation (possibly on a different thread pool thread) still has the property. This is what makes it work correctly with async/await.' },
+      { t: 'text', l: 'Scope', v: 'The property is active for all Serilog log calls within the using block and all awaited calls inside it. In CorrelationIdMiddleware, the using wraps await next(context) — the entire request lifecycle. When Dispose() is called, the property is popped.' },
+      { t: 'text', l: 'What breaks it', v: 'Fire-and-forget: Task.Run(() => DoWork()) creates a new async context. The CorrelationId does not flow into it. The background task logs without a CorrelationId. Fix: capture the value explicitly and pass it as a parameter to the fire-and-forget work — never rely on ambient context crossing task boundaries implicitly.' },
+      { t: 'terms', l: 'Key terms', v: ['AsyncLocal<T>', 'LogContext.PushProperty', 'IDisposable scope', 'async context flow', 'fire-and-forget trap'] },
+      { t: 'fu', v: 'A user reports an error and gives you a CorrelationId. Walk through exactly how you use it to reconstruct what happened.' }
+    ]
+  },
+  {
+    id: 24, topic: 'domain', level: 'basic',
+    q: 'What is a domain method — and why does Incident.TransitionTo() live on the entity instead of in the command handler?',
+    answer: [
+      { t: 'text', l: 'What a domain method is', v: 'A method on a domain entity that encodes a business rule always true for that entity, regardless of which use case triggers it. TransitionTo() enforces the state machine rules: no code path can put an Incident into an invalid state.' },
+      { t: 'text', l: 'Why not in the handler', v: 'If transition logic lived in UpdateIncidentStatusCommandHandler, then AssignIncidentCommandHandler (which also transitions) would duplicate it. A third handler. A fourth. When the rules change, you must find and update every handler — and you will miss one. Domain method = one place, zero duplication, enforced at compile time by the type system.' },
+      { t: 'text', l: 'The rule of thumb', v: 'If the rule is "always true for this entity regardless of context" — domain method. If the rule involves fetching other aggregates, reading configuration, or sending notifications — handler. Domain methods are pure: current state + new intent → update state or throw.' },
+      { t: 'terms', l: 'Key terms', v: ['domain method', 'entity invariant', 'aggregate', 'DRY', 'InvalidStatusTransitionException'] },
+      { t: 'fu', v: 'You need to enforce a cross-aggregate rule: incident cannot close if it has open corrective actions. The entity does not know about CAs. Where does this rule live?', fuLink: 25 }
+    ]
+  },
+  {
+    id: 25, topic: 'domain', level: 'medium',
+    q: 'You need a rule: an incident cannot close if it has open corrective actions. The Incident entity has no knowledge of CorrectiveActions. Where exactly does this rule live — and how do you implement it?',
+    answer: [
+      { t: 'text', l: 'Where it lives', v: 'UpdateIncidentStatusCommandHandler — the handler is the orchestration point for cross-aggregate rules. Incident is one aggregate, CorrectiveAction is another. Aggregates must not reach into each other. The handler fetches both, applies the cross-aggregate business rule, then delegates state change to the entity.' },
+      { t: 'code', l: 'Handler implementation', v: `var openCAs = await _context.CorrectiveActions
+    .CountAsync(x =>
+        x.IncidentId == request.Id &&
+        x.Status == CorrectiveActionStatus.Open, ct);
+
+if (openCAs > 0)
+    throw new DomainValidationException(
+        "Cannot close an incident with open corrective actions.");
+
+incident.TransitionTo(IncidentStatus.Closed); // entity validates state machine` },
+      { t: 'text', l: 'Two separate concerns', v: 'TransitionTo() enforces: only Resolved → Closed is a valid state machine transition. The handler enforces: Closed requires zero open CAs. Both are checked. Neither replaces the other. If both pass, the write happens.' },
+      { t: 'terms', l: 'Key terms', v: ['cross-aggregate rule', 'aggregate boundary', 'handler as orchestrator', 'DomainValidationException', 'TransitionTo()'] },
+      { t: 'fu', v: 'CODING: Write TransitionTo() for a WorkPermit with 5 states, Rejected reachable from 2 states, no exits from terminal states.', fuLink: 26 }
+    ]
+  },
+  {
+    id: 26, topic: 'domain', level: 'advanced', coding: true,
+    q: 'CODING: Write TransitionTo() for a WorkPermit. States: Draft → Submitted → Approved → Active → Expired. Rejected is reachable from Submitted or Approved only. No transitions out of Expired or Rejected.',
+    answer: [
+      { t: 'code', l: 'TransitionTo implementation', v: `public void TransitionTo(WorkPermitStatus newStatus)
+{
+    var valid = (Status, newStatus) switch
+    {
+        (Draft,     Submitted) => true,
+        (Submitted, Approved)  => true,
+        (Submitted, Rejected)  => true,
+        (Approved,  Active)    => true,
+        (Approved,  Rejected)  => true,
+        (Active,    Expired)   => true,
+        _                      => false
+    };
+
+    if (!valid)
+        throw new InvalidStatusTransitionException(
+            nameof(WorkPermit),
+            Status.ToString(),
+            newStatus.ToString());
+
+    Status = newStatus;
+    UpdatedAt = DateTime.UtcNow;
+}` },
+      { t: 'text', l: 'Why switch expression', v: 'Every valid path is explicit. The default _ => false arm implicitly blocks Expired → anything and Rejected → anything — no explicit guards needed. If you add a new state, the compiler forces you to handle it because it is not in the switch (if you use an exhaustive pattern).' },
+      { t: 'text', l: 'What to test', v: 'All 6 valid transitions (1 test each). Invalid transitions: Expired → Active, Rejected → Approved, Draft → Active (skip). InvalidStatusTransitionException must be thrown with correct from/to values in each invalid case. 9 tests minimum.' },
+      { t: 'terms', l: 'Key terms', v: ['switch expression', 'tuple deconstruction', 'terminal state', 'state machine', 'InvalidStatusTransitionException'] },
+      { t: 'fu', v: 'Where do you test TransitionTo() — Domain.Tests or Application.Tests — and why does the answer matter?' }
+    ]
+  }
+];
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let state = { view: 'card', topicFilter: 'all', levelFilter: 'all', idx: 0, revealed: false };
+
+function filtered() {
+  return Q.filter(q => {
+    const tOk = state.topicFilter === 'all' || q.topic === state.topicFilter;
+    const lOk = state.levelFilter === 'all' || q.level === state.levelFilter;
+    return tOk && lOk;
+  });
+}
+
+function setFilter(type, val, btn) {
+  if (type === 'topic') {
+    state.topicFilter = val;
+    document.querySelectorAll('#topicFilters .fbtn').forEach(b => b.classList.remove('on'));
+  } else {
+    state.levelFilter = val;
+    document.querySelectorAll('#levelFilters .fbtn').forEach(b => b.classList.remove('on'));
+  }
+  btn.classList.add('on');
+  state.idx = 0;
+  state.revealed = false;
+  render();
+}
+
+function tagHtml(cls, label) {
+  return `<span class="tag ${cls}">${label}</span>`;
+}
+
+function answerHtml(sections) {
+  return sections.map(s => {
+    if (s.t === 'text') return `<div class="a-block"><div class="a-lbl">${s.l}</div><div class="a-text">${s.v}</div></div>`;
+    if (s.t === 'code') return `<div class="a-block"><div class="a-lbl">${s.l}</div><pre class="a-code">${escHtml(s.v)}</pre></div>`;
+    if (s.t === 'terms') return `<div class="a-block"><div class="a-lbl">${s.l}</div><div class="a-terms">${s.v.map(t => `<span class="a-term">${t}</span>`).join('')}</div></div>`;
+    if (s.t === 'fu') {
+      const link = s.fuLink ? `<span class="fu-link" onclick="goToQuestion(${s.fuLink})">Jump to that question →</span>` : '';
+      return `<div class="follow-up"><div class="fu-lbl">Follow-up they will ask</div><div class="fu-text">${s.v}</div>${link}</div>`;
+    }
+    return '';
+  }).join('');
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function goToQuestion(id) {
+  state.topicFilter = 'all';
+  state.levelFilter = 'all';
+  document.querySelectorAll('#topicFilters .fbtn').forEach((b,i) => b.classList.toggle('on', i===0));
+  document.querySelectorAll('#levelFilters .fbtn').forEach((b,i) => b.classList.toggle('on', i===0));
+  const list = Q;
+  const idx = list.findIndex(q => q.id === id);
+  if (idx !== -1) { state.idx = idx; state.revealed = false; state.view = 'card'; render(); }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function render() {
+  const list = filtered();
+  const cardView = document.getElementById('cardView');
+  const navBar = document.getElementById('navBar');
+  const listView = document.getElementById('listView');
+
+  if (state.view === 'list') {
+    cardView.classList.add('hidden');
+    navBar.classList.add('hidden');
+    listView.classList.remove('hidden');
+    renderList(list);
+    document.getElementById('counter').textContent = `${list.length} question${list.length !== 1 ? 's' : ''}`;
+    return;
+  }
+
+  cardView.classList.remove('hidden');
+  listView.classList.add('hidden');
+
+  if (list.length === 0) {
+    navBar.classList.add('hidden');
+    document.getElementById('qCard').innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">No questions match this filter</div></div>`;
+    document.getElementById('counter').textContent = 'No cards';
+    return;
+  }
+
+  navBar.classList.remove('hidden');
+  if (state.idx >= list.length) state.idx = 0;
+
+  const q = list[state.idx];
+  const topic = TOPIC_META[q.topic];
+  const levelLabel = q.level.charAt(0).toUpperCase() + q.level.slice(1);
+
+  let tags = tagHtml(topic.cls, topic.label) + tagHtml(`t-${q.level}`, levelLabel);
+  if (q.coding) tags += tagHtml('t-coding', '{ } Coding');
+
+  let html = `<div class="q-label">Question ${q.id} of ${Q.length}</div><div class="q-tags">${tags}</div><div class="q-text">${q.q}</div>`;
+
+  if (!state.revealed) {
+    html += `<div class="reveal-area" onclick="reveal()">Tap to reveal answer</div>`;
+  } else {
+    html += `<div class="answer">${answerHtml(q.answer)}</div>`;
+  }
+
+  document.getElementById('qCard').innerHTML = html;
+
+  const pos = state.idx + 1;
+  const total = list.length;
+  document.getElementById('counter').textContent = `Card ${pos} of ${total}`;
+  document.getElementById('navPos').textContent = `${pos} / ${total}`;
+  document.getElementById('btnPrev').disabled = state.idx === 0;
+  document.getElementById('btnNext').disabled = state.idx === list.length - 1;
+}
+
+function reveal() { state.revealed = true; render(); }
+
+function go(dir) {
+  const list = filtered();
+  const next = state.idx + dir;
+  if (next >= 0 && next < list.length) { state.idx = next; state.revealed = false; render(); }
+}
+
+function renderList(list) {
+  document.getElementById('listCount').textContent = `${list.length} question${list.length !== 1 ? 's' : ''}`;
+  document.getElementById('listItems').innerHTML = list.map((q, i) => {
+    const topic = TOPIC_META[q.topic];
+    const levelLabel = q.level.charAt(0).toUpperCase() + q.level.slice(1);
+    return `
+      <div class="li" id="li-${q.id}">
+        <div class="li-head" onclick="toggleListItem(${q.id})">
+          <div class="li-num">${String(i + 1).padStart(2, '0')}</div>
+          <div class="li-body">
+            <div class="li-q">${q.q}</div>
+            <div class="li-tags">
+              ${tagHtml(topic.cls, topic.label)}
+              ${tagHtml(`t-${q.level}`, levelLabel)}
+              ${q.coding ? tagHtml('t-coding', '{ } Coding') : ''}
+            </div>
+          </div>
+          <div class="li-chev">▶</div>
+        </div>
+        <div class="li-ans">${answerHtml(q.answer)}</div>
+      </div>`;
+  }).join('');
+}
+
+function toggleListItem(id) { document.getElementById(`li-${id}`).classList.toggle('open'); }
+
+function toggleView() {
+  state.view = state.view === 'card' ? 'list' : 'card';
+  const btn = document.getElementById('viewToggle');
+  btn.textContent = state.view === 'card' ? 'List View' : 'Card View';
+  btn.classList.toggle('active', state.view === 'list');
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
