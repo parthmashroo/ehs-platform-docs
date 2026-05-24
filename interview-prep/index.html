@@ -455,6 +455,18 @@ const Q = [
       { t: 'text', l: 'Example type', v: "On the EHS platform: I had strong opinions about using ICacheService abstraction instead of injecting IDistributedCache directly. The argument was: abstraction costs almost nothing now, and makes a Dapr State swap at Phase 8 a one-line DI change. That's the kind of argument that wins — concrete, low-cost, forward-looking." },
       { t: 'fu', v: 'What do you do if you believe the technical direction is genuinely harmful — not just suboptimal?' }
     ]
+  },
+  {
+    id: 26, cat: 'dotnet', level: 'advanced', resume: false,
+    q: 'You added an ICacheService abstraction over IDistributedCache instead of injecting IDistributedCache directly into handlers. Why — what does that abstraction actually buy you?',
+    answer: [
+      { t: 'text', l: 'The concept', v: "Clean Architecture dependency rule: Application defines what it needs, Infrastructure fulfills it. IDistributedCache is an Infrastructure concern — it couples handlers to a specific transport. ICacheService is the contract; handlers never know what backs it." },
+      { t: 'text', l: 'How it works', v: "ICacheService in Application/Common/Interfaces exposes GetAsync<T>, SetAsync<T>, RemoveAsync. DistributedCacheService in Infrastructure implements it using IDistributedCache as the backend, with JSON serialization via System.Text.Json. DI registration: services.AddScoped<ICacheService, DistributedCacheService>()." },
+      { t: 'text', l: 'The Dapr swap', v: "Phase 8 evaluates Dapr State as the cache backend. With ICacheService in place, that swap is one DI line: replace DistributedCacheService with DaprCacheService. Every handler is unaffected. Without the abstraction, every handler injecting IDistributedCache directly needs to change." },
+      { t: 'text', l: 'Cost vs benefit', v: "One interface file, one implementation file — that is the full cost. The payoff: handlers are testable with a trivial Moq mock, the backend is swappable at DI, and Application never references an Infrastructure type. Three tests cover the GetAsync hit, miss, and RemoveAsync delegation paths." },
+      { t: 'terms', l: 'Key terms', v: ['ICacheService', 'IDistributedCache', 'DistributedCacheService', 'Clean Architecture', 'DI swap point', 'Dapr State', 'layer isolation'] },
+      { t: 'fu', v: 'How would you test a handler that uses ICacheService — what does the mock setup look like?' }
+    ]
   }
 ];
 

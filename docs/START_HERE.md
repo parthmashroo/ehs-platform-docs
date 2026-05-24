@@ -13,7 +13,7 @@ Read in this order:
 Phase 0 ✅ Phase 1 ✅ Phase 2 ✅ Phase 3 ✅ Phase 4 ✅ Phase 5 🔄 IN PROGRESS
 
 Active sprint: Sprint 4.
-Next ticket: **EHS-51** — Redis `IDistributedCache` + `ICacheService` abstraction (infrastructure plumbing only).
+Next ticket: **EHS-52** — Elasticsearch + Kibana local Podman setup + SQL Full-Text comparison spike.
 
 ---
 
