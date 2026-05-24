@@ -1359,33 +1359,24 @@ New concepts: JWT in .NET 8, role-based authorization, password hashing, ICurren
 
 
 
-### Phase 5: Multi-tenancy
+### Phase 5: Multi-tenancy + Infrastructure Plumbing ✅ IN PROGRESS
 
-**Goal:** Client orgs and contractor orgs are completely isolated.
+**Goal:** Client orgs and contractor orgs are completely isolated. Redis wired with clean abstraction for future Dapr swap.
 
+New concepts: EF Core Global Query Filters, TenantResolutionMiddleware, IDistributedCache, ICacheService abstraction.
 
+- [x] RowVersion on BaseEntity + DbUpdateConcurrencyException → 409 (EHS-46)
+- [x] CorrelationId middleware + Serilog enricher + IRequestContext (EHS-47)
+- [x] TenantId on all entities + EF configs + migration (EHS-48)
+- [x] ClientContractor entity + EF config + migration (EHS-49)
+- [x] EF Core Global Query Filters (TenantId + IsDeleted) + TenantResolutionMiddleware (EHS-50)
+- [ ] Redis docker-compose + `IDistributedCache` (StackExchange.Redis) + `ICacheService` interface in Application + `DistributedCacheService : ICacheService` in Infrastructure + cache key conventions (EHS-51)
+- [ ] Elasticsearch + Kibana local Docker spike + SQL Full-Text comparison (EHS-52)
+- [ ] Phase 5 docs update (EHS-53)
 
-New concepts: EF Core Global Query Filters, TenantResolutionMiddleware, ITenantService.
+**ICacheService note:** Handlers inject `ICacheService`, never `IDistributedCache` directly. At Phase 8, swapping `DistributedCacheService` → `DaprCacheService` is a single DI line change. See `architectural-gaps.md` Gap 17.
 
-
-
-- [ ] Add TenantId to all entities
-
-- [ ] ClientContractor entity (maps which contractors work for which clients)
-
-- [ ] TenantResolutionMiddleware (extracts tenantId + companyType from JWT)
-
-- [ ] Global Query Filters on all tenant-scoped entities
-
-- [ ] Migration to add TenantId columns
-
-- [ ] Registration flow creates Organization + first Admin user
-
-- [ ] Commit: `"Phase 5: Multi-tenancy"`
-
-
-
-**Done when:** Two orgs' data is completely isolated. Verified with two accounts.
+**Done when:** Two orgs' data completely isolated. Redis resolves from DI. `ICacheService` registered.
 
 
 
@@ -1456,19 +1447,26 @@ AI can read semantic context via `IFormSemanticContextBuilder`, score computed o
 
 
 
-### Phase 8: Caching (Redis)
+### Phase 8: Caching + Infrastructure Resilience
 
-**Goal:** Reference data cached. Reduces DB load.
+**Goal:** Activate `ICacheService` in query handlers. Evaluate Dapr adoption. Wire resilience, health checks, and idempotency.
 
+New concepts: Cache population/invalidation, Dapr sidecar evaluation, Polly resilience pipelines, structured health checks.
 
+- [ ] Activate caching in query handlers via `ICacheService` (already wired in Phase 5):
+      site/area lookups, user permission maps, org settings, aggregate counts
+- [ ] Explicit cache invalidation on write (clear relevant keys in write handlers)
+- [ ] Output caching on reference data GET endpoints (`[OutputCache]` attribute — Gap 18)
+- [ ] **Dapr evaluation:** Implement `DaprCacheService : ICacheService` (Dapr State building block).
+      Decision: swap `DistributedCacheService` → `DaprCacheService` (one DI line) if multi-pod evidence justifies it.
+      If Dapr adopted: wire Dapr pub/sub for Phase 9 outbox replacement at same time.
+- [ ] **Evaluate .NET Aspire** as local dev orchestrator — starts API + Dapr sidecar + Redis + SQL Server + OTEL dashboard with one command (Gap 24). Solves Gaps 8, 16, 20 for free if adopted.
+- [ ] Idempotency keys for create commands — `IIdempotentCommand` marker + `IdempotencyBehaviour` pipeline behaviour (Gap 21)
+- [ ] Structured health checks: `/health/live` + `/health/ready` probes for DB and Redis (Gap 20)
+- [ ] Polly resilience on all external `HttpClient` registrations (Gap 16)
+- [ ] Commit: `"Phase 8: Caching, Dapr evaluation, and infrastructure resilience"`
 
-- [ ] Add Redis to docker-compose.yml
-
-- [ ] ICacheService interface + RedisCacheService
-
-- [ ] Cache site/area lookups, user permission checks
-
-- [ ] Commit: `"Phase 8: Redis caching"`
+**Done when:** Reference data reads hit `ICacheService` (not DB). Dapr adoption decision locked. Health probes return 200.
 
 
 
@@ -1476,53 +1474,23 @@ AI can read semantic context via `IFormSemanticContextBuilder`, score computed o
 
 
 
-### Phase 9: Background Workers + Outbox Pattern
+### Phase 9: Background Workers + Outbox Pattern + Expiry Notifications
 
-**Goal:** Reliable notifications. Overdue CA detection.
+**Goal:** Reliable notifications. Overdue CA detection. Expiry notifications for documents and certs.
 
-
-
-New concepts: BackgroundService, PeriodicTimer, Outbox pattern.
-
-
+New concepts: BackgroundService, PeriodicTimer, Outbox pattern, Polly on email HttpClient.
 
 - [ ] OutboxMessage entity + migration
-
-- [ ] OutboxProcessorJob: reads OutboxMessage table, sends emails, marks processed
-
+- [ ] OutboxProcessorJob: reads OutboxMessage table, sends emails (with Polly retry on SendGrid HttpClient), marks processed
 - [ ] OverdueCaJob: finds CAs past DueDate, creates OutboxMessages
-
 - [ ] Basic email delivery (SendGrid or SMTP)
+- [ ] Expiry notification triggers (EHS-55): domain events for document/cert expiry within 30/60/90 days — fires pub/sub event → OutboxMessage → email
+- [ ] Polly resilience on email + any external HttpClient (Gap 16 — if not done in Phase 8)
+- [ ] Hangfire scheduler + dashboard at `/jobs` (Gap 19 — do before job count exceeds 2-3)
+- [ ] If Dapr adopted at Phase 8: replace OutboxProcessorJob with Dapr pub/sub `[Topic]` subscribers
+- [ ] Commit: `"Phase 9: Background workers, outbox, and expiry notifications"`
 
-- [ ] Commit: `"Phase 9: Background workers and outbox"`
-
-
-
-**Done when:** Overdue CAs trigger email notifications reliably.
-
-
-
----
-
-
-
-### Phase 10: File Attachments
-
-**Goal:** Incidents can have photos/documents.
-
-
-
-- [ ] Azure Blob Storage (local: Azurite emulator)
-
-- [ ] IBlobStorageService interface + implementation
-
-- [ ] IncidentAttachment entity
-
-- [ ] POST /api/incidents/{id}/attachments
-
-- [ ] GET /api/incidents/{id}/attachments
-
-- [ ] Commit: `"Phase 10: File attachments"`
+**Done when:** Overdue CAs trigger emails. Documents/certs expiring within 30 days trigger warnings. Jobs visible in Hangfire dashboard.
 
 
 
@@ -1530,19 +1498,55 @@ New concepts: BackgroundService, PeriodicTimer, Outbox pattern.
 
 
 
-### Phase 11: Dashboard & Reporting
+### Phase 10: Contractor Compliance + File Attachments
 
-**Goal:** Summary stats. Something a safety manager would actually use.
+**Goal:** Expand contractor management with insurance, training, document compliance, and induction tracking.
+       Incidents can have photo/document attachments.
+
+New concepts: Azure Blob Storage, composite compliance scoring, document review workflows, site check-in model.
+
+**File attachments:**
+- [ ] Azure Blob Storage (local: Azurite emulator) + `IBlobStorageService` interface + implementation
+- [ ] `IncidentAttachment` entity + `POST /api/incidents/{id}/attachments` + `GET /api/incidents/{id}/attachments`
+
+**Contractor compliance (from competitive analysis — EHASoft SHEQ gap):**
+- [ ] Insurance tracking on ClientContractor: provider, type, coverage amount, currency, start/expiry date (EHS-58)
+- [ ] Contractor vendor rating: Bronze/Silver/Gold + Risk Level (Low/Medium/High) + Valid Until date (EHS-59)
+- [ ] "Ok to Work" composite score — computed per contractor/employee from document + training + questionnaire status (EHS-56)
+- [ ] RAMS document type + multi-stage document review workflow: Pending → Pending EHS Review → Reviewed/Rejected (EHS-57)
+- [ ] Induction scheduling — site/day/time slots, contractor type → induction group mapping, booking calendar (EHS-60)
+- [ ] Site check-in data model — who is on site, when (foundation for emergency muster and Security Desk) (EHS-61)
+- [ ] Expiry tracking foundation (EHS-55): ExpiryDate field on Insurance, Training, Document entities. Feeds Phase 9 expiry notifications.
+
+**Design pre-work (before coding):**
+- [ ] Design tenant-configurable rules engine (Gap 15) — `WorkflowRule` table per tenant, `WorkflowRulesBehaviour` in MediatR pipeline. Required for "Ok to Work" gates on Work Permit.
+- [ ] Design external integration resilience pattern (Gap 14) — if security provider badge check is part of any rule.
+
+- [ ] Commit: `"Phase 10: Contractor compliance and file attachments"`
+
+**Done when:** Contractor has insurance tracked, a composite "Ok to Work" score, and documents go through review workflow. Incident attachments upload to blob storage.
 
 
 
-- [ ] GET /api/dashboard/summary — total incidents, by status, by severity, overdue CAs
+---
 
-- [ ] GET /api/reports/incidents — filtered list
 
-- [ ] Optimized queries (no N+1)
 
-- [ ] Commit: `"Phase 11: Dashboard and reporting"`
+### Phase 11: Dashboard, Reporting + Scheduled Reports
+
+**Goal:** Summary stats a safety manager would actually use. Automated scheduled reports. Job observability.
+
+New concepts: Aggregate queries, Hangfire recurring jobs, scheduled email delivery.
+
+- [ ] `GET /api/dashboard/summary` — total incidents by status/severity, overdue CAs, expiring documents
+- [ ] `GET /api/reports/incidents` — filtered export
+- [ ] Optimized queries (no N+1, use projections)
+- [ ] **Scheduled automated reports** (EHS-62): configurable frequency (Daily/Weekly/Monthly/Yearly) to named recipients. Report types: Expiry Report, Contractor Summary, Induction Report, Overdue CA Summary. Hangfire cron + email template per report type.
+- [ ] Hangfire dashboard locked behind admin auth at `/jobs` (Gap 19 — must be in before this phase)
+- [ ] Elasticsearch evaluation vs SQL Full-Text at real data volumes (as per ADR-012 Elasticsearch decision)
+- [ ] Commit: `"Phase 11: Dashboard, reporting, and scheduled reports"`
+
+**Done when:** Safety manager can see live summary dashboard, export filtered reports, and configure automated weekly reports to their inbox.
 
 
 
@@ -1588,9 +1592,9 @@ Screens:
 
 **Goal:** Full work permit lifecycle built on top of existing platform.
 
-
-
 (Work permits are the most complex module in EHS — gas testing, isolations, PPE, multi-step approvals)
+
+**Approval chain:** If Dapr adopted at Phase 8 — use Dapr Workflow for the multi-step approval chain (Gas Tester → Safety Officer → Supervisor). Dapr Workflow is durable: survives pod restarts, handles wait-up-to-2hrs for approver, escalates on no-response. See Gap 12 in `architectural-gaps.md`.
 
 
 
@@ -1761,9 +1765,19 @@ dotnet run --project src/EHSPlatform.API
 
 | Training & Skills | Future | Much later |
 
-| Check-in / Check-out (QR, badges) | Future | Optional |
+| Check-in / Check-out (QR, badges) | Phase 10 (EHS-61) + Phase 13 QR | Added from competitive analysis |
 
-| Vendor/Contractor Rating | Future | Optional |
+| Vendor/Contractor Rating | Phase 10 (EHS-59) | Added from competitive analysis |
+
+| Insurance Tracking | Phase 10 (EHS-58) | Added from competitive analysis |
+
+| Induction Management (scheduling, groups) | Phase 10 (EHS-60) | Added from competitive analysis |
+
+| "Ok to Work" Composite Score | Phase 10 (EHS-56) | Added from competitive analysis |
+
+| Expiry Notification Engine | Phase 9 (EHS-55) | Added from competitive analysis |
+
+| Scheduled Automated Reports | Phase 11 (EHS-62) | Added from competitive analysis |
 
 | Minutes of Meeting | Probably skip | Skip |
 

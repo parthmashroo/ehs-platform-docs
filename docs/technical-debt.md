@@ -296,6 +296,57 @@ Handler calls `ca.SoftDelete(request.Reason)` instead of setting fields directly
 
 ---
 
+## Phase 5 Architectural Gap Review (May 2026)
+
+### 🔴 CORS not locked to specific origins — security exposure before any deployment
+
+**Finding:** The API currently uses `AllowAnyOrigin` (or no CORS policy at all) for local dev convenience. Before any deployment — even to a test environment — this must be locked to specific allowed origins. Any browser-based attacker on any domain can make authenticated API calls from a user's browser.
+
+**Fix:**
+```csharp
+// Program.cs — replace AllowAll policy
+builder.Services.AddCors(o => o.AddPolicy("EHSPolicy", p =>
+    p.WithOrigins(builder.Configuration["AllowedOrigins"]!.Split(','))
+     .AllowCredentials().AllowAnyMethod().AllowAnyHeader()));
+
+// appsettings.Development.json
+"AllowedOrigins": "http://localhost:5173"
+
+// appsettings.json (production)
+"AllowedOrigins": "https://app.ehsplatform.com"
+```
+
+**Risk:** Without this, any malicious site can make CORS requests to the API using a logged-in user's JWT stored in the browser. Simple attack, catastrophic in a compliance system.
+
+**Effort:** 30 minutes. No excuse to defer.
+
+**Target phase:** Immediately. Add to EHS-51 sprint or as a standalone 30-minute task.
+**Ticket:** Needs creation. Add to Phase 5 backlog.
+**Status:** ⬜ Open
+
+---
+
+### 🟡 No architecture layer tests — Clean Architecture enforced by discipline only
+
+**Finding:** The rule "Domain must not reference Infrastructure" is enforced by code review alone. A developer at 2am can add a bad import and it will compile cleanly. By the time it's caught in review, other code may depend on it.
+
+**Fix:** Add `EHSPlatform.ArchTests` test project with `NetArchTest.Rules` NuGet. Three assertions cover all layer rules:
+```csharp
+Domain     → must not reference Application, Infrastructure, or API
+Application → must not reference Infrastructure or API
+Infrastructure → must not reference API
+```
+
+**Risk:** Without this, Clean Architecture is a convention, not a constraint. Violations compound silently.
+
+**Effort:** Half a day. No production code changes. Zero regression risk. Pure read-only assertions.
+
+**Target phase:** Phase 5 or 6 — before the codebase grows larger.
+**Ticket:** Needs creation.
+**Status:** ⬜ Open
+
+---
+
 ## Phase 5 Review — EHS-46 RowVersion (May 2026)
 
 ### 🟡 ETag/If-Match HTTP contract missing — RowVersion invisible to clients
@@ -309,8 +360,8 @@ Handler calls `ca.SoftDelete(request.Reason)` instead of setting fields directly
 
 **Why deferred from EHS-46:** The DB-side work (RowVersion column + 409 handler) ships independently and gives partial protection against internal race conditions. The HTTP contract layer is a separate concern that touches every controller and query handler — better scoped as its own ticket.
 
-**Target phase:** Phase 5 (alongside EHS-48 TenantId work)
-**Ticket:** Needs creation — suggest EHS-54
+**Target phase:** Phase 5 (alongside remaining EHS-5x tickets)
+**Ticket:** EHS-55 (created May 2026)
 **Status:** ⬜ Open
 
 ---
@@ -331,4 +382,6 @@ Handler calls `ca.SoftDelete(request.Reason)` instead of setting fields directly
 | 10 | SoftDelete logic in handler, not domain — inconsistent, no seam for future guard | 🟡 Medium | Phase 3 | EHS-38 | ✅ Fixed |
 | 11 | All detail endpoints embed child lists — system-wide pattern should be count + lazy load | 🟢 Low | Phase 12 | — | ⬜ Open |
 | 12 | User-facing error messages: developer language + wrong HTTP status codes | 🔴 High | Error sprint | EHS-44 | ✅ Fixed |
-| 13 | ETag/If-Match HTTP contract missing — RowVersion invisible to clients | 🟡 Medium | Phase 5 | — | ⬜ Open |
+| 13 | ETag/If-Match HTTP contract missing — RowVersion invisible to clients | 🟡 Medium | Phase 5 | EHS-55 | ⬜ Open |
+| 14 | CORS not locked — AllowAnyOrigin before any deployment | 🔴 High | Now (30 min) | — | ⬜ Open |
+| 15 | No architecture layer tests — Clean Architecture enforced by discipline only | 🟡 Medium | Phase 5/6 | — | ⬜ Open |

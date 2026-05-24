@@ -13,7 +13,7 @@ Read in this order:
 Phase 0 ✅ Phase 1 ✅ Phase 2 ✅ Phase 3 ✅ Phase 4 ✅ Phase 5 🔄 IN PROGRESS
 
 Active sprint: Sprint 4.
-Next ticket: **EHS-50** — EF Core Global Query Filters + TenantResolutionMiddleware.
+Next ticket: **EHS-51** — Redis `IDistributedCache` + `ICacheService` abstraction (infrastructure plumbing only).
 
 ---
 

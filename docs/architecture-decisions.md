@@ -335,7 +335,7 @@ throughput under load, deadlock risk rises non-linearly with concurrent users.
 ### Gap 2 — Read-Write Inconsistency (Stale Reads)
 
 **Decision:** Direct DB reads until Phase 7. Redis for caching from Phase 7 onward.
-`IDistributedCache` abstraction (backed by StackExchange.Redis) wired in Phase 5 — no caching logic yet.
+`ICacheService` abstraction wired in Phase 5 via `DistributedCacheService` (backed by StackExchange.Redis) — no caching logic yet. Dapr State building block is the Phase 8 evaluation candidate to replace `DistributedCacheService`.
 
 **Scale threshold (corrected after multi-AI review):** "Direct DB reads are sufficient"
 expires at approximately 250 concurrent active tenants under the synchronised shift-change
@@ -348,12 +348,31 @@ burst pattern. Each worker check-in costs ~7 DB round-trips.
 | ~250 | ~3,500 | Direct reads becoming a liability |
 | 500+ | ~7,000+ | Redis required |
 
-**Phase 5:** Wire Redis in `docker-compose.yml` + register `IDistributedCache` (StackExchange.Redis) in DI.
+**Phase 5 (EHS-51):** Wire Redis in `docker-compose.yml` + register `IDistributedCache` (StackExchange.Redis) in DI.
+Add `ICacheService` interface in Application layer. Add `DistributedCacheService : ICacheService` in Infrastructure.
 No caching logic yet. Establish cache key convention: `tenant:{tenantId}:{entity}:{id}`.
+Handlers inject `ICacheService` — never `IDistributedCache` directly.
 
-**Phase 7:** Activate Redis caching in query handlers. Start with reference data and aggregate counts.
+**Why ICacheService abstraction:** Dapr State building block is a Phase 8 candidate to replace `DistributedCacheService`.
+With this abstraction, the swap is a single DI line change. Zero handler changes required.
+
+```
+Phase 5:              services.AddScoped<ICacheService, DistributedCacheService>();
+Phase 8 (if Dapr):    services.AddScoped<ICacheService, DaprCacheService>();
+                      ↑ One line change. Every handler is unaffected.
+```
+
+**FusionCache:** Rejected. Adds L1 in-process + stampede protection but introduces an abstraction layer
+that obscures what Redis is doing — reducing learning value. `ICacheService` + Dapr State achieves
+equivalent cross-pod benefits at Phase 8 without the intermediate dependency.
+
+**Phase 7:** Activate caching in query handlers via `ICacheService`. Start with reference data and aggregate counts.
 When horizontal scaling is needed (2+ API instances), the same Redis instance is already shared —
 zero code changes, only a connection string change for production.
+
+**Phase 8 (Dapr evaluation):** Implement `DaprCacheService : ICacheService` as the Dapr State building block.
+Decision made at Phase 8 based on actual multi-pod evidence. Not locked now.
+See `architectural-gaps.md` Gap 1 and Gap 17 for full reasoning.
 
 **Caching scope — critical rule, never cache live operational state with a TTL:**
 
@@ -371,6 +390,7 @@ zero code changes, only a connection string change for production.
 | Dev / Learning | Local Docker or Podman | Free forever |
 | Early production | Self-hosted Redis on a £5-10/mo VM alongside the app | £5-10/mo |
 | Scale (250+ tenants) | Azure Cache for Redis Basic/Standard | £40-150/mo |
+| If Dapr adopted | Dapr State component YAML — swap provider without code change | Same cost |
 
 **Why not CQRS projections / separate read store:** Redis covers us to 1,000+ tenants.
 Separate read infrastructure is not justified at our scale.
@@ -378,7 +398,7 @@ Separate read infrastructure is not justified at our scale.
 **Why not Azure SQL Read Replicas:** Requires Business Critical SQL tier — ~4× the cost.
 Redis achieves the same outcome for the cost of a Docker container.
 
-**Implementation:** EHS-51 (Phase 5 plumbing only), Phase 7 (actual caching logic).
+**Implementation:** EHS-51 (Phase 5 plumbing + ICacheService abstraction), Phase 7 (actual caching logic), Phase 8 (Dapr evaluation).
 
 ---
 
@@ -511,7 +531,7 @@ full API surface is known.
 | EHS-48 | TenantId on all existing entities + combined migration (with EHS-46 RowVersion) | Phase 5 |
 | EHS-49 | ClientContractor entity + EF config + migration | Phase 5 |
 | EHS-50 | EF Core Global Query Filters + TenantResolutionMiddleware | Phase 5 |
-| EHS-51 | Redis IDistributedCache: docker-compose/Podman, DI wiring, cache key conventions | Phase 5 |
+| EHS-51 | Redis `IDistributedCache` + `ICacheService` interface (Application) + `DistributedCacheService` (Infrastructure) + docker-compose + cache key conventions | Phase 5 |
 | EHS-52 | Elasticsearch + Kibana local Docker/Podman setup + SQL Full-Text comparison spike | Phase 5 (learning) |
 | EHS-53 | Phase 5 docs update | Phase 5, last step |
 | Phase 6 | EntityAuditLog + SecurityAuditLog + BusinessRuleAuditLog + Ledger Tables | Phase 6 |
@@ -533,6 +553,7 @@ full API surface is known.
 | Hard deletes | Compliance domain requires full audit trail |
 | Quartz.NET | .NET BackgroundService is sufficient, less infrastructure |
 | BinaryFormatter (Redis) | Obsolete in .NET 5+, use System.Text.Json instead |
+| FusionCache | Adds L1 in-memory + stampede protection but obscures Redis behaviour — reducing learning value and adding an intermediate abstraction. `ICacheService` + Dapr State (Phase 8) achieves cross-pod benefits at the right time without FusionCache. |
 | Pessimistic DB locking | Holds connections across HTTP lifecycle, deadlocks under load |
 | Broad TTL caching of live operational data | Stale incident/permit status is a safety risk in compliance domain |
 | CQRS separate read store (current phases) | Redis covers us to 1,000+ tenants; separate read store is not justified yet |
