@@ -10,10 +10,10 @@ Read in this order:
 
 ## Current Status (as of May 2026)
 
-Phase 0 ✅ Phase 1 ✅ Phase 2 ✅ Phase 3 ✅ Phase 4 ✅ Phase 5 🔄 IN PROGRESS
+Phase 0 ✅ Phase 1 ✅ Phase 2 ✅ Phase 3 ✅ Phase 4 ✅ Phase 5 ✅ Phase 6 🔄 IN PROGRESS
 
-Active sprint: Sprint 4.
-Next ticket: **EHS-52** — Elasticsearch + Kibana local Podman setup + SQL Full-Text comparison spike.
+Active sprint: Sprint 7.
+Next ticket: **EHS-57** — AuditInterceptor (SaveChangesInterceptor) — before/after JSON on all auditable entities.
 
 ---
 

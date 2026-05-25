@@ -12,7 +12,7 @@
 | IDE | Visual Studio 2022 Community |
 | Git UI | Fork |
 | Jira | pmashroo.atlassian.net |
-| Active Sprint | Sprint 3 |
+| Active Sprint | Sprint 7 |
 | Database | SQL Server 2022 local (no Docker needed) |
 | Connection String | `Server=localhost;Database=EHSPlatform;Trusted_Connection=True;TrustServerCertificate=True;` |
 | DB Name | EHSPlatform |
@@ -113,7 +113,7 @@
 
 | Ticket | Description | Status |
 |---|---|---|
-| EHS-56 | AuditLog entity + EF config + migration | ⬜ To Do |
+| EHS-56 | AuditLog entity + EF config + migration | ✅ Done |
 | EHS-57 | AuditInterceptor (SaveChangesInterceptor) — before/after JSON on all auditable entities | ⬜ To Do |
 | EHS-58 | GET /api/incidents/{id}/audit-log + GET /api/correctiveactions/{id}/audit-log | ⬜ To Do |
 | EHS-59 | Phase 6 docs update | ⬜ To Do |
@@ -1087,6 +1087,7 @@ Elasticsearch is the correct long-term search layer. SQL Full-Text Search stays 
 | Session 17 | May 2026 | EHS-51 DONE. ICacheService interface (Application layer) + DistributedCacheService implementation (Infrastructure layer) wired over IDistributedCache with JSON serialization. Redis 7.2-alpine via Podman Desktop on WSL2. Redis connection string in appsettings.Development.json. DI registration in DependencyInjection.cs. EHSPlatform.Infrastructure.Tests project created (xUnit + Moq + FluentAssertions). 3 tests green: GetAsync cache hit, GetAsync cache miss returns default, RemoveAsync delegates to IDistributedCache. Interview card Q26 added. |
 | Session 18 | May 2026 | EHS-52 DONE. docker-compose.yml created at solution root (Redis + Elasticsearch 8.13.4 + Kibana 8.13.4). All 3 containers running via Podman. Kibana Dev Tools used to create ehs-incidents index, bulk-insert 5 EHS-shaped incident documents, and run multi_match full-text search — relevance scoring confirmed working. SQL Full-Text comparison attempted — revealed that CONTAINS requires a Full-Text Catalog + Full-Text Index before any query is possible (zero-setup gap vs ES). ADR-015 written: Dapr building block decision map, anchor use case corrected to Phase 13 Work Permit Workflow. Dapr framing corrected across architecture-decisions.md and project-roadmap.md. Interview card Q27 added. |
 | Session 19 | May 2026 | EHS-53 DONE. Phase 5 docs update: dev-notes.md Current Phase Status updated to Phase 5 ✅ Complete / Phase 6 Next; all Phase 5 tickets confirmed Done; docker-compose comment corrected (ES + Kibana, SQL local); What's Coming table updated; Phase 5 lessons learned written; project-roadmap.md Phase 5 marked COMPLETE, all checkboxes ticked, status lines updated. Phase 5 fully closed out. Phase 6 is next. |
+| Session 20 | May 2026 | EHS-56 DONE. AuditLog entity in Domain/Entities (TenantId, EntityName, EntityId, AuditAction, ChangedById, ChangedAt, OldValues/NewValues JSON, CorrelationId). AuditAction enum (Created/Updated/Deleted) in Domain/Enums. AuditLogConfiguration in Infrastructure (no HasQueryFilter, no IsRowVersion, ChangedById FK with DeleteBehavior.Restrict, composite index on TenantId+EntityName+EntityId). DbSet<AuditLog> added to IApplicationDbContext and ApplicationDbContext. AddAuditLog migration applied. 49 tests all green. Phase 6 in progress — EHS-57 (SaveChangesInterceptor) next. |
 
 ---
 
