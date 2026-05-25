@@ -103,7 +103,7 @@
 | EHS-49 | ClientContractor entity + EF config + migration | ✅ Done |
 | EHS-50 | EF Core Global Query Filters + TenantResolutionMiddleware | ✅ Done |
 | EHS-51 | Redis `IDistributedCache` + `ICacheService` abstraction + Infrastructure tests | ✅ Done |
-| EHS-52 | Elasticsearch + Kibana local Docker/Podman setup + SQL Full-Text comparison spike | ⬜ To Do |
+| EHS-52 | Elasticsearch + Kibana local Docker/Podman setup + SQL Full-Text comparison spike | ✅ Done |
 | EHS-53 | Phase 5 docs update | ⬜ To Do |
 
 ---
@@ -998,6 +998,38 @@ One role per user is correct for Phase 4. When needed:
 
 ---
 
+## EHS-52 Spike Summary — Elasticsearch vs SQL Full-Text Search
+
+**Date:** May 2026 | **Confidence for Phase 9/11:** High
+
+### What We Did
+- Created `docker-compose.yml` at solution root with Redis 7.2-alpine, Elasticsearch 8.13.4, Kibana 8.13.4
+- All containers running via Podman on WSL2
+- Created `ehs-incidents` index in Kibana Dev Tools with correct field mappings (`text` for searchable fields, `keyword` for filters)
+- Bulk-inserted 5 EHS-shaped incident documents (ChemicalSpill, NearMiss, Injury, HazardousCondition, EquipmentFailure)
+- Ran `multi_match` full-text query for "chemical fumes" across title + description fields
+- Attempted equivalent SQL Server `CONTAINS` query on Incidents table
+
+### Key Findings
+
+| | Elasticsearch | SQL Full-Text Search |
+|---|---|---|
+| Setup to first query | ~5 minutes — create index, insert, search | Requires Full-Text Catalog + Full-Text Index creation + background population job before any query |
+| Relevance scoring | Yes — "Chemical spill" scored 2.30, "Toxic fumes" scored 0.83. Most relevant result ranked first automatically | No — all matching rows returned equally, no ranking |
+| Multi-field search | One query across title + description natively | Possible but more verbose syntax |
+| Zero-setup for new fields | Yes — add field to mapping, immediately searchable | No — must recreate Full-Text Index to include new columns |
+| Our data volume today | Not a factor | Not a factor |
+| Right phase to switch | Phase 11 when real data volume justifies it | Default until Phase 11 |
+
+### SQL Full-Text Result
+`Msg 7601: Cannot use CONTAINS predicate because Incidents is not full-text indexed.`
+This confirmed the zero-setup gap. ES was querying live data in minutes. SQL FTS could not even run the query without prior infrastructure setup.
+
+### Verdict
+Elasticsearch is the correct long-term search layer. SQL Full-Text Search stays in production through Phase 10 (already in SQL Server, zero added infra). Switch evaluation at Phase 11 when real tenant data volume makes the relevance-scoring and aggregation gaps tangible. Confidence in Phase 9 Elasticsearch adoption: **High**.
+
+---
+
 ## Anti-Procrastination Rules (Read This If Drifting)
 
 1. One phase at a time. Never plan Phase 5 while building Phase 1.
@@ -1031,6 +1063,7 @@ One role per user is correct for Phase 4. When needed:
 | Session 15 | May 2026 | EHS-49 DONE. ClientContractor entity added to Domain (BaseEntity + ITenantEntity, Name/ContractorCode/IsActive/IsDeleted), EF config with unique index on (TenantId, ContractorCode) + FK to Organizations (Restrict) + RowVersion. AddClientContractor migration applied. Data model only — no API endpoints, no CQRS. EHS-50 DONE. Pre-step: IsDeleted added to Site, SiteArea, Organization, User (all previously missing — architecture rule violation caught during audit). EF configs updated, AddIsDeletedToSiteSiteAreaUserOrganization migration applied. Global Query Filters: combined TenantId + IsDeleted on all 5 ITenantEntity types (Incident, CorrectiveAction, Site, SiteArea, ClientContractor); IsDeleted-only on User and Organization (no TenantId filter — login is global, Org IS the tenant). HasQueryFilter removed from IncidentConfiguration and CorrectiveActionConfiguration (DbContext owns all filters). TenantResolutionMiddleware added as lightweight guard — rejects authenticated requests missing tid claim. 46 tests all green including new TenantIsolationTests verifying TenantA data is invisible to TenantB. |
 | Session 16 | May 2026 | Architectural gap review before Phase 6. Reviewed 25 architectural gaps from prior session notes (different machine). Key decisions: (1) Dapr deferred to Phase 8 as a candidate — not locked, not Phase 5; (2) EHS-51 scope revised to include `ICacheService` interface in Application + `DistributedCacheService` implementation in Infrastructure on top of `IDistributedCache` — enables Dapr State swap at Phase 8 as a single DI line change; (3) FusionCache remains rejected; (4) Competitive analysis of EHASoft SHEQ Contractor Portal documented — 9 proposed tickets (EHS-54 to EHS-62) for roadmap phases 5, 9, 10, 11. All findings written to `architectural-gaps.md` (new doc). `architecture-decisions.md`, `project-roadmap.md`, `technical-debt.md` all updated. CORS fix and NetArchTest identified as immediate actions. |
 | Session 17 | May 2026 | EHS-51 DONE. ICacheService interface (Application layer) + DistributedCacheService implementation (Infrastructure layer) wired over IDistributedCache with JSON serialization. Redis 7.2-alpine via Podman Desktop on WSL2. Redis connection string in appsettings.Development.json. DI registration in DependencyInjection.cs. EHSPlatform.Infrastructure.Tests project created (xUnit + Moq + FluentAssertions). 3 tests green: GetAsync cache hit, GetAsync cache miss returns default, RemoveAsync delegates to IDistributedCache. Interview card Q26 added. |
+| Session 18 | May 2026 | EHS-52 DONE. docker-compose.yml created at solution root (Redis + Elasticsearch 8.13.4 + Kibana 8.13.4). All 3 containers running via Podman. Kibana Dev Tools used to create ehs-incidents index, bulk-insert 5 EHS-shaped incident documents, and run multi_match full-text search — relevance scoring confirmed working. SQL Full-Text comparison attempted — revealed that CONTAINS requires a Full-Text Catalog + Full-Text Index before any query is possible (zero-setup gap vs ES). ADR-015 written: Dapr building block decision map, anchor use case corrected to Phase 13 Work Permit Workflow. Dapr framing corrected across architecture-decisions.md and project-roadmap.md. Interview card Q27 added. |
 
 ---
 
