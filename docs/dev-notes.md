@@ -109,6 +109,17 @@
 
 ---
 
+## Phase 6 Ticket Status
+
+| Ticket | Description | Status |
+|---|---|---|
+| EHS-56 | AuditLog entity + EF config + migration | ⬜ To Do |
+| EHS-57 | AuditInterceptor (SaveChangesInterceptor) — before/after JSON on all auditable entities | ⬜ To Do |
+| EHS-58 | GET /api/incidents/{id}/audit-log + GET /api/correctiveactions/{id}/audit-log | ⬜ To Do |
+| EHS-59 | Phase 6 docs update | ⬜ To Do |
+
+---
+
 ## Solution Structure
 
 ```
