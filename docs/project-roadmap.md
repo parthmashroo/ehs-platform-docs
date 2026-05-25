@@ -1457,9 +1457,13 @@ New concepts: Cache population/invalidation, Dapr sidecar evaluation, Polly resi
       site/area lookups, user permission maps, org settings, aggregate counts
 - [ ] Explicit cache invalidation on write (clear relevant keys in write handlers)
 - [ ] Output caching on reference data GET endpoints (`[OutputCache]` attribute — Gap 18)
-- [ ] **Dapr evaluation:** Implement `DaprCacheService : ICacheService` (Dapr State building block).
-      Decision: swap `DistributedCacheService` → `DaprCacheService` (one DI line) if multi-pod evidence justifies it.
-      If Dapr adopted: wire Dapr pub/sub for Phase 9 outbox replacement at same time.
+- [ ] **Dapr evaluation (anchor: Phase 13 Work Permit Workflow):** Prototype Dapr Workflow for
+      the work permit multi-step approval chain (Gas Tester → Safety Officer → Supervisor, waits
+      up to 2hrs, escalates on no-response). This is the primary justification for running the sidecar.
+      If adopted: `DaprCacheService : ICacheService` (State) + Dapr pub/sub (Phase 9 foundation) come
+      free from the same sidecar — wire both at this point.
+      If rejected: `DistributedCacheService` stays, OutboxProcessorJob built in Phase 9.
+      See ADR-015 for full building block decision map.
 - [ ] **Evaluate .NET Aspire** as local dev orchestrator — starts API + Dapr sidecar + Redis + SQL Server + OTEL dashboard with one command (Gap 24). Solves Gaps 8, 16, 20 for free if adopted.
 - [ ] Idempotency keys for create commands — `IIdempotentCommand` marker + `IdempotencyBehaviour` pipeline behaviour (Gap 21)
 - [ ] Structured health checks: `/health/live` + `/health/ready` probes for DB and Redis (Gap 20)
@@ -1594,7 +1598,10 @@ Screens:
 
 (Work permits are the most complex module in EHS — gas testing, isolations, PPE, multi-step approvals)
 
-**Approval chain:** If Dapr adopted at Phase 8 — use Dapr Workflow for the multi-step approval chain (Gas Tester → Safety Officer → Supervisor). Dapr Workflow is durable: survives pod restarts, handles wait-up-to-2hrs for approver, escalates on no-response. See Gap 12 in `architectural-gaps.md`.
+**Approval chain:** This is the anchor use case that drives Dapr adoption at Phase 8.
+If Dapr adopted: use Dapr Workflow (durable, survives pod restarts, waits up to 2hrs for approver, escalates on no-response).
+If Dapr rejected: custom state machine in SQL with PeriodicTimer polling — significantly more code.
+See ADR-015 for full Dapr building block decisions and decision sequence.
 
 
 

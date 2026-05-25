@@ -370,9 +370,13 @@ equivalent cross-pod benefits at Phase 8 without the intermediate dependency.
 When horizontal scaling is needed (2+ API instances), the same Redis instance is already shared —
 zero code changes, only a connection string change for production.
 
-**Phase 8 (Dapr evaluation):** Implement `DaprCacheService : ICacheService` as the Dapr State building block.
-Decision made at Phase 8 based on actual multi-pod evidence. Not locked now.
-See `architectural-gaps.md` Gap 1 and Gap 17 for full reasoning.
+**Phase 8 (Dapr evaluation):** Prototype Dapr Workflow specifically for the Phase 13 Work Permit
+multi-step approval chain — this is the anchor use case that justifies running the sidecar.
+If Dapr is adopted, `DaprCacheService : ICacheService` (State building block) and Dapr pub/sub
+(Phase 9 replacement for OutboxProcessorJob) come along for free from the same sidecar.
+If Dapr is not adopted, `DistributedCacheService` stays and OutboxProcessorJob is built in Phase 9.
+Decision locked at Phase 8 based on Workflow prototype results. Not locked now.
+See ADR-015 (Dapr Building Blocks) below for full reasoning on each building block.
 
 **Caching scope — critical rule, never cache live operational state with a TTL:**
 
@@ -710,3 +714,88 @@ our architecture plugs them in with no structural changes. We build the shelf; p
 | Per tenant per month | — | ~$3–8 |
 
 Full detail: `ai-first-strategy.md` and `ai-strategy-session-handoff.md`.
+
+---
+
+## ADR-015: Dapr Building Blocks — EHS-Specific Decision Map
+
+**Context:** Session 18, May 2026. Dapr was identified in Session 16 as a broad candidate
+across 25 architectural gaps. This ADR corrects the framing: Dapr adoption must be anchored
+to its strongest use case, not its most convenient one.
+
+---
+
+### The Anchor Decision
+
+**Dapr adoption is driven by Phase 13 Work Permits, not Phase 8 caching.**
+
+The work permit approval chain requires a durable multi-step workflow that survives pod restarts,
+waits hours for human approval, escalates on no-response, and maintains full audit trail.
+Dapr Workflow is the right tool for this. No other building block in the .NET ecosystem
+handles this as cleanly. This is the use case that justifies running the Dapr sidecar.
+
+Everything else Dapr offers (pub/sub, bindings, state, actors) comes along for free once the
+sidecar is running. Those are bonuses, not justifications.
+
+---
+
+### Building Block Decisions (EHS-Specific)
+
+| Building Block | EHS Use Case | Phase | Verdict |
+|---|---|---|---|
+| **Workflow** | Work permit multi-step approval (Gas Tester → Safety Officer → Supervisor, waits up to 2hrs, escalates) | Phase 13 | **Adopt — anchor use case** |
+| **Pub/Sub** | Domain events: IncidentCreated → email + ES index + AI classify (Phase 17). Each subscriber independent, no polling | Phase 9 | **Adopt if sidecar running** |
+| **Bindings (Cron)** | Replaces `PeriodicTimer` in OverdueCaJob and OutboxProcessorJob with declarative scheduling | Phase 9 | **Adopt if sidecar running** |
+| **Bindings (Output)** | Azure Blob for file attachments (Phase 10), SendGrid for email (Phase 9) — no SDK boilerplate | Phase 9/10 | **Adopt if sidecar running** |
+| **State** | `DaprCacheService : ICacheService` — swaps `DistributedCacheService` via single DI line | Phase 8 | **Marginal alone — adopt if sidecar running** |
+| **Distributed Lock** | Prevents duplicate OutboxMessage processing when 2+ pods run simultaneously | Phase 8 | **Only when multi-pod** |
+| **Actors** | Virtual actor per Work Permit for real-time state if Workflow proves insufficient; future live site board | Phase 13+ | **Evaluate at Phase 13 — Workflow likely sufficient** |
+| **Service Invocation** | Service-to-service calls with mTLS and retries | Phase 16+ | **Only if microservices adopted** |
+| **Secrets** | Azure Key Vault secret resolution without SDK code | Phase 16 | **At Azure deployment only** |
+
+---
+
+### Decision Sequence (Locked)
+
+```
+Phase 8:  Prototype Dapr Workflow for Work Permit approval chain.
+          Measure: Does it handle wait-up-to-2hrs, escalation, pod-restart survival correctly?
+          Measure: What is the operational cost of running a sidecar locally and in Azure?
+          Decide: Adopt or reject. This decision gates everything below.
+
+Phase 9:  If Dapr adopted → use pub/sub + bindings instead of OutboxProcessorJob.
+          If Dapr rejected → build OutboxProcessorJob (BackgroundService + PeriodicTimer).
+          Either path: OutboxMessage table stays for DB atomicity guarantee.
+
+Phase 13: Build Work Permit approval on Dapr Workflow (if adopted) or custom state machine (if rejected).
+          Dapr Workflow is strongly preferred — the custom state machine alternative is significantly more code.
+
+Phase 17: Evaluate Dapr Actors if real-time site safety board requires distributed live state per site.
+```
+
+---
+
+### Why Outbox Table Stays Even With Dapr Pub/Sub
+
+Dapr pub/sub does not give you atomicity with your DB transaction. If you publish a Dapr event
+and the API pod crashes before committing the SQL row — the event fired but the data isn't saved.
+
+The OutboxMessage table solves this:
+```
+One DB transaction:
+  ├── Save business data row
+  └── Save OutboxMessage row ("fire this event")
+
+Dapr pub/sub (or OutboxProcessorJob) reads OutboxMessage and delivers.
+```
+
+Dapr replaces the delivery mechanism, not the atomicity guarantee. The OutboxMessage table
+is not redundant with Dapr — it is the write-ahead log that makes Dapr delivery safe.
+
+---
+
+### What We Deliberately Did NOT Decide
+
+- Whether to adopt `.NET Aspire` as local dev orchestrator (see Phase 8 roadmap — evaluate alongside Dapr)
+- Whether Work Permits use Dapr Workflow or Dapr Actors (evaluate at Phase 13 based on prototype)
+- Whether to split into microservices (Service Invocation becomes relevant only then)
