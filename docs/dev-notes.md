@@ -30,7 +30,8 @@
 | Phase 2 — Incident Lifecycle (Status Machine) | ✅ Complete |
 | Phase 3 — Corrective Actions | ✅ Complete |
 | Phase 4 — Users & Authentication | ✅ Complete |
-| Phase 5+ | Not started |
+| Phase 5 — Multi-tenancy + Infrastructure Plumbing | ✅ Complete |
+| Phase 6 — Audit Logging | Next |
 
 ---
 
@@ -104,7 +105,7 @@
 | EHS-50 | EF Core Global Query Filters + TenantResolutionMiddleware | ✅ Done |
 | EHS-51 | Redis `IDistributedCache` + `ICacheService` abstraction + Infrastructure tests | ✅ Done |
 | EHS-52 | Elasticsearch + Kibana local Docker/Podman setup + SQL Full-Text comparison spike | ✅ Done |
-| EHS-53 | Phase 5 docs update | ⬜ To Do |
+| EHS-53 | Phase 5 docs update | ✅ Done |
 
 ---
 
@@ -122,7 +123,7 @@ EHSPlatform/
 │   ├── EHSPlatform.Application.Tests/
 │   └── EHSPlatform.API.Tests/
 ├── frontend/               ← Phase 12, not started
-└── docker-compose.yml      ← SQL Server + Redis (Redis from Phase 8)
+└── docker-compose.yml      ← Redis 7.2-alpine + Elasticsearch 8.13.4 + Kibana 8.13.4 (SQL Server runs locally — not in Docker)
 ```
 
 **Project references:** API → Infrastructure → Application → Domain. Domain has zero dependencies.
@@ -839,6 +840,16 @@ InvalidStatusTransitionException thrown for any invalid jump.
 - Controllers use `command with { Id = id }` to merge route ID into the body command without manual mapping.
 - Example: `await _sender.Send(command with { Id = id }, cancellationToken);`
 
+### Phase 5 — Multi-tenancy + Infrastructure Plumbing
+
+- `HasQueryFilter` must be set once, on `DbContext`, not on individual `IEntityTypeConfiguration` files. Setting it in both causes EF to apply double filters. Global filters moved to `ApplicationDbContext.OnModelCreating()`.
+- `IsDeleted` was missing from `Site`, `SiteArea`, `Organization`, and `User` when Phase 5 started — these had `IsActive` but not `IsDeleted`. Both are needed: `IsActive` gates login/use; `IsDeleted` is the soft-delete marker for the query filter. Always add both when creating any new entity.
+- `TenantResolutionMiddleware` is a lightweight guard — it validates that the `tid` JWT claim is present, not that the tenant exists in the DB. Avoids a DB call on every request. Full tenant validation happens inside handlers via the query filter.
+- `DistributedCacheService` wraps `IDistributedCache` with JSON serialization. Handlers inject `ICacheService`, never `IDistributedCache` directly. Single DI line swap at Phase 8 if Dapr State is adopted.
+- Docker compose and standalone container can conflict on named containers. If a standalone container (e.g. `ehs-redis`) exists, `podman compose up` will fail. Remove the standalone container first: `podman rm -f <name>`.
+- Elasticsearch takes 30–60 seconds to fully initialize after `podman compose up`. Browser hitting `localhost:9200` immediately will get `ERR_EMPTY_RESPONSE` — wait and retry, not an error.
+- SQL Server Full-Text Search requires a Full-Text Catalog + Full-Text Index + background population job before any `CONTAINS` query can run. ES requires none of that. This is the definitive reason ES was chosen over SQL FTS for Phase 11+ search.
+
 ### CorrectiveAction State Machine (Phase 3)
 - `CorrectiveAction.TransitionTo()` follows same pattern as `Incident.TransitionTo()` — domain method, switch expression, guard clauses.
 - Auto-stamps `CompletedAt` when → Completed; clears it when pushed back → InProgress.
@@ -857,16 +868,16 @@ InvalidStatusTransitionException thrown for any invalid jump.
 
 | Phase | What | When |
 |---|---|---|
+| Phase 1 | Core Domain + Incident Reporting | ✅ Done |
 | Phase 2 | Incident status machine, pagination, filtering | ✅ Done |
 | Phase 3 | Corrective Actions | ✅ Done |
-| Phase 4 | Users & Authentication | Next |
-| Phase 4 | Users, JWT auth, roles | After Phase 3 |
-| Phase 5 | Multi-tenancy (Global Query Filters) | After Phase 4 |
-| Phase 6 | Audit logging (EF interceptor) | After Phase 5 |
+| Phase 4 | Users & Authentication | ✅ Done |
+| Phase 5 | Multi-tenancy + Infrastructure Plumbing | ✅ Done |
+| Phase 6 | Audit logging (EF interceptor) | **Next** |
 | Phase 7 | Dynamic Form Engine | After Phase 6 |
-| Phase 8 | Redis caching | After Phase 7 |
+| Phase 8 | Caching + Infrastructure Resilience + Dapr evaluation | After Phase 7 |
 | Phase 9 | Outbox pattern + background workers | After Phase 8 |
-| Phase 10 | File attachments (Azure Blob) | After Phase 9 |
+| Phase 10 | Contractor Compliance + File Attachments | After Phase 9 |
 | Phase 11 | Dashboard & reporting | After Phase 10 |
 | Phase 12 | React frontend | After Phase 11 |
 | Phase 13 | Work Permit Management | Later |
@@ -1064,6 +1075,7 @@ Elasticsearch is the correct long-term search layer. SQL Full-Text Search stays 
 | Session 16 | May 2026 | Architectural gap review before Phase 6. Reviewed 25 architectural gaps from prior session notes (different machine). Key decisions: (1) Dapr deferred to Phase 8 as a candidate — not locked, not Phase 5; (2) EHS-51 scope revised to include `ICacheService` interface in Application + `DistributedCacheService` implementation in Infrastructure on top of `IDistributedCache` — enables Dapr State swap at Phase 8 as a single DI line change; (3) FusionCache remains rejected; (4) Competitive analysis of EHASoft SHEQ Contractor Portal documented — 9 proposed tickets (EHS-54 to EHS-62) for roadmap phases 5, 9, 10, 11. All findings written to `architectural-gaps.md` (new doc). `architecture-decisions.md`, `project-roadmap.md`, `technical-debt.md` all updated. CORS fix and NetArchTest identified as immediate actions. |
 | Session 17 | May 2026 | EHS-51 DONE. ICacheService interface (Application layer) + DistributedCacheService implementation (Infrastructure layer) wired over IDistributedCache with JSON serialization. Redis 7.2-alpine via Podman Desktop on WSL2. Redis connection string in appsettings.Development.json. DI registration in DependencyInjection.cs. EHSPlatform.Infrastructure.Tests project created (xUnit + Moq + FluentAssertions). 3 tests green: GetAsync cache hit, GetAsync cache miss returns default, RemoveAsync delegates to IDistributedCache. Interview card Q26 added. |
 | Session 18 | May 2026 | EHS-52 DONE. docker-compose.yml created at solution root (Redis + Elasticsearch 8.13.4 + Kibana 8.13.4). All 3 containers running via Podman. Kibana Dev Tools used to create ehs-incidents index, bulk-insert 5 EHS-shaped incident documents, and run multi_match full-text search — relevance scoring confirmed working. SQL Full-Text comparison attempted — revealed that CONTAINS requires a Full-Text Catalog + Full-Text Index before any query is possible (zero-setup gap vs ES). ADR-015 written: Dapr building block decision map, anchor use case corrected to Phase 13 Work Permit Workflow. Dapr framing corrected across architecture-decisions.md and project-roadmap.md. Interview card Q27 added. |
+| Session 19 | May 2026 | EHS-53 DONE. Phase 5 docs update: dev-notes.md Current Phase Status updated to Phase 5 ✅ Complete / Phase 6 Next; all Phase 5 tickets confirmed Done; docker-compose comment corrected (ES + Kibana, SQL local); What's Coming table updated; Phase 5 lessons learned written; project-roadmap.md Phase 5 marked COMPLETE, all checkboxes ticked, status lines updated. Phase 5 fully closed out. Phase 6 is next. |
 
 ---
 

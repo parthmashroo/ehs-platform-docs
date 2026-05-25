@@ -16,7 +16,7 @@ Written so any AI assistant can resume this project with full context from any s
 
 **Practice machine:** Personal machine only. Never on company laptop.
 
-**Current status:** Phase 0 ✅ Phase 1 ✅ Phase 2 ✅ Phase 3 ✅ Phase 4 ✅ Phase 5 next.
+**Current status:** Phase 0 ✅ Phase 1 ✅ Phase 2 ✅ Phase 3 ✅ Phase 4 ✅ Phase 5 ✅ Phase 6 next.
 
 
 
@@ -1359,7 +1359,7 @@ New concepts: JWT in .NET 8, role-based authorization, password hashing, ICurren
 
 
 
-### Phase 5: Multi-tenancy + Infrastructure Plumbing ✅ IN PROGRESS
+### Phase 5: Multi-tenancy + Infrastructure Plumbing ✅ COMPLETE
 
 **Goal:** Client orgs and contractor orgs are completely isolated. Redis wired with clean abstraction for future Dapr swap.
 
@@ -1370,9 +1370,9 @@ New concepts: EF Core Global Query Filters, TenantResolutionMiddleware, IDistrib
 - [x] TenantId on all entities + EF configs + migration (EHS-48)
 - [x] ClientContractor entity + EF config + migration (EHS-49)
 - [x] EF Core Global Query Filters (TenantId + IsDeleted) + TenantResolutionMiddleware (EHS-50)
-- [ ] Redis docker-compose + `IDistributedCache` (StackExchange.Redis) + `ICacheService` interface in Application + `DistributedCacheService : ICacheService` in Infrastructure + cache key conventions (EHS-51)
-- [ ] Elasticsearch + Kibana local Docker spike + SQL Full-Text comparison (EHS-52)
-- [ ] Phase 5 docs update (EHS-53)
+- [x] Redis docker-compose + `IDistributedCache` (StackExchange.Redis) + `ICacheService` interface in Application + `DistributedCacheService : ICacheService` in Infrastructure + cache key conventions (EHS-51)
+- [x] Elasticsearch + Kibana local Docker spike + SQL Full-Text comparison (EHS-52)
+- [x] Phase 5 docs update (EHS-53)
 
 **ICacheService note:** Handlers inject `ICacheService`, never `IDistributedCache` directly. At Phase 8, swapping `DistributedCacheService` → `DaprCacheService` is a single DI line change. See `architectural-gaps.md` Gap 17.
 
@@ -1852,4 +1852,4 @@ dotnet run --project src/EHSPlatform.API
 
 
 
-**Current status: Phase 0 ✅ Phase 1 ✅ Phase 2 ✅ Phase 3 ✅ Phase 4 ✅ Phase 5 next.**
+**Current status: Phase 0 ✅ Phase 1 ✅ Phase 2 ✅ Phase 3 ✅ Phase 4 ✅ Phase 5 ✅ Phase 6 next.**
