@@ -114,7 +114,7 @@
 | Ticket | Description | Status |
 |---|---|---|
 | EHS-56 | AuditLog entity + EF config + migration | ✅ Done |
-| EHS-57 | AuditInterceptor (SaveChangesInterceptor) — before/after JSON on all auditable entities | ⬜ To Do |
+| EHS-57 | AuditInterceptor (SaveChangesInterceptor) — before/after JSON on all auditable entities | ✅ Done |
 | EHS-58 | GET /api/incidents/{id}/audit-log + GET /api/correctiveactions/{id}/audit-log | ⬜ To Do |
 | EHS-59 | Phase 6 docs update | ⬜ To Do |
 
@@ -180,7 +180,7 @@ Open: `http://localhost:5147/swagger`
 | BCrypt.Net-Next | 4.0.3 | Infrastructure | Password hashing (salt embedded in hash — no PasswordSalt column) |
 | Microsoft.AspNetCore.Authentication.JwtBearer | 8.0.0 | Infrastructure | JWT Bearer middleware + token validation |
 | Moq | 4.20.72 | Application.Tests | Mocking interfaces in handler tests |
-| Microsoft.EntityFrameworkCore.InMemory | 8.0.0 | Application.Tests | In-memory DB for handler integration tests |
+| Microsoft.EntityFrameworkCore.InMemory | 8.0.0 | Application.Tests, Infrastructure.Tests | In-memory DB for handler integration tests and interceptor tests |
 
 > **Note:** `EHSPlatform.Infrastructure` uses `<FrameworkReference Include="Microsoft.AspNetCore.App" />` in its `.csproj` instead of a NuGet package for ASP.NET Core types (`IHttpContextAccessor`, etc.). This is the correct approach for class libraries targeting `net8.0` — no version number needed, picks up the app's framework version automatically.
 
@@ -850,6 +850,15 @@ InvalidStatusTransitionException thrown for any invalid jump.
 ### Record with { } expression (Phase 2)
 - Controllers use `command with { Id = id }` to merge route ID into the body command without manual mapping.
 - Example: `await _sender.Send(command with { Id = id }, cancellationToken);`
+
+### Phase 6 — Audit Logging
+
+- `SaveChangesInterceptor` hooks into `SavingChanges` — NOT `SavedChanges`. For Guid PKs (client-assigned), the entity ID is available before the DB write, so audit rows can be built and added to the ChangeTracker in `SavingChanges`. Both business rows and audit rows commit in the same transaction.
+- Enum serialization: use `p.Metadata.ClrType` (schema-first) to detect enums, then `Nullable.GetUnderlyingType()` to unwrap nullable enums. Do not use `p.CurrentValue is Enum e` — runtime pattern match produces correct results for null by coincidence, not by design.
+- `IsConcurrencyToken` check skips RowVersion on auditable entities (Incident, CorrectiveAction both have `.IsRowVersion()` configured). This keeps byte[] RowVersion columns out of audit JSON.
+- DI wiring: `AddDbContext<T>((sp, options) => ...)` factory overload is required to resolve a scoped interceptor from DI. The simple `AddDbContext(options => ...)` has no `IServiceProvider` access. Pin `Microsoft.EntityFrameworkCore.InMemory` to `8.0.0` when adding via CLI (`dotnet add package ... --version 8.0.0`) — without the version flag, `dotnet add package` resolves the latest (10.x), which targets net10 and fails on a net8 project.
+- Architecture gap: `IsAuthenticated` guard is necessary but not sufficient — if `TenantId == Guid.Empty` on an authenticated user, audit rows are silently written with empty TenantId. Tracked in technical-debt.md.
+- Test coverage: `Incident` Create, Update diff-only, and NotAuthenticated are covered. `CorrectiveAction` auditing is not yet tested — `AuditableTypes` includes it but no test verifies `EntityName = "CorrectiveAction"` correctness.
 
 ### Phase 5 — Multi-tenancy + Infrastructure Plumbing
 
