@@ -1536,6 +1536,34 @@ New concepts: Azure Blob Storage, composite compliance scoring, document review 
 
 
 
+### Phase 10.5: Risk Assessment
+
+**Goal:** Formal risk assessment lifecycle. Hazard identification, likelihood/severity scoring, control measures, approval workflows, RA library.
+
+New concepts: Risk matrix scoring, RA approval chains, hazard checklists, RA-to-CA linkage.
+
+> Full scope to be defined from EHASoft screenshots (Playwright MCP capture pending).
+> Build AFTER Phase 10 contractor compliance — RA links to contractor induction and "Ok to Work" gate.
+
+**Key entities (provisional):**
+- `RiskAssessment` — linked to Site/SiteArea, status machine (Draft → Under Review → Approved → Rejected), approver chain
+- `Hazard` — what could go wrong, likelihood, severity, risk score (likelihood × severity)
+- `ControlMeasure` — how the hazard is mitigated, residual risk score after controls
+- `RiskAssessmentApprover` — multi-step approval (Area Owner → Department Manager → Safety Officer)
+- `RiskAssessmentTemplate` / Library — re-usable RA templates per industry/activity type
+
+**RA → CA linkage:** A hazard with unacceptable residual risk auto-generates a CorrectiveAction. Same `CorrectiveAction` entity we already have — no new entity needed.
+
+**RA → Work Permit gate (Phase 13):** A valid approved RA is required before a Work Permit can be issued at that site area.
+
+**Good Catch / Safety Observations:** Lightweight mobile-first safety observation capture. Phase 7 MVP via Form Engine (`FormSubmission` linked to Site). If clients need approval workflows or CA auto-generation, build as a coded module here or Phase 13.
+
+**Done when:** Safety officer can create an RA with hazards and controls, submit for approval, generate CAs for unacceptable risks.
+
+---
+
+
+
 ### Phase 11: Dashboard, Reporting + Scheduled Reports
 
 **Goal:** Summary stats a safety manager would actually use. Automated scheduled reports. Job observability.
@@ -1624,6 +1652,29 @@ See ADR-015 for full Dapr building block decisions and decision sequence.
 **Goal:** Conduct formal compliance audits, findings, corrective actions.
 
 
+
+---
+
+
+
+### Phase 15.5: Non-Conformance (NC)
+
+**Goal:** ISO 9001 / ISO 45001 compliant non-conformance tracking. Separate from Incidents — NCs are compliance deviations, not safety events.
+
+**NC vs Incident distinction:**
+- **Incident** = an unplanned safety event (injury, near-miss, spill) — OSHA/RIDDOR domain
+- **Non-Conformance** = a failure to meet a standard or requirement (procedure not followed, document expired, equipment out of spec) — ISO 9001 / ISO 45001 clause 10.2 domain
+
+**Overlap:** Both generate Corrective Actions (same entity we already have). An audit finding (Phase 15) is essentially an NC. An NC can escalate to a formal Incident if safety is compromised.
+
+**Key entities:**
+- `NonConformance` — description, source (Audit Finding, Self-Identified, Customer Complaint, Regulatory), status machine (Open → Under Review → Corrective Action Raised → Closed)
+- Links to `CorrectiveAction` (already built), `AuditFinding` (Phase 15)
+- `ImmediateAction` — what was done right now vs the formal CA
+
+**Target clients:** ISO-certified organisations. Enterprise tier. Not needed for basic incident-only clients.
+
+**Done when:** ISO auditor can raise an NC, link it to an audit finding, generate a CA, and close the NC when the CA is verified.
 
 ---
 
@@ -1829,6 +1880,27 @@ dotnet run --project src/EHSPlatform.API
 ---
 
 
+
+## Future Products (Separate Repos, API-Connected)
+
+These are NOT phases of this platform. They are separate products that will call our API.
+
+### LMS — Learning Management System
+
+**Separate repo. Separate deployment. Calls our API via REST.**
+
+EHASoft spent 18 months building their LMS (Aug 2024 → Apr 2026 complete redesign). It is a full product:
+- Course authoring and management
+- Employee enrollment and progress tracking
+- Assessments and certificates
+- Induction completion feeds back to our "Ok to Work" score via API
+- Mobile app (separate)
+
+**Our API contract:** `GET /api/users/{id}/certifications` and `POST /api/users/{id}/certifications` will be the integration points. The LMS writes certification completions to our API; our platform reads them for "Ok to Work" evaluation.
+
+**When to start:** After Phase 17 AI integration is stable. Entirely separate engineering effort.
+
+---
 
 ## Session Resume Instructions (For Any AI Assistant)
 
