@@ -1,0 +1,1090 @@
+<!-- LAST_Q_ID: 60 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interview Prep — Parth Mashroo</title>
+  <style>
+    :root {
+      --bg: #f0ebe2;
+      --card: #ffffff;
+      --border: #e2ddd6;
+      --text: #1a1a2e;
+      --muted: #94a3b8;
+      --secondary: #64748b;
+      --active-bg: #1e293b;
+      --active-text: #ffffff;
+      --radius: 12px;
+      --radius-lg: 20px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    .wrap { max-width: 860px; margin: 0 auto; padding: 0 28px; }
+
+    /* HEADER */
+    .header { display: flex; align-items: center; justify-content: space-between; padding: 28px 28px 0; max-width: 860px; margin: 0 auto; }
+    .header-title { font-size: 22px; font-weight: 700; }
+    .header-right { display: flex; align-items: center; gap: 14px; }
+    .card-counter { font-size: 14px; color: var(--secondary); font-weight: 500; }
+    .view-btn { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text); transition: all 0.15s; }
+    .view-btn:hover { background: #f5f0e8; }
+    .view-btn.active { background: var(--active-bg); color: var(--active-text); border-color: var(--active-bg); }
+
+    /* SCORES */
+    .scores { display: flex; gap: 12px; padding: 20px 28px; max-width: 860px; margin: 0 auto; }
+    .score-box { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 12px; text-align: center; }
+    .score-num { font-size: 30px; font-weight: 700; line-height: 1; }
+    .score-num.g { color: #16a34a; }
+    .score-num.b { color: #2563eb; }
+    .score-num.r { color: #dc2626; }
+    .score-lbl { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* FILTERS */
+    .filters { padding: 0 28px 16px; max-width: 860px; margin: 0 auto; }
+    .filter-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+    .fbtn {
+      padding: 7px 16px; border-radius: 999px; border: 1px solid var(--border);
+      background: var(--card); font-size: 13px; font-weight: 500; cursor: pointer;
+      color: var(--text); transition: all 0.15s; white-space: nowrap;
+    }
+    .fbtn:hover { border-color: #94a3b8; }
+    .fbtn.on { background: var(--active-bg); color: white; border-color: var(--active-bg); }
+    .fbtn.l-basic.on { background: #16a34a; border-color: #16a34a; }
+    .fbtn.l-medium.on { background: #d97706; border-color: #d97706; }
+    .fbtn.l-advanced.on { background: #dc2626; border-color: #dc2626; }
+
+    /* CARD VIEW */
+    .card-view { padding: 0 28px 16px; max-width: 860px; margin: 0 auto; }
+    .q-card {
+      background: var(--card); border-radius: var(--radius-lg);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10); padding: 40px;
+      min-height: 280px; display: flex; flex-direction: column;
+    }
+    .q-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 14px; }
+    .q-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+    .tag { padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .t-about    { background: #ede9fe; color: #6d28d9; }
+    .t-dotnet   { background: #f3e8ff; color: #7c3aed; }
+    .t-sql      { background: #ccfbf1; color: #0f766e; }
+    .t-system   { background: #fef3c7; color: #92400e; }
+    .t-behaviour{ background: #ffe4e6; color: #be123c; }
+    .t-remote   { background: #e0f2fe; color: #0369a1; }
+    .t-basic    { background: #dcfce7; color: #166534; }
+    .t-medium   { background: #fef9c3; color: #854d0e; }
+    .t-advanced { background: #fee2e2; color: #991b1b; }
+    .t-resume   { background: #dbeafe; color: #1e40af; }
+    .t-ehs      { background: #d1fae5; color: #065f46; }
+
+    .q-text { font-size: 21px; font-weight: 600; line-height: 1.55; flex: 1; margin-bottom: 28px; }
+
+    .reveal-area {
+      text-align: center; padding-top: 20px; border-top: 1px solid var(--border);
+      color: var(--muted); font-size: 14px; cursor: pointer;
+      transition: color 0.15s;
+    }
+    .reveal-area:hover { color: var(--secondary); }
+
+    /* ANSWER */
+    .answer { border-top: 1px solid var(--border); padding-top: 24px; margin-top: 4px; }
+    .a-block { margin-bottom: 16px; }
+    .a-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #2563eb; margin-bottom: 6px; }
+    .a-text { font-size: 14px; color: #374151; line-height: 1.7; }
+    .a-terms { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+    .a-term { background: #f1f5f9; color: #1e40af; padding: 3px 10px; border-radius: 6px; font-size: 12px; font-family: monospace; }
+    .follow-up { background: #fffbeb; border-left: 3px solid #f59e0b; padding: 12px 16px; border-radius: 0 8px 8px 0; margin-top: 16px; }
+    .fu-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #92400e; margin-bottom: 4px; }
+    .fu-text { font-size: 13px; color: #78350f; line-height: 1.5; }
+    .fu-link { display: inline-block; margin-top: 8px; font-size: 12px; font-weight: 600; color: #2563eb; cursor: pointer; text-decoration: underline; }
+    .fu-link:hover { color: #1d4ed8; }
+
+    /* SCORE BUTTONS */
+    .score-btns { display: flex; gap: 10px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); }
+    .sbtn { flex: 1; padding: 12px; border-radius: 10px; border: 2px solid; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s; background: white; }
+    .sbtn-n { border-color: #16a34a; color: #16a34a; }
+    .sbtn-n:hover { background: #16a34a; color: white; }
+    .sbtn-o { border-color: #2563eb; color: #2563eb; }
+    .sbtn-o:hover { background: #2563eb; color: white; }
+    .sbtn-w { border-color: #dc2626; color: #dc2626; }
+    .sbtn-w:hover { background: #dc2626; color: white; }
+
+    /* NAVIGATION */
+    .nav { display: flex; align-items: center; justify-content: space-between; padding: 8px 28px 36px; max-width: 860px; margin: 0 auto; }
+    .nav-btn { padding: 11px 24px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); font-size: 14px; font-weight: 500; cursor: pointer; color: var(--text); transition: all 0.15s; }
+    .nav-btn:hover:not(:disabled) { background: #f5f0e8; }
+    .nav-btn.primary { background: var(--active-bg); color: white; border-color: var(--active-bg); }
+    .nav-btn.primary:hover:not(:disabled) { background: #334155; }
+    .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .nav-pos { font-size: 14px; color: var(--secondary); font-weight: 500; }
+
+    /* EMPTY STATE */
+    .empty { text-align: center; padding: 80px 20px; color: var(--muted); }
+    .empty-icon { font-size: 36px; margin-bottom: 12px; }
+    .empty-text { font-size: 15px; }
+
+    /* LIST VIEW */
+    .list-view { padding: 0 28px 48px; max-width: 860px; margin: 0 auto; }
+    .list-count { font-size: 13px; color: var(--secondary); margin-bottom: 14px; font-weight: 500; }
+    .li { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 8px; overflow: hidden; }
+    .li-head { padding: 16px 20px; cursor: pointer; display: flex; align-items: flex-start; gap: 12px; }
+    .li-head:hover { background: #faf9f7; }
+    .li-num { font-size: 12px; color: var(--muted); min-width: 26px; font-weight: 700; padding-top: 2px; }
+    .li-body { flex: 1; }
+    .li-q { font-size: 14px; font-weight: 600; margin-bottom: 8px; line-height: 1.4; }
+    .li-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+    .li-chev { color: var(--muted); font-size: 11px; padding-top: 2px; transition: transform 0.2s; }
+    .li.open .li-chev { transform: rotate(90deg); }
+    .li-ans { display: none; padding: 0 20px 20px 58px; }
+    .li.open .li-ans { display: block; border-top: 1px solid var(--border); padding-top: 16px; }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-title">Interview Prep</div>
+  <div class="header-right">
+    <a href="ehs-deep.html" style="font-size:13px;font-weight:600;color:#065f46;background:#d1fae5;padding:7px 14px;border-radius:8px;text-decoration:none;border:1px solid #a7f3d0;">🏗 EHS Deep Dive</a>
+    <span class="card-counter" id="counter">Card 1 of 50</span>
+    <button class="view-btn" id="viewToggle" onclick="toggleView()">List View</button>
+  </div>
+</div>
+
+<div class="scores">
+  <div class="score-box"><div class="score-num g" id="sNailed">0</div><div class="score-lbl">Nailed it</div></div>
+  <div class="score-box"><div class="score-num b" id="sOkay">0</div><div class="score-lbl">Okay</div></div>
+  <div class="score-box"><div class="score-num r" id="sWork">0</div><div class="score-lbl">Need work</div></div>
+</div>
+
+<div class="filters">
+  <div class="filter-row" id="catFilters">
+    <button class="fbtn on" data-cat="all" onclick="setFilter('cat','all',this)">All</button>
+    <button class="fbtn" data-cat="about" onclick="setFilter('cat','about',this)">About You</button>
+    <button class="fbtn" data-cat="dotnet" onclick="setFilter('cat','dotnet',this)">.NET &amp; C#</button>
+    <button class="fbtn" data-cat="sql" onclick="setFilter('cat','sql',this)">SQL &amp; Databases</button>
+    <button class="fbtn" data-cat="system" onclick="setFilter('cat','system',this)">System Design</button>
+    <button class="fbtn" data-cat="behaviour" onclick="setFilter('cat','behaviour',this)">Behavioural</button>
+    <button class="fbtn" data-cat="remote" onclick="setFilter('cat','remote',this)">Remote Work</button>
+    <button class="fbtn" data-cat="ehs" onclick="setFilter('cat','ehs',this)">EHS Project</button>
+  </div>
+  <div class="filter-row" id="levelFilters">
+    <button class="fbtn on" data-lvl="all" onclick="setFilter('lvl','all',this)">All Levels</button>
+    <button class="fbtn l-basic" data-lvl="basic" onclick="setFilter('lvl','basic',this)">Basic</button>
+    <button class="fbtn l-medium" data-lvl="medium" onclick="setFilter('lvl','medium',this)">Medium</button>
+    <button class="fbtn l-advanced" data-lvl="advanced" onclick="setFilter('lvl','advanced',this)">Advanced</button>
+  </div>
+</div>
+
+<div class="card-view" id="cardView">
+  <div class="q-card" id="qCard"><!-- rendered by JS --></div>
+</div>
+
+<div class="nav hidden" id="navBar">
+  <button class="nav-btn" id="btnPrev" onclick="go(-1)">← Prev</button>
+  <span class="nav-pos" id="navPos">1 / 50</span>
+  <button class="nav-btn primary" id="btnNext" onclick="go(1)">Next →</button>
+</div>
+
+<div class="list-view hidden" id="listView">
+  <div class="list-count" id="listCount"></div>
+  <div id="listItems"></div>
+</div>
+
+<script>
+// ─── DATA ────────────────────────────────────────────────────────────────────
+
+const Q = [
+  {
+    id: 1, cat: 'about', level: 'basic', resume: false,
+    q: 'Tell me about yourself.',
+    answer: [
+      { t: 'text', l: '🎙 Say this (part 1 — background)', v: "\"I'm Parth. I've been building .NET backend systems for about 11 years. I started out building MVC applications for clients, then moved through progressively more complex systems — VMS platforms, contingent workforce tools, and for the last few years I've been on the Billing platform at Duck Creek Technologies, which is insurance SaaS used by global carriers. In that role I own production issues end-to-end — root cause, fix, regression, release. I've resolved Sev-1 deadlocks that were impacting carriers directly, led an observability overhaul across 9 Windows Services that previously had zero monitoring coverage, and redesigned API endpoints to eliminate 100K-row session pulls.\"" },
+      { t: 'text', l: '🎙 Say this (part 2 — why you\'re here)', v: "\"What's brought me here is that my current role has become almost entirely reactive — bug fixes and production support on legacy code. I want to move into design ownership. So I've been building an EHS Safety platform from scratch on the side — Clean Architecture, CQRS, multi-tenancy in .NET 8 — specifically to close that gap. I'm looking for a senior remote role where I own a domain end-to-end, not just implement tickets someone else designed.\"" },
+      { t: 'text', l: 'Coaching note', v: "Keep it to 60–90 seconds. Hit: years of experience → companies and what they were → concrete wins → why you're here. Don't recite your CV chronologically. Two sentences on past, two sentences on why you're in this room." },
+      { t: 'fu', v: 'What are you looking for in your next role specifically?', fuLink: 2 }
+    ]
+  },
+  {
+    id: 2, cat: 'about', level: 'basic', resume: false,
+    q: 'Why are you looking for a new opportunity?',
+    answer: [
+      { t: 'text', l: '🎙 Say this (the honest answer)', v: "\"Honestly — my current role has become almost entirely reactive. Production defects, supporting existing features, bug fixes on code written years before I joined. I've grown in specific areas — I know how to diagnose complex SQL Server issues, instrument .NET services, own production incidents. But I'm not getting any architecture involvement. Every design decision is made before I see the ticket. I want a role where I'm contributing to how systems are built, not just maintaining what already exists.\"" },
+      { t: 'text', l: '🎙 Say this (what you\'re moving toward)', v: "\"What I'm looking for is a senior role on a modern .NET stack where I own a domain end-to-end — design decisions, implementation, production operations. A team with real engineering standards I can learn from, not just a backlog to execute. And remote is non-negotiable for me at this point — I've been fully remote for over a year and I work better that way.\"" },
+      { t: 'text', l: 'Coaching note', v: "Don't trash your current company. The framing is 'I've grown what I can grow here, and I want the next level of challenge' — not 'my company is bad.' Be specific about what you want next. Vague answers ('I want growth') are red flags." },
+      { t: 'fu', v: 'What does a good role look like to you day-to-day?', fuLink: 27 }
+    ]
+  },
+  {
+    id: 3, cat: 'about', level: 'basic', resume: false,
+    q: 'Where do you see yourself in 3–5 years?',
+    answer: [
+      { t: 'text', l: '🎙 Say this (the goal)', v: "\"I'm targeting Principal Engineer or Architect level — someone who designs systems, makes technology decisions, sets technical direction. Not management — I want to stay technical. The way I think about it: there's a difference between being handed tickets and being the person who figures out what the tickets should be. I want to be that second person.\"" },
+      { t: 'text', l: '🎙 Say this (how you\'re getting there)', v: "\"The gap I'm actively closing is that I've never owned a SaaS system from scratch — the full scope: architecture decisions, multi-tenancy model, cloud deployment, auth, background jobs. So I'm building a Health and Safety platform on the side specifically for that reason. My goal is that in 3 years I can point to a real production system I designed and operated end-to-end, not just 14 years of executing other people's designs.\"" },
+      { t: 'text', l: 'Coaching note', v: "This question is checking ambition + self-awareness. Show you have a clear direction AND that you know the gap. The side project is your evidence — mention it. Don't say 'in a management role' unless you mean it." },
+      { t: 'fu', v: 'What is the biggest skill or experience gap you are actively closing right now?', fuLink: 28 }
+    ]
+  },
+  {
+    id: 4, cat: 'behaviour', level: 'medium', resume: true, resumeRef: 'R01',
+    q: 'Tell me about a time you took ownership beyond what was assigned to you.',
+    answer: [
+      { t: 'text', l: 'Situation', v: "At Duck Creek I was looking at health check failures across the Billing service fleet — 9 Windows Services running background batch jobs. I expected maybe 1 or 2 gaps. It was 7 out of 9 with zero monitoring coverage — no health checks, no metrics, no visibility into whether they were running correctly." },
+      { t: 'text', l: 'Action', v: "Nobody asked me to fix it. I put together a plan, got informal sign-off from the team lead, and led the instrumentation effort — health checks on all 9 services, batch metrics migrated to .NET 8 OpenTelemetry, Grafana dashboards verified. I also wrote a 1,500-line architectural observability guide documenting the pattern, the decisions, and how to extend it for new services." },
+      { t: 'text', l: 'Result', v: "The guide was adopted by the team as the standard. The org went from zero visibility to full coverage across every background service. I became the go-to person for observability questions on the team." },
+      { t: 'terms', l: 'Key Terms', v: ['OpenTelemetry', 'IHealthCheck', 'Grafana', '.NET 8 metrics API', 'Windows Services'] },
+      { t: 'fu', v: 'How did you get buy-in to spend time on this when it wasn\'t assigned work?', fuLink: 29 }
+    ]
+  },
+  {
+    id: 5, cat: 'behaviour', level: 'medium', resume: true, resumeRef: 'R02',
+    q: 'Tell me about a production issue you resolved under pressure.',
+    answer: [
+      { t: 'text', l: 'Situation', v: "Duck Creek Billing — a high-traffic stored procedure handling receivable posting started causing carrier-reported blocking. Insurance carriers reporting it, production impacted, needed a fix fast." },
+      { t: 'text', l: 'Action', v: "Root-cause analysis using SQL Server deadlock graphs and blocking chain traces. Found the SP was holding row locks for too long during intermediate calculations — it was reading, computing, and writing back in a way that caused circular lock dependencies under concurrent load. Refactored to use temp tables to stage intermediate results, then restructured the lock acquisition order to eliminate the circular dependency." },
+      { t: 'text', l: 'Result', v: "Eliminated the blocking entirely. The fix was paired with regression tests covering the receivable posting path and shipped in the next monthly release." },
+      { t: 'terms', l: 'Key Terms', v: ['deadlock graph', 'blocking chain', 'lock acquisition order', 'temp tables', 'SQL Server trace'] },
+      { t: 'fu', v: 'How do you distinguish a deadlock from a blocking scenario — and does the fix differ?', fuLink: 15 }
+    ]
+  },
+  {
+    id: 6, cat: 'behaviour', level: 'medium', resume: true, resumeRef: 'R06',
+    q: 'Tell me about a reusable component or framework you built that had broad impact.',
+    answer: [
+      { t: 'text', l: 'Situation', v: "At Magnit Global we needed to integrate 5 third-party HR APIs — Eightfold, DEI Candidate, Brainville, ICIMS, Engage. Each had different auth, different request shapes, different error formats. Every integration was being built ad-hoc with no shared structure and no audit trail." },
+      { t: 'text', l: 'Action', v: "Built a reusable API integration framework — a shared HttpClient abstraction using DelegatingHandler, standardised error handling, and a logging layer that captured every outbound request and inbound response automatically. Every integration used the same wrapper — no per-integration boilerplate, full audit trail by default." },
+      { t: 'text', l: 'Result', v: "5 integrations built using the same pattern. Full audit trail on all external API traffic. New integrations could be onboarded by following the pattern — no copy-paste logging code." },
+      { t: 'terms', l: 'Key Terms', v: ['DelegatingHandler', 'HttpClient', 'Adapter pattern', 'audit logging', 'IHttpClientFactory'] },
+      { t: 'fu', v: 'How did you handle authentication differences between the 5 APIs — did the framework abstract that too?', fuLink: 30 }
+    ]
+  },
+  {
+    id: 7, cat: 'dotnet', level: 'basic', resume: false,
+    q: 'What is the difference between .NET Framework and .NET 8?',
+    answer: [
+      { t: 'text', l: 'Core Difference', v: ".NET Framework is Windows-only, ships with the OS, ended at version 4.8 — no new features. .NET Core / .NET 5+ (now just called .NET) is cross-platform (Windows, Linux, macOS), open source, ships independently of the OS, and gets new features every November. .NET 8 is the current LTS release (3-year support window)." },
+      { t: 'text', l: 'Why it matters', v: "For any new system: .NET 8. It's faster, has better tooling, Minimal API support, better async performance, and gets ongoing investment. .NET Framework is maintenance mode — you only stay on it if you have a legacy constraint, like WCF-heavy systems or old COM dependencies." },
+      { t: 'text', l: 'Where I stand', v: "My day job runs .NET Framework (company constraint). Every new system I build — including the EHS platform — is .NET 8." },
+      { t: 'fu', v: 'What specific .NET 8 features have you used that weren\'t available in Framework?', fuLink: 31 }
+    ]
+  },
+  {
+    id: 8, cat: 'dotnet', level: 'basic', resume: false,
+    q: 'Explain dependency injection and why it matters in .NET.',
+    answer: [
+      { t: 'text', l: 'What it is', v: "DI is a design pattern where a class declares what it needs (its dependencies via constructor parameters) and the DI container provides them. You register services in Program.cs and the runtime injects them wherever they're requested." },
+      { t: 'text', l: 'The three lifetimes', v: "Transient — new instance every injection. Scoped — one instance per HTTP request (most common for services). Singleton — one instance for the application lifetime (caches, config readers)." },
+      { t: 'text', l: 'Why it matters', v: "Decoupling: your class depends on an interface (IMyService), not a concrete type. Testability: inject a mock in tests. Lifetime management: the container manages object creation and disposal — you don't." },
+      { t: 'terms', l: 'Key Terms', v: ['IServiceCollection', 'AddScoped', 'AddTransient', 'AddSingleton', 'constructor injection'] },
+      { t: 'fu', v: 'What is a captive dependency and why is it dangerous?', fuLink: 32 }
+    ]
+  },
+  {
+    id: 9, cat: 'dotnet', level: 'medium', resume: false,
+    q: 'What is async/await and how does it work under the hood in C#?',
+    answer: [
+      { t: 'text', l: 'What it is', v: "async/await is syntactic sugar over the Task Parallel Library (TPL). When you mark a method async and await a Task, you're telling the compiler to rewrite that method as a state machine." },
+      { t: 'text', l: 'How it works', v: "The method runs synchronously until the first await that isn't already complete. At that point it returns a Task to the caller — the thread is released back to the pool. When the awaited operation completes, the runtime picks up a thread (from the thread pool, or the original sync context in UI apps) and resumes the state machine from where it paused." },
+      { t: 'text', l: 'Key point', v: "async/await does NOT create new threads. It releases threads during I/O waits. This is what allows a web server to handle thousands of concurrent requests with a small thread pool — threads aren't blocked waiting for database queries." },
+      { t: 'terms', l: 'Key Terms', v: ['state machine', 'Task', 'thread pool', 'SynchronizationContext', 'ConfigureAwait'] },
+      { t: 'fu', v: 'What does ConfigureAwait(false) do and when should you use it?', fuLink: 33 }
+    ]
+  },
+  {
+    id: 10, cat: 'dotnet', level: 'medium', resume: false,
+    q: 'What is the difference between IEnumerable, IQueryable, and ICollection?',
+    answer: [
+      { t: 'text', l: 'IEnumerable<T>', v: "Forward-only in-memory iteration. Once data is loaded into memory, LINQ operations (Where, Select) execute in-process on that data. Lowest abstraction." },
+      { t: 'text', l: 'IQueryable<T>', v: "Builds an expression tree that the provider translates (EF Core → SQL). The WHERE clause happens at the database, not in your app. Critical: if you return IQueryable from a repo method, callers can compose queries and the SQL is built up lazily. If you ToList() too early, you pull everything into memory first." },
+      { t: 'text', l: 'ICollection<T>', v: "Extends IEnumerable with Count, Add, Remove, Contains. Use for in-memory collections you need to modify or count without enumerating." },
+      { t: 'text', l: 'The common mistake', v: "Calling .ToList() before applying a .Where() filter — EF fetches all rows, then C# filters in memory. For large tables this is a serious performance bug." },
+      { t: 'fu', v: 'When would you return IQueryable from a repository method vs always materialising with ToList()?', fuLink: 34 }
+    ]
+  },
+  {
+    id: 11, cat: 'dotnet', level: 'advanced', resume: true, resumeRef: 'EHS Platform',
+    q: 'Explain Clean Architecture — what are the layers and what are the rules between them?',
+    answer: [
+      { t: 'text', l: 'The Layers (inside → out)', v: "Domain → Application → Infrastructure → API. Domain has entities, value objects, domain events, business rules. No framework dependencies. Application has use cases (Commands/Queries), interfaces it needs (IRepository, ICacheService), DTOs. Infrastructure implements the interfaces (EF Core repos, Redis cache, email). API wires everything with DI, handles HTTP." },
+      { t: 'text', l: 'The Rule', v: "Dependencies point inward only. Infrastructure can depend on Application. Application can depend on Domain. Domain depends on nothing. API depends on everything but contains no logic. This means business logic is framework-agnostic and testable in isolation." },
+      { t: 'text', l: 'In practice — EHS Platform', v: "ICacheService is defined in Application. DistributedCacheService (Redis) is in Infrastructure. If I want to swap Redis for Dapr State at Phase 8, it's one DI registration line — zero changes to Application or Domain." },
+      { t: 'terms', l: 'Key Terms', v: ['dependency rule', 'interface inversion', 'domain model', 'CQRS', 'MediatR'] },
+      { t: 'fu', v: 'How do you handle cross-cutting concerns like validation and logging in a CQRS pipeline?', fuLink: 12 }
+    ]
+  },
+  {
+    id: 12, cat: 'dotnet', level: 'advanced', resume: true, resumeRef: 'EHS Platform',
+    q: 'What is CQRS? Why would you choose it over a traditional layered approach?',
+    answer: [
+      { t: 'text', l: 'What it is', v: "CQRS — Command Query Responsibility Segregation. Separates write operations (Commands) from read operations (Queries). Commands mutate state, return nothing or a confirmation. Queries return data, never mutate state." },
+      { t: 'text', l: 'With MediatR', v: "Each Command is a class. Each Query is a class. Each has its own Handler. A Validator sits alongside. The controller sends a Command/Query to MediatR and gets a result — the controller knows nothing about how it's handled. One folder per use case: command file, handler file, validator file." },
+      { t: 'text', l: 'When to use it', v: "When your read and write models differ significantly. When you have meaningful business logic in write paths. When you want handlers to stay small and focused. The honest trade-off: it's more code than a traditional Service class. For pure CRUD with no domain logic, it can be over-engineering." },
+      { t: 'terms', l: 'Key Terms', v: ['IRequest', 'IRequestHandler', 'MediatR', 'FluentValidation', 'pipeline behaviour'] },
+      { t: 'fu', v: 'Clean Architecture — what are the layers and what is the dependency rule?', fuLink: 11 }
+    ]
+  },
+  {
+    id: 13, cat: 'sql', level: 'basic', resume: false,
+    q: 'What is the difference between a clustered and non-clustered index?',
+    answer: [
+      { t: 'text', l: 'Clustered Index', v: "Determines the physical order of rows in the table — the data IS the index. Only one per table (usually the primary key). A clustered index seek goes straight to the data — fastest read path." },
+      { t: 'text', l: 'Non-Clustered Index', v: "A separate B-tree structure containing the indexed column(s) plus a row pointer. Many per table. When the index doesn't cover all needed columns, SQL Server does a key lookup (bookmark lookup) to fetch the full row — this can be expensive on large datasets." },
+      { t: 'text', l: 'Covering Index', v: "A non-clustered index that includes all columns a query needs via INCLUDE() — eliminates the key lookup. For high-frequency read queries, a covering index can give near-clustered performance." },
+      { t: 'terms', l: 'Key Terms', v: ['B-tree', 'key lookup', 'covering index', 'INCLUDE', 'seek vs scan'] },
+      { t: 'fu', v: 'When would you choose to add a covering index rather than modifying the clustered index?', fuLink: 35 }
+    ]
+  },
+  {
+    id: 14, cat: 'sql', level: 'medium', resume: false,
+    q: 'Walk me through your approach to diagnosing a slow-running query.',
+    answer: [
+      { t: 'text', l: 'Step 1 — Measure first', v: "SET STATISTICS IO ON and SET STATISTICS TIME ON. Look at logical reads — that tells you how much data is being touched. Check the actual vs estimated execution plan in SSMS." },
+      { t: 'text', l: 'Step 2 — Read the execution plan', v: "Find the most expensive operator (thickest arrow = most rows). Look for: Table Scans on large tables (missing index), Key Lookups (missing INCLUDE columns), large row estimates diverging from actuals (stale statistics), Nested Loops on large sets." },
+      { t: 'text', l: 'Step 3 — Common fixes', v: "Missing index → add targeted index. Key lookup → add INCLUDE columns. Stale stats → UPDATE STATISTICS. Parameter sniffing → OPTION (RECOMPILE) or OPTIMIZE FOR. N+1 in the app → rewrite as JOIN or IN query." },
+      { t: 'terms', l: 'Key Terms', v: ['execution plan', 'logical reads', 'parameter sniffing', 'statistics', 'index seek vs scan'] },
+      { t: 'fu', v: 'How do you handle parameter sniffing — what are the trade-offs of each approach?', fuLink: 36 }
+    ]
+  },
+  {
+    id: 15, cat: 'sql', level: 'medium', resume: false,
+    q: 'What is the difference between a deadlock and a blocking scenario in SQL Server?',
+    answer: [
+      { t: 'text', l: 'Blocking', v: "Process A holds a lock. Process B wants that lock and waits. B is blocked — but eventually A commits/rolls back and B proceeds. This is normal, expected behaviour. It only becomes a problem when waits are frequent or very long." },
+      { t: 'text', l: 'Deadlock', v: "Circular dependency. Process A holds lock on resource 1, wants resource 2. Process B holds lock on resource 2, wants resource 1. Neither can proceed. SQL Server's deadlock monitor detects this (default every 5 seconds) and kills the cheaper process — the deadlock victim gets error 1205." },
+      { t: 'text', l: 'Fix differs', v: "Blocking: shorter transactions, better indexes (lock fewer rows), READ COMMITTED SNAPSHOT isolation. Deadlock: consistent lock acquisition order across all transactions, use temp tables to stage work (avoid holding locks during long computation)." },
+      { t: 'terms', l: 'Key Terms', v: ['deadlock victim', 'lock acquisition order', 'RCSI', 'lock escalation', 'deadlock graph'] },
+      { t: 'fu', v: 'How do you capture and analyse a deadlock in SQL Server production — what tooling do you use?', fuLink: 37 }
+    ]
+  },
+  {
+    id: 16, cat: 'sql', level: 'advanced', resume: true, resumeRef: 'EHS Platform',
+    q: 'What is optimistic concurrency? How is it implemented in EF Core?',
+    answer: [
+      { t: 'text', l: 'What it is', v: "Optimistic concurrency assumes conflicts are rare — don't lock rows on read. Instead, when you write, check if the row changed since you read it. If it did, reject the update (conflict detected). Contrast with pessimistic concurrency: lock the row on read so nobody else can update it until you release." },
+      { t: 'text', l: 'EF Core implementation — RowVersion', v: "Add a RowVersion (SQL Server rowversion type — auto-incremented binary stamp) to the entity. Mark it with [Timestamp] or IsRowVersion(). When EF generates an UPDATE, it appends WHERE RowVersion = @original to the SQL. If another transaction updated the row, the version changed — zero rows updated — EF throws DbUpdateConcurrencyException." },
+      { t: 'text', l: 'API contract', v: "In the EHS Platform: return ETag header (Base64 of RowVersion) on GET. Consumer sends If-Match header on PUT/PATCH. If the versions don't match → 412 Precondition Failed. This makes the optimistic concurrency model visible at the HTTP layer, not just the database layer." },
+      { t: 'terms', l: 'Key Terms', v: ['RowVersion', 'DbUpdateConcurrencyException', 'ETag', 'If-Match', '412', 'rowversion'] },
+      { t: 'fu', v: 'How does optimistic concurrency interact with retry logic — what do you retry and what do you surface to the user?', fuLink: 38 }
+    ]
+  },
+  {
+    id: 17, cat: 'system', level: 'basic', resume: false,
+    q: 'What is the difference between horizontal and vertical scaling?',
+    answer: [
+      { t: 'text', l: 'Vertical (Scale Up)', v: "Add more CPU/RAM to the same server. Simple — no code changes required. But has a ceiling (there is no infinitely powerful server), is expensive at the high end, and is a single point of failure." },
+      { t: 'text', l: 'Horizontal (Scale Out)', v: "Add more instances behind a load balancer. More complex — your app must be stateless (no in-memory session), caching must be shared (Redis), and you need distributed coordination for things like scheduled jobs. But it scales to arbitrary load and tolerates instance failures." },
+      { t: 'text', l: 'Design implication', v: "If you scale horizontally, session state and in-memory caches cannot live in the process — they must be external (Redis, SQL). This is why the ICacheService abstraction matters — it forces cache access through Redis, not local memory." },
+      { t: 'terms', l: 'Key Terms', v: ['stateless', 'load balancer', 'shared cache', 'sticky sessions', 'scale-out'] },
+      { t: 'fu', v: 'What makes an application stateless — and what are the common sources of accidental state?', fuLink: 39 }
+    ]
+  },
+  {
+    id: 18, cat: 'system', level: 'medium', resume: false,
+    q: 'Explain the difference between a monolith, SOA, and microservices.',
+    answer: [
+      { t: 'text', l: 'Monolith', v: "Everything in one deployable unit. Simpler to develop, test, debug, and deploy. The right choice for most new products and small teams. The bad rep comes from undisciplined monoliths — no internal module boundaries, everything coupled to everything." },
+      { t: 'text', l: 'SOA (Service-Oriented Architecture)', v: "Services communicating over a shared ESB (Enterprise Service Bus), typically SOAP/XML. Heavy middleware layer. Became a 2000s enterprise standard and mostly fell out of favour — the ESB became a massive coupling point." },
+      { t: 'text', l: 'Microservices', v: "Independently deployable services, each owning its own data store, communicating via APIs or events. Enables independent scaling, deployment, and team autonomy. The cost: distributed tracing, network latency, eventual consistency, service discovery, and much higher operational complexity." },
+      { t: 'text', l: 'Honest take', v: "Microservices are not automatically better than a monolith. Most teams extract too early. Start with a well-structured modular monolith, extract services only when a specific scaling or team autonomy problem justifies the complexity." },
+      { t: 'fu', v: 'When is the right time to split a monolith — what signals tell you it\'s time?', fuLink: 40 }
+    ]
+  },
+  {
+    id: 19, cat: 'system', level: 'medium', resume: true, resumeRef: 'R01',
+    q: 'How do you approach observability in a system — what is the difference between metrics, logs, and traces?',
+    answer: [
+      { t: 'text', l: 'Logs', v: "Individual timestamped events — 'Request failed with 500 at 14:32:01.' Good for debugging a specific failure after you know something went wrong. Problem: a log line has no context about the broader operation or what came before it." },
+      { t: 'text', l: 'Traces', v: "End-to-end journeys across service or component boundaries. A TraceId flows through every hop. Spans are individual operations within that trace. Lets you see the full path of a request — where time was spent, which component failed. Essential for distributed systems." },
+      { t: 'text', l: 'Metrics', v: "Aggregated numeric measurements over time — request count, error rate, p99 latency, queue depth. Good for alerting ('error rate > 2% for 5 minutes') and dashboards. The signal that tells you something is wrong." },
+      { t: 'text', l: 'In practice', v: "Use metrics to know something is wrong. Use traces to find where. Use logs to see what exactly happened. In OpenTelemetry, all three are first-class — instrument once, export to any backend (Grafana, Jaeger, Prometheus)." },
+      { t: 'terms', l: 'Key Terms', v: ['OpenTelemetry', 'TraceId', 'SpanId', 'cardinality', 'structured logging', 'Serilog'] },
+      { t: 'fu', v: 'How do you correlate a log entry to a specific trace — what does that plumbing look like in .NET?', fuLink: 41 }
+    ]
+  },
+  {
+    id: 20, cat: 'system', level: 'advanced', resume: true, resumeRef: 'EHS Platform',
+    q: 'How would you design a multi-tenant SaaS application?',
+    answer: [
+      { t: 'text', l: 'Three strategies', v: "1. Separate database per tenant — strongest isolation, most expensive. Good for high-compliance regulated customers. 2. Shared database, separate schemas — moderate isolation, complex migrations. 3. Shared database, shared schema with TenantId discriminator — most cost-effective, scales to many tenants. Mid-market SaaS default." },
+      { t: 'text', l: 'EHS Platform approach (Strategy 3)', v: "TenantId on every entity. EF Core Global Query Filters automatically append WHERE TenantId = @current to every query — developers physically cannot forget it. TenantId is resolved from the JWT claim (tid) in TenantResolutionMiddleware before any handler runs." },
+      { t: 'text', l: 'The risk and the mitigation', v: "A misconfigured Global Query Filter leaks data across tenants — catastrophic. Mitigation: NetArchTest to enforce the filter is always applied, integration tests that assert cross-tenant isolation, disable filter only in explicit admin contexts." },
+      { t: 'terms', l: 'Key Terms', v: ['Global Query Filter', 'TenantId', 'row-level isolation', 'JWT claims', 'HasQueryFilter'] },
+      { t: 'fu', v: 'How do you handle tenant migrations when you have hundreds of tenants in one database?', fuLink: 42 }
+    ]
+  },
+  {
+    id: 21, cat: 'system', level: 'advanced', resume: true, resumeRef: 'R05',
+    q: 'How do you approach migrating a scheduled job from legacy infrastructure to the cloud?',
+    answer: [
+      { t: 'text', l: 'What drove it at Magnit', v: "Scheduled jobs on legacy Windows infrastructure — fragile (server-tied), hard to scale, difficult to monitor. Azure Functions with Timer triggers was the right target: serverless, independently deployable, native Azure monitoring." },
+      { t: 'text', l: 'Migration approach', v: "Inventory all jobs: schedule, dependencies, side effects, failure behaviour. For each job: extract the logic into a class that doesn't depend on the hosting model. Wrap in an Azure Function with TimerTrigger. Test trigger firing, idempotency (what happens if it fires twice?), failure handling and retry policy." },
+      { t: 'text', l: 'Things to verify', v: "Idempotency — can the job run twice safely? Concurrency — can two instances run simultaneously? Monitoring — Application Insights or OpenTelemetry wired up? Alerting on failure?" },
+      { t: 'terms', l: 'Key Terms', v: ['TimerTrigger', 'idempotency', 'consumption plan', 'Durable Functions', 'retry policy'] },
+      { t: 'fu', v: 'When would you use Durable Functions instead of a plain Timer-triggered Function?', fuLink: 43 }
+    ]
+  },
+  {
+    id: 22, cat: 'remote', level: 'basic', resume: false,
+    q: 'How do you stay productive and manage your work while fully remote?',
+    answer: [
+      { t: 'text', l: 'My approach', v: "Three things: structured start (I know what I'm working on before I open my laptop — tickets reviewed the night before), async-first communication (I write clearly enough that others don't need to interrupt me to understand), and deliberate end-of-day (I close tasks, update tickets, and know what tomorrow starts with — I don't leave things ambiguous)." },
+      { t: 'text', l: 'What doesn\'t work', v: "Leaving Slack open all day and treating every message as urgent — that fragments focus. I batch communication and protect deep work blocks. Deep work and reactive communication are incompatible if you try to do them simultaneously." },
+      { t: 'text', l: 'Track record', v: "Fully remote at Duck Creek for over a year. No missed releases, responsive to production issues, and produced the 1,500-line observability guide as a side output — that doesn't happen if you're not managing focus well." },
+      { t: 'fu', v: 'What\'s the hardest part of remote work for you personally and how do you manage it?', fuLink: 44 }
+    ]
+  },
+  {
+    id: 23, cat: 'remote', level: 'basic', resume: false,
+    q: 'How do you handle timezone differences and async communication on a distributed team?',
+    answer: [
+      { t: 'text', l: 'Async-first principle', v: "Document decisions in writing — PR descriptions, ticket comments, Confluence/docs. The written record is the communication, not a Slack message that disappears. If someone in a different timezone needs to understand a decision, they should be able to read the PR and know exactly what happened and why." },
+      { t: 'text', l: 'Synchronous time', v: "Find the minimum overlap window and protect it for discussions that genuinely need real-time back-and-forth: design reviews, incident post-mortems, unblocking decisions. Don't use that time for status updates — those should be async." },
+      { t: 'text', l: 'The key habit', v: "Over-communicate in writing. 'I completed task X, found issue Y, decided to approach it as Z, will unblock on Monday' is the message that lets someone in a different timezone proceed without waiting for you." },
+      { t: 'fu', v: 'How do you handle urgent production issues when you\'re out of overlap hours with the team?', fuLink: 45 }
+    ]
+  },
+  {
+    id: 24, cat: 'dotnet', level: 'medium', resume: true, resumeRef: 'R07',
+    q: 'Tell me about a high-risk upgrade you managed on a production system.',
+    answer: [
+      { t: 'text', l: 'Situation', v: "Duck Creek Billing — document generation pipeline running Aspose v14 (9 major versions behind) and PDF4NET v3. Both used for customer-facing invoice, statement, and write-off document rendering. Major version jumps — high risk of rendering regressions that customers would see." },
+      { t: 'text', l: 'Action', v: "Started with a full impact analysis — mapped every document type that flows through both libraries. Upgraded incrementally: Aspose v14 → v23, PDF4NET v3 → v10. Built regression coverage for each document type verifying visual output parity — not just no-crash, but pixel-level correct rendering." },
+      { t: 'text', l: 'Result', v: "Both libraries upgraded with full regression coverage. No rendering regressions reached production. Document pipeline modernised and technically current — reduced CVE surface area significantly." },
+      { t: 'terms', l: 'Key Terms', v: ['impact analysis', 'regression coverage', 'major version upgrade', 'output parity', 'risk-scoped rollout'] },
+      { t: 'fu', v: 'How did you scope the regression coverage — how did you know when you\'d tested enough?', fuLink: 46 }
+    ]
+  },
+  {
+    id: 25, cat: 'behaviour', level: 'advanced', resume: false,
+    q: 'Describe a time you disagreed with a technical decision made by your team. What did you do?',
+    answer: [
+      { t: 'text', l: 'The approach', v: "First, I make sure I actually understand their reasoning before forming a strong opinion — sometimes what looks like a bad decision makes sense given constraints I wasn't aware of. I ask questions before challenging." },
+      { t: 'text', l: 'When I disagree after understanding', v: "I make the case once, clearly, with specific reasoning and trade-offs — not just 'I think X is better' but 'X achieves Y with lower Z cost because...'. I write it down so it's a real argument, not just a vibe. If the team still decides the other way, I commit to the decision and execute it well. Relitigating after the decision is made is not productive." },
+      { t: 'text', l: 'Example type', v: "On the EHS platform: I had strong opinions about using ICacheService abstraction instead of injecting IDistributedCache directly. The argument was: abstraction costs almost nothing now, and makes a Dapr State swap at Phase 8 a one-line DI change. That's the kind of argument that wins — concrete, low-cost, forward-looking." },
+      { t: 'fu', v: 'What do you do if you believe the technical direction is genuinely harmful — not just suboptimal?', fuLink: 47 }
+    ]
+  },
+  {
+    id: 26, cat: 'dotnet', level: 'advanced', resume: false, tag: 'EHS',
+    q: "You're reviewing a PR where a MediatR handler injects IDistributedCache directly. You reject it and ask for a caching abstraction. Walk me through your reasoning — what's the architectural problem, and what does the abstraction concretely buy you?",
+    answer: [
+      { t: 'text', l: 'The architectural problem', v: "IDistributedCache is an Infrastructure type. When Application-layer handlers inject it directly, Application imports an Infrastructure concern — the layer dependency rule is violated. Application should define what it needs (the contract), not know how it's fulfilled (which transport backs it)." },
+      { t: 'text', l: 'The fix', v: "ICacheService interface in Application/Common/Interfaces: GetAsync<T>, SetAsync<T>, RemoveAsync. DistributedCacheService in Infrastructure implements it using IDistributedCache as the actual backend, with JSON serialization. One DI line wires them: services.AddScoped<ICacheService, DistributedCacheService>()." },
+      { t: 'text', l: 'Payoff 1 — backend swap', v: "If the team evaluates Dapr State as the cache backend at a later phase, the swap is one DI line: replace DistributedCacheService with DaprCacheService. Every handler is untouched. Without the abstraction, every handler that injects IDistributedCache directly needs its constructor changed." },
+      { t: 'text', l: 'Payoff 2 — testability', v: "Mocking ICacheService in a handler test is 3 lines of Moq. Mocking IDistributedCache directly means setting up byte[] serialization in test code — you end up testing the transport, not the handler. The abstraction makes tests fast and readable." },
+      { t: 'terms', l: 'Key terms', v: ['ICacheService', 'IDistributedCache', 'Clean Architecture dependency rule', 'DI swap point', 'layer isolation', 'Dapr State'] },
+      { t: 'fu', v: 'Where does cache key generation logic live — inside the abstraction, in a constants file, or do callers decide?', fuLink: 48 }
+    ]
+  },
+
+  // ── NEW QUESTIONS (Q27–Q50) ───────────────────────────────────────────────
+
+  {
+    id: 27, cat: 'about', level: 'basic', resume: false,
+    q: 'What does a good role look like to you day-to-day?',
+    answer: [
+      { t: 'text', l: '🎙 Say this (the work)', v: "\"Ideally — I start the day knowing what I'm working on. A real engineering problem, not a surprise triage queue. I spend most of my time in deep work. And there are at least some decisions in my day that I own end-to-end — not just receiving tickets that someone else already designed.\"" },
+      { t: 'text', l: '🎙 Say this (the team)', v: "\"On the team side: code review that's substantive — where people give real feedback, not just approve and merge. Engineers who have technical opinions and can argue them with evidence. A principal or tech lead I can genuinely learn from, not just report to. I want to be in the room when the architecture is being figured out — not briefed on decisions that are already locked.\"" },
+      { t: 'text', l: '🎙 Say this (what you\'re avoiding)', v: "\"What I'm moving away from is a day that's entirely reactive — nothing but production fires and support work. I've spent a few years doing that and I'm good at it, but it's not growth.\"" },
+      { t: 'text', l: 'Coaching note', v: "Be specific and honest. 'I want to grow' is filler. 'I want to own architecture decisions' is a real answer. They're checking whether what you want matches what they offer — if it doesn't, that's useful information for both of you." },
+      { t: 'fu', v: 'Where do you see yourself in 3–5 years — where is this role taking you?', fuLink: 3 }
+    ]
+  },
+  {
+    id: 28, cat: 'about', level: 'medium', resume: false,
+    q: "What's the biggest skill or experience gap you're actively closing right now?",
+    answer: [
+      { t: 'text', l: '🎙 Say this (name the gap honestly)', v: "\"The gap I know I have is end-to-end system ownership. I'm strong at building and scaling backend services — 11 years of it. What I've had less of is the full scope: designing the deployment topology, making the cloud architecture decisions, owning production operations on something I designed from scratch. Everything I've built at work was designed by someone else before I touched it.\"" },
+      { t: 'text', l: '🎙 Say this (what you\'re doing about it)', v: "\"The EHS platform I'm building on the side is specifically for this. I'm making every decision — not just writing code. What gets cloud-native treatment and when. How the multi-tenancy model works at the database level. How background jobs get hosted. Phase by phase, I'm doing the things I haven't done before.\"" },
+      { t: 'text', l: '🎙 Say this (what you\'re NOT doing)', v: "\"I'm not collecting certifications to paper over it. A cert teaches you the theory. Building something teaches you what you got wrong on the first attempt.\"" },
+      { t: 'text', l: 'Coaching note', v: "This question rewards self-awareness and honesty. Don't say 'I have no gaps' — that's a red flag. Name the real gap, then show you're actively working on it with evidence. The side project is your proof." },
+      { t: 'fu', v: 'Tell me about yourself — where have you come from and what are you targeting next?', fuLink: 1 }
+    ]
+  },
+  {
+    id: 29, cat: 'behaviour', level: 'medium', resume: false,
+    q: "How do you get buy-in to work on something that wasn't officially assigned to you?",
+    answer: [
+      { t: 'text', l: 'The frame that works', v: "Don't ask for permission to fix a problem — ask for agreement on the problem first. If the team lead agrees the problem is real and costly, the conversation about whether to fix it is much shorter." },
+      { t: 'text', l: 'In practice', v: "For the observability work at Duck Creek: I didn't ask 'can I work on health checks?' I showed the team lead which of our 9 Windows Services had zero monitoring. Once that was visible, the question answered itself. I then presented a scoped proposal — specific services, specific time estimate, low-risk change — so the answer was easy to say yes to." },
+      { t: 'text', l: 'What does not work', v: "Announcing you're going to work on something and expecting approval. Or doing the work first and presenting it as a fait accompli — that breeds distrust. The pattern: surface the problem with data, propose the scope, get informal agreement, then execute." },
+      { t: 'fu', v: 'How do you handle it when you raise an improvement and the team says it\'s not a priority right now?', fuLink: 25 }
+    ]
+  },
+  {
+    id: 30, cat: 'dotnet', level: 'advanced', resume: true, resumeRef: 'R06',
+    q: 'How do you design an HttpClient abstraction that handles multiple different auth schemes cleanly?',
+    answer: [
+      { t: 'text', l: 'The problem', v: "5 APIs: OAuth2 bearer, API key in header, API key in query string, basic auth, and one custom HMAC signature. If you build a shared abstraction that tries to handle all of these inside one handler, it becomes a God object with 5 branches." },
+      { t: 'text', l: 'The pattern', v: "DelegatingHandler chain per client. Each client in IHttpClientFactory gets its own named registration. The auth handler is a DelegatingHandler added to that specific client's pipeline — it reads credentials from config, builds the auth header or signature, and passes the request through. The shared abstraction (logging, retry, error normalisation) sits in a different DelegatingHandler registered on all clients." },
+      { t: 'text', l: 'Key insight', v: "Authentication is decoration on the request, not a concern of the shared framework. The shared framework handles logging, retry policy, error mapping. Auth is per-client configuration. This keeps the shared code clean and the per-client auth logic small and isolated." },
+      { t: 'terms', l: 'Key Terms', v: ['DelegatingHandler', 'IHttpClientFactory', 'named clients', 'Polly', 'HttpMessageHandler pipeline'] },
+      { t: 'fu', v: 'Tell me about the reusable integration framework you built — what was the impact?', fuLink: 6 }
+    ]
+  },
+  {
+    id: 31, cat: 'dotnet', level: 'medium', resume: false,
+    q: 'What specific .NET 8 features have you used that were not available in .NET Framework?',
+    answer: [
+      { t: 'text', l: 'Keyed DI services', v: "AddKeyedScoped / AddKeyedSingleton — register multiple implementations of the same interface with a string or enum key. In .NET Framework you needed a factory or named registrations via a third-party container. Useful in EHS for future multi-backend scenarios." },
+      { t: 'text', l: 'Built-in ProblemDetails', v: "ASP.NET Core 8 has first-class IProblemDetailsService and AddProblemDetails() — standardised RFC 7807 error responses without a third-party library. Not available in .NET Framework at all (which used HttpResponseException or custom error models)." },
+      { t: 'text', l: 'TimeProvider (testable time)', v: "TimeProvider.System.GetUtcNow() replaces DateTime.UtcNow. Injectable, mockable. In tests: FakeTimeProvider lets you advance time, test token expiry, test scheduled logic. In .NET Framework, DateTime.UtcNow is a static call — not injectable, not mockable without a manual wrapper interface." },
+      { t: 'text', l: 'Primary constructors (C# 12)', v: "public class MyService(IDependency dep) — the constructor IS the class declaration. Less boilerplate for simple services. Not available in C# versions that target .NET Framework." },
+      { t: 'terms', l: 'Key Terms', v: ['AddKeyedScoped', 'IProblemDetailsService', 'TimeProvider', 'FakeTimeProvider', 'primary constructors', 'IExceptionHandler'] },
+      { t: 'fu', v: 'What is the difference between .NET Framework and .NET 8 at the platform level?', fuLink: 7 }
+    ]
+  },
+  {
+    id: 32, cat: 'dotnet', level: 'medium', resume: false,
+    q: 'What is a captive dependency in DI — how do you detect it and fix it?',
+    answer: [
+      { t: 'text', l: 'What it is', v: "A captive dependency is when a longer-lived service holds a reference to a shorter-lived service. Classic case: a Singleton injects a Scoped service. The Scoped instance is captured at first resolution and lives as long as the Singleton — effectively becoming a Singleton, but still bound to the original request scope's data." },
+      { t: 'text', l: 'Why it is dangerous', v: "If the Scoped service holds request-specific state (DbContext, current user, EF tracking context), that state leaks across requests. In multi-user systems: request B gets request A's DbContext. This causes data leaks, stale query caches, or outright exceptions." },
+      { t: 'text', l: 'How to detect it', v: "ASP.NET Core DI validates for captive dependencies at startup in Development mode — set ValidateScopes = true (default in dev). The container throws on startup if you have a Singleton → Scoped dependency. Don't rely on this in production where it's disabled for performance." },
+      { t: 'text', l: 'How to fix it', v: "Option 1: make the dependency Singleton if it has no per-request state. Option 2: make the consumer Scoped. Option 3: inject IServiceScopeFactory and create a scope explicitly when needed — the escape hatch for background services (IHostedService is Singleton but needs a Scoped DbContext)." },
+      { t: 'terms', l: 'Key Terms', v: ['captive dependency', 'ValidateScopes', 'IServiceScopeFactory', 'IHostedService', 'DI lifetime mismatch'] },
+      { t: 'fu', v: 'Explain dependency injection and the three lifetimes — what is each used for?', fuLink: 8 }
+    ]
+  },
+  {
+    id: 33, cat: 'dotnet', level: 'medium', resume: false,
+    q: 'What does ConfigureAwait(false) do and when should you actually use it?',
+    answer: [
+      { t: 'text', l: 'What it does', v: "By default, awaiting a Task tries to resume on the original SynchronizationContext (the thread/context that started the operation). ConfigureAwait(false) says: I don't need the original context — resume on any available thread pool thread." },
+      { t: 'text', l: 'Where it matters', v: "In UI apps (WinForms, WPF) and classic ASP.NET: there is a SynchronizationContext that requires certain code to run on the UI thread or request thread. If library code awaits without ConfigureAwait(false), it captures this context. If the caller then blocks with .Result or .Wait(), you get a deadlock — the context is blocked waiting for the task, and the task is waiting for the context to free up." },
+      { t: 'text', l: 'In ASP.NET Core specifically', v: "ASP.NET Core has no SynchronizationContext — the default is null. So ConfigureAwait(false) technically has no effect there. But in library code that might be called from UI apps too, always use it. In ASP.NET Core application code, it's optional — many teams still use it as a signal that 'this code doesn't need the UI context.'" },
+      { t: 'terms', l: 'Key Terms', v: ['SynchronizationContext', 'ConfigureAwait', 'deadlock', 'thread pool', 'library code vs app code'] },
+      { t: 'fu', v: 'What is async/await and how does the state machine work under the hood?', fuLink: 9 }
+    ]
+  },
+  {
+    id: 34, cat: 'dotnet', level: 'medium', resume: false,
+    q: 'When should a repository method return IQueryable vs always materialising to a list?',
+    answer: [
+      { t: 'text', l: 'The case for IQueryable', v: "Allows callers to compose queries — add filters, ordering, paging — before the SQL is sent. EF Core builds the full SQL from the expression tree at materialisation. Powerful for generic query builders, avoids pulling unnecessary data." },
+      { t: 'text', l: 'The case against IQueryable', v: "Leaks your ORM implementation into the Application layer. Callers can produce arbitrary SQL — unpredictable performance, hard to test, N+1 risks buried in the call chain. EF Core-specific operators won't compile if you swap the ORM. Unit testing requires a real or in-memory EF context rather than a simple mock." },
+      { t: 'text', l: 'The pattern I use', v: "Repositories materialise — they own the query boundary. Application layer gets IEnumerable or specific DTOs. For paged reads: a typed method GetPagedAsync(int page, int size, Filter filter) that returns PagedResult<T> — not a raw IQueryable. The query logic stays inside Infrastructure, not scattered across Application handlers." },
+      { t: 'terms', l: 'Key Terms', v: ['IQueryable', 'expression tree', 'materialisation', 'ToList', 'specification pattern', 'repository boundary'] },
+      { t: 'fu', v: 'What is the difference between IEnumerable, IQueryable, and ICollection?', fuLink: 10 }
+    ]
+  },
+  {
+    id: 35, cat: 'sql', level: 'medium', resume: false,
+    q: 'When would you add a covering index rather than modifying the clustered index?',
+    answer: [
+      { t: 'text', l: 'Why you almost never change the clustered index on a live table', v: "The clustered index IS the physical row order. Rebuilding it on a table with millions of rows means SQL Server rewrites the entire table — massive I/O, potential hours of downtime or blocking. You set the clustered index during schema design, not as a production performance fix." },
+      { t: 'text', l: 'When a covering index is the right tool', v: "A key lookup in the execution plan means SQL Server found the row via a non-clustered index but then had to fetch additional columns from the clustered index. Adding the missing columns via INCLUDE on the non-clustered index eliminates that second trip — creating a covering index for that specific query at minimal cost." },
+      { t: 'text', l: 'The trade-off', v: "Every index increases write cost — INSERT/UPDATE/DELETE must maintain all indexes. A wide covering index with many INCLUDE columns is fast for reads but expensive for write-heavy tables. Always measure logical reads before and after. Verify the read benefit justifies the write overhead." },
+      { t: 'terms', l: 'Key Terms', v: ['covering index', 'INCLUDE', 'key lookup', 'clustered rebuild', 'write amplification'] },
+      { t: 'fu', v: 'What is the difference between a clustered and non-clustered index?', fuLink: 13 }
+    ]
+  },
+  {
+    id: 36, cat: 'sql', level: 'medium', resume: false,
+    q: 'What is parameter sniffing in SQL Server — how do you diagnose and fix it?',
+    answer: [
+      { t: 'text', l: 'What it is', v: "When SQL Server first compiles a stored procedure or parameterised query, it peeks at the current parameter values and builds an execution plan optimised for those specific values. That plan is cached. If the next execution has very different parameters (small customer plan cached, now running for a large one), the cached plan may be badly wrong — wrong index choices, wrong join strategy." },
+      { t: 'text', l: 'How to detect it', v: "Query runs fast interactively but slow via stored proc. Execution plan shows estimates wildly diverging from actuals. sys.dm_exec_cached_plans + sys.dm_exec_sql_text can reveal the cached plan and its compile-time parameters." },
+      { t: 'text', l: 'Fixes and trade-offs', v: "OPTION (RECOMPILE): Forces recompile every execution — correct plan always, but compilation overhead on every call. Bad for high-frequency procs. OPTIMIZE FOR UNKNOWN: Uses average column statistics — more stable across different inputs, occasionally suboptimal. Local variable assignment inside the SP hides the value from the optimizer and forces stats-based estimates. OPTION (OPTIMIZE FOR (@val UNKNOWN)): Per-parameter control." },
+      { t: 'terms', l: 'Key Terms', v: ['plan cache', 'OPTION RECOMPILE', 'OPTIMIZE FOR UNKNOWN', 'sys.dm_exec_cached_plans', 'execution plan stability'] },
+      { t: 'fu', v: 'Walk me through your approach to diagnosing a slow-running query.', fuLink: 14 }
+    ]
+  },
+  {
+    id: 37, cat: 'sql', level: 'advanced', resume: true, resumeRef: 'R02',
+    q: 'How do you capture and analyse a deadlock in SQL Server production — what tooling do you use?',
+    answer: [
+      { t: 'text', l: 'Capture methods', v: "Three options: Trace Flag 1222 (detailed XML deadlock info written to the error log — enable carefully in production), Extended Events with the deadlock graph event (preferred in production — low overhead, captures XML deadlock graph automatically), or the System Health session (already running on every SQL Server instance — captures last ~500 deadlocks in its ring buffer, accessible via sys.dm_xe_session_ring_buffer_targets)." },
+      { t: 'text', l: 'Reading the deadlock graph', v: "The XML contains two process nodes and two resource nodes. Process A holds Resource 1, waits for Resource 2. Process B holds Resource 2, waits for Resource 1. SQL Server chose the cheaper process as the victim (error 1205). The XML tells you the exact SQL being executed by each process, the object and lock type held, and which process was killed." },
+      { t: 'text', l: 'What to fix', v: "Look at the lock acquisition order in both processes. If they acquire locks in opposite order, standardise it across both code paths. Use temp tables to stage intermediate work rather than holding locks during computation. Check if RCSI (Read Committed Snapshot Isolation) would eliminate the reader side of the deadlock." },
+      { t: 'terms', l: 'Key Terms', v: ['Extended Events', 'deadlock graph XML', 'System Health session', 'Trace Flag 1222', 'deadlock victim', 'RCSI'] },
+      { t: 'fu', v: 'What is the difference between a deadlock and a blocking scenario in SQL Server?', fuLink: 15 }
+    ]
+  },
+  {
+    id: 38, cat: 'dotnet', level: 'advanced', resume: true, resumeRef: 'EHS Platform',
+    q: 'How does optimistic concurrency interact with retry logic — what do you retry and what do you surface to the user?',
+    answer: [
+      { t: 'text', l: 'The critical distinction', v: "DbUpdateConcurrencyException means the row changed since you last read it. Retrying with the same stale data will produce the same exception — or worse, silently overwrite someone else's changes. A blind retry is always wrong." },
+      { t: 'text', l: 'Correct retry pattern', v: "Catch DbUpdateConcurrencyException. Re-read the current entity from the database: ctx.Entry(entity).Reload(). Re-apply the business operation on the fresh data. Retry the save once. If it fails again, surface the conflict to the user — don't loop infinitely." },
+      { t: 'text', l: 'API contract', v: "At the HTTP layer: return 412 Precondition Failed when the If-Match ETag doesn't match the current RowVersion before even running the command. The client then re-reads (GET), sees the latest state, and lets the user re-apply their change with awareness of what changed. 412 says 'your version is stale — re-fetch and try again.'" },
+      { t: 'terms', l: 'Key Terms', v: ['DbUpdateConcurrencyException', 'Entry.Reload', '412 Precondition Failed', 'ETag', 'If-Match', 'last-write-wins vs optimistic'] },
+      { t: 'fu', v: 'What is optimistic concurrency — how is it implemented in EF Core?', fuLink: 16 }
+    ]
+  },
+  {
+    id: 39, cat: 'system', level: 'medium', resume: false,
+    q: 'What makes an application stateless — and what are the common sources of accidental state?',
+    answer: [
+      { t: 'text', l: 'Definition', v: "A stateless application can handle any request from any instance without needing prior context stored in that specific instance's memory. Any instance behind the load balancer should give identical results for identical inputs." },
+      { t: 'text', l: 'Common sources of accidental state', v: "1. In-memory cache: a static Dictionary<K,V> — each instance has its own cache, data becomes inconsistent across instances. Fix: Redis. 2. In-memory session stored in process. Fix: distributed session or stateless JWT. 3. Static fields holding per-request data: current user, request ID stored as a static property. Fix: IHttpContextAccessor or a scoped service. 4. Background service holding an in-memory queue. Fix: Redis Queue or Service Bus." },
+      { t: 'text', l: 'The acid test', v: "Kill one instance at random. Should any in-flight request that gets rerouted to another instance produce a different result? If yes, you have accidental state somewhere." },
+      { t: 'terms', l: 'Key Terms', v: ['stateless', 'sticky sessions', 'Redis', 'IHttpClientFactory', 'IHttpContextAccessor', 'horizontal scaling'] },
+      { t: 'fu', v: 'What is the difference between horizontal and vertical scaling?', fuLink: 17 }
+    ]
+  },
+  {
+    id: 40, cat: 'system', level: 'advanced', resume: false,
+    q: "When should you split a monolith — what signals tell you it's time, and what are the wrong reasons?",
+    answer: [
+      { t: 'text', l: 'Right signals', v: "1. Deployment coupling: Team A cannot deploy without coordinating with Team B, and it's a real velocity problem — not a process problem. 2. Scale mismatch: one component needs 10x the resources of everything else and you're paying for it across the board. 3. Reliability isolation: one component's failure should not bring down unrelated features, and it does. 4. Technology lock-in: one component is the only reason you can't move to a different runtime or language." },
+      { t: 'text', l: 'Wrong reasons', v: "'The codebase is big' — size is not a reason. A well-modularised monolith handles scale fine. 'Microservices are modern' — distributed systems are harder to operate than monoliths. 'We might need to scale this part later' — wait for the actual problem. YAGNI applies here more than anywhere." },
+      { t: 'text', l: 'The prerequisite', v: "Before splitting: you need to be able to clearly name the bounded context and its invariants. You need a defined API contract between the two parts. If you can't do that, the split will produce a distributed monolith — all the operational complexity with none of the isolation benefits." },
+      { t: 'terms', l: 'Key Terms', v: ['bounded context', 'deploy coupling', 'distributed monolith', 'strangler fig', "Conway's Law"] },
+      { t: 'fu', v: 'Explain the difference between a monolith, SOA, and microservices.', fuLink: 18 }
+    ]
+  },
+  {
+    id: 41, cat: 'system', level: 'advanced', resume: true, resumeRef: 'R01',
+    q: 'How do you correlate a log entry to a specific distributed trace — what does that plumbing look like in .NET?',
+    answer: [
+      { t: 'text', l: 'The in-process mechanism', v: "Activity.Current (from System.Diagnostics) carries the current TraceId and SpanId in-process. A Serilog enricher reads Activity.Current?.TraceId and Activity.Current?.SpanId and adds them as structured properties on every log entry. Every log line in that request automatically carries the trace correlation — zero manual plumbing per log call." },
+      { t: 'text', l: 'Across service boundaries', v: "W3C TraceContext propagation headers (traceparent, tracestate) carry the TraceId across HTTP hops. In .NET, HttpClient with OpenTelemetry instrumentation propagates these headers outbound automatically. The receiving service picks up the TraceId from the incoming header, continuing the same distributed trace." },
+      { t: 'text', l: 'In the full OpenTelemetry stack', v: "All three signals (traces, logs, metrics) export with the same TraceId. In Grafana: an alert fires in Prometheus (metric), you click through to Tempo (trace) to see the full request path, then click a span to open the correlated Loki log entries. Single pane of glass — no manual grep, no timestamp guessing." },
+      { t: 'terms', l: 'Key Terms', v: ['Activity.Current', 'TraceId', 'W3C TraceContext', 'traceparent header', 'Serilog enricher', 'Grafana Tempo/Loki correlation'] },
+      { t: 'fu', v: 'How do you approach observability — metrics, logs, and traces?', fuLink: 19 }
+    ]
+  },
+  {
+    id: 42, cat: 'system', level: 'advanced', resume: true, resumeRef: 'EHS Platform',
+    q: 'How do you handle database schema migrations when hundreds of tenants share one database?',
+    answer: [
+      { t: 'text', l: 'Shared schema strategy (EHS approach)', v: "With shared schema + TenantId discriminator, migrations are schema-level — not per-tenant. EF Core migrations run once and affect all tenants simultaneously. This is the main operational advantage over separate-schema: one migration to manage, not one per tenant." },
+      { t: 'text', l: 'The risk', v: "A broken migration affects all tenants at the same time. A migration that causes data loss or downtime hits every customer simultaneously. This means higher confidence is required before running migrations in production: staging with production-like data, a tested rollback script, and a narrow deployment window." },
+      { t: 'text', l: 'Safe migration patterns', v: "Additive changes (new columns, new tables): low risk — old code still works. Renaming or dropping columns: high risk — requires multi-phase deployment: add new column, migrate data, update references, remove old column across multiple releases. Never rename a column and update all references in a single migration — you break running instances mid-deploy." },
+      { t: 'terms', l: 'Key Terms', v: ['additive migration', 'multi-phase deploy', 'EF Core migrations', 'zero-downtime migration', 'rollback script'] },
+      { t: 'fu', v: 'How would you design a multi-tenant SaaS application from scratch?', fuLink: 20 }
+    ]
+  },
+  {
+    id: 43, cat: 'system', level: 'medium', resume: true, resumeRef: 'R05',
+    q: 'When would you use Durable Functions instead of a plain Timer-triggered Azure Function?',
+    answer: [
+      { t: 'text', l: 'Plain Timer-triggered Function — the right default', v: "Fires on a schedule, does work in a single stateless execution, completes. If it fails, it runs again on the next schedule. Use this for: nightly reports, cache warming, data sync jobs that don't need coordination." },
+      { t: 'text', l: 'When you need Durable Functions', v: "1. Fan-out/fan-in: process 1,000 items in parallel then aggregate results — impossible in a single stateless execution with a timeout. 2. Human approval: workflow pauses and waits days for an external event (email confirmation, manager sign-off). 3. Stateful saga: multi-step workflow where each step depends on the previous, with compensation logic if one fails. 4. Long-running operations that exceed the Consumption plan function timeout (10 minutes)." },
+      { t: 'text', l: 'The cost', v: "Durable Functions require Azure Storage (queues, blobs, tables) for state persistence. More complex to test, debug, and reason about. Don't use them just because a workflow has more than one step — two sequential calls in a stateless function is fine." },
+      { t: 'terms', l: 'Key Terms', v: ['orchestrator function', 'activity function', 'fan-out/fan-in', 'external events', 'eternal orchestration', 'Consumption plan timeout'] },
+      { t: 'fu', v: 'How do you approach migrating a scheduled job from legacy infrastructure to the cloud?', fuLink: 21 }
+    ]
+  },
+  {
+    id: 44, cat: 'remote', level: 'basic', resume: false,
+    q: "What's the hardest part of remote work for you personally and how do you manage it?",
+    answer: [
+      { t: 'text', l: 'Honest answer', v: "The default is to stay in execution mode without proactively surfacing progress. In an office, visibility is ambient — people can see you're busy. Remote means you have to actively create that visibility. My natural tendency is to go heads-down and produce, then surface it when it's done. That works when you're working solo; it reads as silence on a distributed team." },
+      { t: 'text', l: 'What I actively do about it', v: "I update tickets at the end of each work block, not just end of day. When I'm blocked, I write a specific async message immediately instead of waiting for the next standup. I write detailed PR descriptions — not for me, but because the PR is the main collaboration artifact on a remote team." },
+      { t: 'text', l: 'What I have learned to avoid', v: "Treating silence as neutral — in remote work, silence reads as absence. And the opposite problem: constant real-time status pings that create noise and fragment other people's focus. High-quality async updates at the right cadence, not high-frequency interruptions." },
+      { t: 'fu', v: 'How do you stay productive and manage your work while fully remote?', fuLink: 22 }
+    ]
+  },
+  {
+    id: 45, cat: 'remote', level: 'medium', resume: false,
+    q: 'How do you handle an urgent production issue when you are outside overlap hours with the team?',
+    answer: [
+      { t: 'text', l: 'First: assess before acting', v: "Is this actually production-impacting now, or a warning that can wait? 'Urgent' is often misdiagnosed. If it's genuinely customer-impacting: triage it. If there's a safe mitigation (roll back a flag, restart a service, block a specific endpoint), apply it with documentation." },
+      { t: 'text', l: 'What I document as I work', v: "Real-time notes in the incident ticket: what I observed, what I tried, what I changed, and the state I left things in. Non-negotiable — if someone picks up where I left off, they need the full picture without a handoff call. If I escalated, I owe the person I woke up all of that context before they join the call." },
+      { t: 'text', l: 'Escalation threshold', v: "If I cannot safely mitigate and the issue is causing active data loss, payment failure, or complete service outage — I escalate regardless of the hour. Knowing when to wake someone up is a professional judgment call, not a rule about timezone overlap. The cost of waiting is not always lower than the cost of the interruption." },
+      { t: 'fu', v: 'How do you handle timezone differences and async communication on a distributed team?', fuLink: 23 }
+    ]
+  },
+  {
+    id: 46, cat: 'behaviour', level: 'medium', resume: true, resumeRef: 'R07',
+    q: "How do you scope regression test coverage for a high-risk change — how do you know when you've tested enough?",
+    answer: [
+      { t: 'text', l: 'Start with a risk map', v: "What are the outputs that matter to the customer or business? For the Aspose/PDF4NET upgrade: every document type that reaches a customer's hands — invoice, statement, write-off notice. Each is an output path that must be verified. Miss one and a silent rendering regression reaches production." },
+      { t: 'text', l: 'Coverage threshold', v: "Every customer-facing output path needs at least one automated happy-path test. High-risk paths (high-frequency, high-value, customer-visible) need edge case coverage too. For document generation: visual output parity checks, not just 'no exception thrown.'" },
+      { t: 'text', l: 'When is it enough', v: "Enough means: every business-critical output path has an automated check, a manual exploratory pass has covered edge cases, and someone with domain knowledge has signed off — not just the engineer who made the change. Risk is never zero. Enough is risk reduced to acceptable. The honest signal: if this deploys and breaks, would I be surprised? If yes — test more." },
+      { t: 'fu', v: 'Tell me about the high-risk upgrade you managed — how did it go?', fuLink: 24 }
+    ]
+  },
+  {
+    id: 47, cat: 'behaviour', level: 'advanced', resume: false,
+    q: "What do you do if you believe a technical direction is genuinely harmful — not just suboptimal?",
+    answer: [
+      { t: 'text', l: 'Harmful vs suboptimal', v: "'Suboptimal' means slower, more expensive, harder to maintain — I make my case once, and if I'm overruled, I commit and execute it well. 'Harmful' means: security vulnerability, data loss risk, compliance violation, or customer-facing reliability risk. That earns a different response." },
+      { t: 'text', l: 'What I do differently for harmful', v: "Document the specific risk in writing — not a Slack message, a written document that names the exact vulnerability, the probability of harm, and the cost of correcting it later vs now. Present it to someone with decision accountability, not just the team. If I'm told to proceed anyway, I write down my dissent and the risk explicitly — so it's a documented decision with a named risk owner, not an invisible one that comes back later as 'nobody knew.'" },
+      { t: 'text', l: 'The line I do not cross', v: "I will not implement something that creates a clear security vulnerability or data loss risk without escalating to the level that can own that decision. There's a difference between disagreeing about architecture and implementing something I know is harmful. The first is a professional debate. The second is a professional judgment call I have to live with." },
+      { t: 'fu', v: 'Describe a time you disagreed with a technical decision — what did you do?', fuLink: 25 }
+    ]
+  },
+  {
+    id: 48, cat: 'dotnet', level: 'medium', resume: false,
+    q: 'Where does cache key generation logic live — inside the abstraction, in a constants file, or do callers decide?',
+    answer: [
+      { t: 'text', l: 'Not inside the abstraction', v: "ICacheService shouldn't know about business entities. GetAsync<Incident>(key) takes a key — it doesn't know what an Incident is. Embedding key generation inside the cache service couples it to the domain, violating the abstraction boundary. ICacheService is a generic Infrastructure contract defined in Application." },
+      { t: 'text', l: 'Not scattered in callers', v: "If every handler touching the Incident cache constructs its own key string ('incident:{id}', 'incidents:{id}', 'Incident-{id}'), you guarantee format inconsistency and silent cache misses. One handler caches under a different key format than another reads — the cache is bypassed without any error." },
+      { t: 'text', l: 'The right pattern', v: "A static keys class per entity/feature that owns the format. In EHS: IncidentCacheKeys.ForId(Guid id) returns 'incident:v1:{id}', IncidentCacheKeys.ForTenant(Guid tenantId) returns 'incidents:tenant:v1:{tenantId}'. The version is baked into the key — bump the version when the cache schema changes and old keys auto-expire. One place to update, consistent across all handlers." },
+      { t: 'terms', l: 'Key Terms', v: ['cache key namespace', 'key versioning', 'cache invalidation', 'co-location', 'ICacheService abstraction'] },
+      { t: 'fu', v: "You're reviewing a PR where a handler injects IDistributedCache directly — walk me through your reasoning.", fuLink: 26 }
+    ]
+  },
+
+  // ── RECRUITER-RECOMMENDED ADDITIONS ──────────────────────────────────────
+
+  {
+    id: 49, cat: 'behaviour', level: 'medium', resume: false,
+    q: 'How do you approach code review — what are you looking for beyond just correctness?',
+    answer: [
+      { t: 'text', l: 'First pass: will it break something', v: "Does it do what the ticket asks? Does it handle error cases? Any security issues — injection, unvalidated input at API boundaries, sensitive data in logs? These are non-negotiables. A technically correct implementation that introduces a SQL injection is not a mergeable PR." },
+      { t: 'text', l: 'Second pass: will it survive production', v: "Is there logging at the right points? If this throws an exception at 2am, does the on-call have enough information to diagnose it without reading the source? N+1 query risks? Are the tests testing behaviour, or just that the code runs without exceptions?" },
+      { t: 'text', l: 'Third pass: does it fit the system', v: "Does it follow the patterns the codebase uses? If the team has agreed on CQRS, is this a one-off Service class? If we have ICacheService, is this handler injecting IDistributedCache directly? Consistency in a codebase is more valuable than optimality of any single PR." },
+      { t: 'text', l: 'Tone', v: "I give reasons, not mandates. 'This could cause a key collision if two callers use different formats — here's the pattern we use in the rest of the codebase' is a better comment than 'this is wrong, fix it.'" },
+      { t: 'fu', v: 'Describe a time you disagreed with a technical decision — what did you do?', fuLink: 25 }
+    ]
+  },
+  {
+    id: 50, cat: 'behaviour', level: 'medium', resume: false,
+    q: "Tell me about a time something you built didn't work out as planned. What did you learn?",
+    answer: [
+      { t: 'text', l: 'The honest story', v: "Early in my career I built a background job that ran fine in staging but caused resource contention in production on a shared SQL Server. The job ran nightly on a schedule I controlled, but it was doing full table scans on a table that received writes during business hours. I hadn't stress-tested it with concurrent production load — staging was always quiet when I tested." },
+      { t: 'text', l: 'What I changed', v: "Added explicit time-window restrictions (job only runs during the low-traffic window), changed reporting reads to use NOLOCK where consistency wasn't required, and wrote a concurrency test that simulates writes during the job execution. The test I wrote after the incident taught me to write that production stress test before the job goes live." },
+      { t: 'text', l: 'What I took away', v: "Staging is not production. The things that fail in production usually involve load, concurrency, or integration with systems you don't fully control. I now specifically ask: what does this look like under concurrent load? What happens if two instances run simultaneously? These questions catch what happy-path testing misses." },
+      { t: 'fu', v: 'Tell me about a production issue you resolved under pressure.', fuLink: 5 }
+    ]
+  },
+  {
+    id: 51, cat: 'system', level: 'advanced', resume: false, tag: 'EHS',
+    q: 'You have a SQL Server database already storing incident data. A product manager asks for a "smart search" — users type anything and get the most relevant results. How do you approach this, and why might SQL Server full-text search not be enough?',
+    answer: [
+      { t: 'text', l: 'The core problem', v: "SQL Server is built for structured queries: give me rows where status = Open and tenantId = X. It has a Full-Text Search feature for keyword matching, but it returns rows that match — not rows ranked by how well they match. A user searching 'chemical fumes near storage' gets back every row containing those words with no indication of which is most relevant." },
+      { t: 'text', l: 'What SQL Full-Text Search requires', v: "Before you can run a single CONTAINS query, SQL Server needs a Full-Text Catalog created, a Full-Text Index built on the target table, and a background population job to complete. On a large table this takes minutes to hours. Adding a new searchable column means rebuilding the index. It is not zero-setup — it is a pipeline you must maintain." },
+      { t: 'text', l: 'What Elasticsearch adds', v: "Elasticsearch is built specifically for full-text search. Every text field is indexed with an inverted index automatically — no catalog, no population job. Crucially, it returns a relevance score per result. A document mentioning 'chemical' in the title and 'fumes' in the description scores higher than one mentioning only 'fumes' in the body. Users get the most relevant result first, not just a matching result." },
+      { t: 'text', l: 'In practice on EHS Platform', v: "We ran this comparison as a spike (EHS-52). Created an ehs-incidents index in Kibana Dev Tools, inserted 5 EHS-shaped documents, ran a multi_match query for 'chemical fumes' across title and description. Two documents returned, correctly ranked: ChemicalSpill scored 2.30 (match in title + description), HazardousCondition scored 0.83 (match in description only). The SQL equivalent failed immediately with Msg 7601 — Full-Text Catalog not configured. ES was querying live data in under 5 minutes with zero infrastructure setup." },
+      { t: 'text', l: 'The dual-write tradeoff', v: "Elasticsearch is a secondary store — SQL Server stays the source of truth. You must write to both: SQL Server for ACID correctness, Elasticsearch for search. The pattern for reliable dual-write is the Outbox Pattern: save the business event to an OutboxMessages table in the same SQL transaction, then a background worker reads it and indexes into ES. If ES is down, the message waits — nothing is lost." },
+      { t: 'terms', l: 'Key Terms', v: ['full-text search', 'inverted index', 'relevance scoring', 'multi_match query', 'SQL Full-Text Catalog', 'dual-write', 'Outbox Pattern', 'Kibana Dev Tools'] },
+      { t: 'fu', v: 'How does the Outbox Pattern guarantee that Elasticsearch stays in sync with SQL Server even if the app crashes mid-write?', fuLink: 54 }
+    ]
+  },
+  {
+    id: 52, cat: 'dotnet', level: 'advanced', resume: false, tag: 'EHS',
+    q: 'You\'re building a multi-tenant SaaS platform on .NET with a shared SQL Server database. How do you guarantee that each tenant\'s data is completely invisible to other tenants — without manually adding WHERE TenantId = X to every single query?',
+    answer: [
+      { t: 'text', l: 'The three isolation options', v: "Multi-tenancy has three isolation levels: DB-per-tenant (each tenant gets their own database — strongest isolation, highest operational cost, n × migrations), schema-per-tenant (shared DB, separate schema per tenant — medium complexity, EF support is limited), row-level isolation (shared tables, TenantId column on every row — lowest cost, single migration path, scales to hundreds of tenants without operational overhead). Row-level is correct at early and mid scale. DB-per-tenant is justified only when regulatory requirements or extreme data sensitivity demand physical separation." },
+      { t: 'text', l: 'EF Core Global Query Filters', v: "EF Core has a built-in mechanism: Global Query Filters. Set in OnModelCreating via builder.HasQueryFilter(x => x.TenantId == _currentTenantId). Once set, EF appends that WHERE clause to every LINQ query that touches the entity — SELECT, JOIN, Include, even navigation properties. You cannot accidentally forget it. The filter is compiled into the query plan. Filters must be set once, in DbContext.OnModelCreating. Setting them in both DbContext and IEntityTypeConfiguration causes EF to apply them twice, filtering nothing extra but adding confusing double-predicate SQL." },
+      { t: 'text', l: 'How TenantId flows from JWT to DbContext', v: "The chain: JWT contains a tid claim (set at login by LoginCommandHandler). TenantResolutionMiddleware runs on every authenticated request — it reads tid from HttpContext.User, validates it is present, and rejects the request if not. ICurrentUserService reads the claim from HttpContext.User. DbContext receives ICurrentUserService via DI and uses _currentUserService.TenantId inside the query filter lambda. Every query automatically scopes to the authenticated tenant's data." },
+      { t: 'text', l: 'In practice on EHS Platform (Phase 5)', v: "All 5 ITenantEntity types — Incident, CorrectiveAction, Site, SiteArea, ClientContractor — get a combined filter: x => x.TenantId == _tenantId && !x.IsDeleted. User and Organization get IsDeleted-only — no TenantId filter — because login is a global operation: you look up a user by email across all tenants before you know which tenant they belong to. Applying a TenantId filter on User at login time would mean no user could ever log in. TenantResolutionMiddleware is lightweight — it only validates the claim is present, not that the tenant exists in DB. Full tenant validation happens naturally via the query filter returning empty results." },
+      { t: 'text', l: 'The architectural seam this creates', v: "Because TenantId isolation is enforced at the DbContext level, all handlers above it are automatically correct. A handler that fetches Incidents never needs to know about tenancy — it writes _context.Incidents.Where(x => x.Status == Open) and EF silently appends AND TenantId = @tid AND IsDeleted = 0. This is the Clean Architecture payoff: a cross-cutting concern (tenancy) is handled in one place and disappears from all business logic." },
+      { t: 'terms', l: 'Key Terms', v: ['Global Query Filter', 'HasQueryFilter', 'ITenantEntity', 'TenantResolutionMiddleware', 'row-level isolation', 'JWT tid claim', 'OnModelCreating', 'ICurrentUserService'] },
+      { t: 'fu', v: 'What happens to soft-deleted records? Can a tenant accidentally see their own deleted data if the Global Query Filter only checks TenantId?', fuLink: 55 }
+    ]
+  },
+  {
+    id: 53, cat: 'dotnet', level: 'advanced', resume: false, tag: 'EHS',
+    q: 'You\'re designing an audit log entity for a multi-tenant compliance platform. What are the key design decisions — and why does the AuditLog entity deliberately break some patterns you\'ve applied to every other entity?',
+    answer: [
+      { t: 'text', l: 'What an audit log is in a compliance context', v: "An audit log is an immutable record of every state change to a business entity: who changed it, when, what it looked like before, and what it looks like after. In a compliance domain like EHS (Environment, Health, Safety), this is not optional — regulators, auditors, and incident investigators all need to trace the full history of an incident or corrective action. The AuditLog table is the authoritative trail; it must be impossible to silently modify or delete." },
+      { t: 'text', l: 'The entity fields and their purpose', v: "AuditLog captures: TenantId (to scope queries), EntityName (which aggregate — 'Incident', 'CorrectiveAction'), EntityId (the Guid of the changed record as a string), Action (Created/Updated/Deleted enum), ChangedById (FK to User — who did it), ChangedAt (when), OldValues and NewValues (nullable JSON snapshots — null on Created and Deleted respectively), and CorrelationId (the request-scoped ID from IRequestContext, wired in EHS-47 — joins this audit row back to structured Serilog logs). Together these fields answer: what changed, who changed it, when, and what request caused it." },
+      { t: 'text', l: 'Why AuditLog breaks the Global Query Filter rule', v: "Every other multi-tenant entity gets a HasQueryFilter(x => x.TenantId == _tenantId) in OnModelCreating. AuditLog does not. The reason: audit rows are written by an EF SaveChangesInterceptor that runs inside DbContext.SaveChangesAsync — it has access to the same DbContext. If a Global Query Filter were applied, the interceptor's INSERT could be accidentally filtered out or the query that reads audit rows could be scoped unexpectedly. Instead, the handler that queries audit history explicitly adds WHERE TenantId = @tenantId — the filter is deliberate and visible, not hidden. Hiding a filter on a security-critical table is the wrong trade-off." },
+      { t: 'text', l: 'Why AuditLog has no RowVersion concurrency token', v: "Every other entity inheriting from BaseEntity gets .IsRowVersion() configured in its EF config — this turns RowVersion into a SQL Server timestamp concurrency token that EF checks on every UPDATE. AuditLog deliberately omits this. Audit rows are immutable: once written, they are never updated. A concurrency token on an immutable record is meaningless — it protects against concurrent UPDATE conflicts that will never happen. Configuring it would also force the INSERT to comply with SQL Server's timestamp semantics unnecessarily." },
+      { t: 'text', l: 'Why ChangedById FK uses Restrict, not Cascade', v: "Most FKs in this codebase use DeleteBehavior.Restrict — you cannot delete a referenced entity without first cleaning up or re-assigning its dependents. For AuditLog this is especially important: if a user is deactivated or even (hypothetically) hard-deleted, their audit history must survive. Cascade would silently wipe every audit row that user ever produced. Restrict makes the constraint explicit — a future developer cannot accidentally delete a user and lose compliance history without the database refusing the operation." },
+      { t: 'terms', l: 'Key Terms', v: ['AuditLog', 'SaveChangesInterceptor', 'immutability', 'CorrelationId', 'DeleteBehavior.Restrict', 'Global Query Filter', 'OldValues/NewValues JSON', 'AuditAction enum'] },
+      { t: 'fu', v: 'The AuditLog is written by an EF interceptor inside SaveChangesAsync. What happens to the audit row if the main SaveChanges call fails mid-transaction — does the audit row get committed without the actual change?', fuLink: 56 }
+    ]
+  },
+  {
+    id: 54, cat: 'system', level: 'advanced', resume: false, tag: 'EHS',
+    q: 'How does the Outbox Pattern guarantee that Elasticsearch stays in sync with SQL Server even if the app crashes mid-write?',
+    answer: [
+      { t: 'text', l: 'The problem with naive dual-write', v: "The naive approach: write entity to SQL Server, then POST document to Elasticsearch. If the app crashes after the SQL commit but before the ES write, SQL has the record but ES does not. These two stores are now permanently out of sync. There is no retry — the in-memory state of the failed request is gone." },
+      { t: 'text', l: 'How the Outbox Pattern solves it', v: "Instead of writing to ES directly, write an OutboxMessage row to a SQL table in the same transaction as the entity change. Both the entity INSERT and the OutboxMessage INSERT commit atomically — or neither does. A background worker (hosted service or job) polls the Outbox table, reads unprocessed rows, writes to Elasticsearch, and marks each row as processed only after a confirmed ES write." },
+      { t: 'text', l: 'What happens on crash', v: "If the app crashes after the SQL commit: the OutboxMessage row survived the crash because it was committed. On restart, the background worker finds the unprocessed row and retries. If the worker crashes after the ES write but before marking the row processed: the row gets retried and ES is written again. This is at-least-once delivery — the ES write may happen more than once, but never zero times." },
+      { t: 'text', l: 'Idempotency makes at-least-once safe', v: "Elasticsearch document writes are idempotent when you use the entity Guid as the document ID. Writing the same document twice just overwrites — the final state is correct. This is why at-least-once delivery is acceptable here: a duplicate ES write has no harmful side effect." },
+      { t: 'terms', l: 'Key Terms', v: ['Outbox Pattern', 'OutboxMessages table', 'at-least-once delivery', 'idempotency', 'dual-write', 'transactional outbox', 'background worker'] },
+      { t: 'fu', v: 'What happens if the background worker crashes after writing to Elasticsearch but before marking the OutboxMessage as processed — how does your system handle the duplicate?', fuLink: null }
+    ]
+  },
+  {
+    id: 55, cat: 'dotnet', level: 'advanced', resume: false, tag: 'EHS',
+    q: 'Your Global Query Filter for multi-tenancy only checks TenantId. A tenant deletes an incident. Can they accidentally see that deleted record in a subsequent query — and how do you fix it?',
+    answer: [
+      { t: 'text', l: 'Yes — soft deletes are invisible only if the filter includes IsDeleted', v: "Soft delete sets IsDeleted = true on the row but does not remove it from the database. A Global Query Filter of HasQueryFilter(x => x.TenantId == _tenantId) scopes results to the tenant's rows — but includes all rows, both active and soft-deleted. The tenant would see their own deleted records as if they still existed." },
+      { t: 'text', l: 'The correct combined filter', v: "The filter must be: HasQueryFilter(x => x.TenantId == _tenantId && !x.IsDeleted). Both conditions are required. TenantId scopes to the tenant. IsDeleted = false hides logically deleted rows. EF Core compiles both into every generated query as AND predicates: WHERE TenantId = @tid AND IsDeleted = 0. Miss either condition and you have a data correctness bug." },
+      { t: 'text', l: 'The exception: User and Organization', v: "User and Organization have IsDeleted-only filters — no TenantId filter. Login is a global operation that looks up a user by email across all tenants before the tenant context is known. If you applied a TenantId filter to User at login time, no user could ever authenticate. Soft-delete is still enforced so inactive users cannot log in." },
+      { t: 'text', l: 'One filter per entity — set once in OnModelCreating', v: "Setting HasQueryFilter in both OnModelCreating AND the entity's IEntityTypeConfiguration causes EF to apply both filters, generating a double predicate in SQL. The result is still correct but produces confusing WHERE (TenantId = @tid AND IsDeleted = 0) AND (TenantId = @tid AND IsDeleted = 0). Set filters once, in DbContext.OnModelCreating only." },
+      { t: 'terms', l: 'Key Terms', v: ['HasQueryFilter', 'IsDeleted', 'soft delete', 'combined predicate', 'OnModelCreating', 'Global Query Filter', 'TenantId isolation'] },
+      { t: 'fu', v: 'A developer calls IgnoreQueryFilters() in a handler to retrieve a soft-deleted record for restore. What cross-tenant data do they accidentally expose?', fuLink: null }
+    ]
+  },
+  {
+    id: 57, cat: 'dotnet', level: 'advanced', resume: false, tag: 'EHS',
+    q: 'You need to wire a scoped SaveChangesInterceptor into EF Core\'s DbContext — the interceptor has constructor dependencies on other scoped services. The simple AddDbContext(options => ...) overload doesn\'t work. What\'s the correct registration pattern and why?',
+    answer: [
+      { t: 'text', l: 'Why the simple overload fails', v: "The standard AddDbContext<T>(options => ...) lambda signature gives you only a DbContextOptionsBuilder — no access to the DI container. If your interceptor has constructor dependencies on scoped services (ICurrentUserService, IRequestContext), the container cannot resolve them here. Passing new AuditInterceptor() manually would skip DI entirely, meaning you cannot inject anything. The simple overload is a dead end for any interceptor with dependencies." },
+      { t: 'text', l: 'The factory overload — (sp, options)', v: "AddDbContext<T>((sp, options) => ...) provides both the IServiceProvider and the options builder. 'sp' is the live DI container at runtime. You call sp.GetRequiredService<AuditInterceptor>() to resolve a fully-constructed interceptor — including all its constructor dependencies — and pass it to options.AddInterceptors(...). This is not a hack; it is the EF Core-designed extension point for interceptors that need services." },
+      { t: 'text', l: 'Scoped lifetime — why it matters', v: "Register the interceptor as services.AddScoped<AuditInterceptor>() before the DbContext registration. Scoped means one instance per HTTP request — the same lifetime as DbContext itself. If you registered it as Singleton, the interceptor's ICurrentUserService dependency (which is request-scoped) would be captured once and never updated, returning the first request's user for all subsequent requests. Singleton interceptor + Scoped service = captive dependency bug." },
+      { t: 'text', l: 'Complete registration pattern', v: "services.AddScoped<AuditInterceptor>();\nservices.AddDbContext<ApplicationDbContext>((sp, options) =>\n    options.UseSqlServer(connectionString, b => b.MigrationsAssembly(...))\n           .AddInterceptors(sp.GetRequiredService<AuditInterceptor>()));\n\nThis is the only correct pattern for interceptors with scoped dependencies. The factory overload replaces the simple overload completely — you cannot mix them." },
+      { t: 'text', l: 'Where this pattern generalises', v: "The (sp, options) factory overload appears anywhere a framework's own setup method needs to reach DI: AddDbContext, AddSignalR, AddQuartz, AddHangfire, AddHttpClient with typed clients that have dependencies. The diagnostic trigger is always the same: 'I need to pass an object to this framework method, and that object has constructor dependencies.' That thought should immediately prompt you to look for a factory overload." },
+      { t: 'terms', l: 'Key Terms', v: ['SaveChangesInterceptor', 'AddInterceptors', 'factory overload', 'IServiceProvider', 'scoped lifetime', 'captive dependency', 'DbContextOptionsBuilder'] },
+      { t: 'fu', v: 'If you register the AuditInterceptor as Singleton instead of Scoped, what specific bug manifests — and why does it only show up under concurrent load, not in single-user testing?', fuLink: null }
+    ]
+  },
+  {
+    id: 56, cat: 'dotnet', level: 'advanced', resume: false, tag: 'EHS',
+    q: 'The AuditLog is written by a SaveChangesInterceptor inside DbContext.SaveChangesAsync. If the interceptor writes the audit row and then the main entity save fails — does the audit row survive?',
+    answer: [
+      { t: 'text', l: 'No — both are in the same transaction', v: "SaveChangesInterceptor hooks into the EF Core pipeline inside a single SaveChangesAsync call. When SaveChanges begins, EF starts a database transaction. The interceptor adds AuditLog rows to the same DbContext change tracker before the transaction commits. If the main save throws — a concurrency conflict, a constraint violation, any exception — the transaction rolls back. The AuditLog rows roll back with it. No orphaned audit row is written for a failed change." },
+      { t: 'text', l: 'Why this matters for compliance', v: "An audit row that exists without a corresponding entity change would be worse than no audit row — it would record a change that never happened. The transactional guarantee means the audit trail is always consistent with the actual entity state: every audit row corresponds to a change that committed, and every committed change has an audit row." },
+      { t: 'text', l: 'The recursive save problem', v: "The interceptor cannot call DbContext.SaveChanges() to write audit rows — that would re-enter SaveChanges and trigger the interceptor again recursively. Instead, the interceptor adds AuditLog entities to the DbContext change tracker directly (context.AuditLogs.AddRange(...)), and they are committed as part of the same SaveChanges call that triggered the interceptor. No second SaveChanges needed." },
+      { t: 'text', l: 'When the interceptor fires', v: "SavingChanges fires before the SQL is sent — use it to snapshot OldValues from the ChangeTracker (before EF clears original values). SavedChanges fires after the commit — use it to write the audit rows with final Ids (important for Created events where the Guid is generated by the DB). The split timing is required to capture both the before and after state correctly." },
+      { t: 'terms', l: 'Key Terms', v: ['SaveChangesInterceptor', 'SavingChanges', 'SavedChanges', 'ChangeTracker', 'database transaction', 'rollback', 'OldValues snapshot', 'at-most-once audit'] },
+      { t: 'fu', v: 'The interceptor snapshots OldValues in SavingChanges and writes audit rows in SavedChanges. What happens to the snapshot if two SaveChanges calls run concurrently on the same DbContext instance?', fuLink: null }
+    ]
+  },
+  {
+    id: 58, cat: 'dotnet', level: 'medium', resume: false, tag: 'EHS',
+    q: 'Your .NET 8 API stores all timestamps as DateTime with Kind = Utc. A colleague argues this is equivalent to DateTimeOffset since you always call DateTime.UtcNow. What is the flaw in that reasoning, and what specifically breaks at the SQL Server boundary?',
+    answer: [
+      { t: 'text', l: 'DateTime.Kind is in-process metadata, not structure', v: "Kind = Utc is a 2-bit flag on the .NET object. It does not survive serialization, database round-trips, or process boundaries. The value 2026-05-31T14:23:00 has the same byte representation whether Kind is Utc, Local, or Unspecified — the flag is discarded when writing to a database column. Your discipline of always calling DateTime.UtcNow is not enforced by the type system; it is a convention that any developer can violate without a compiler error." },
+      { t: 'text', l: 'What breaks at the SQL Server boundary', v: "DateTime maps to datetime2(7) — stores raw ticks, no offset. EF Core writes 2026-05-31T14:23:00 and the Kind flag is gone. When EF Core reads it back, it returns DateTime with Kind = Unspecified (not Utc). DateTimeOffset maps to datetimeoffset(7) — stores the value plus the UTC offset (+00:00) in the column. SQL Server preserves the offset. EF Core reads it back as DateTimeOffset with Offset = +00:00. No flag, no convention — the correctness is in the column type." },
+      { t: 'text', l: 'What silently breaks in practice', v: "An app server in US-East and one in EU-West both read the same datetime2 column. If either calls .ToLocalTime() on the DateTime returned by EF (Kind = Unspecified), they interpret it as their own local timezone — audit log timestamps become wrong with no error thrown. JSON serialization of DateTime(Kind=Unspecified) via System.Text.Json omits the Z suffix — API consumers cannot tell if the value is UTC or local. DateTimeOffset always serializes with the offset: 2026-05-31T14:23:00+00:00." },
+      { t: 'text', l: 'The migration cost — do it before production data', v: "Changing DateTime to DateTimeOffset on an existing schema requires an EF Core migration that drops and recreates all affected columns (datetime2 to datetimeoffset). EF Core flags this as a potential data-loss migration. In the EHS platform this touched BaseEntity.CreatedAt and UpdatedAt (inherited by every entity), plus OccurredAt, DueDate, CompletedAt, ChangedAt, and LastLoginAt — one migration (EHS62_DateTimeOffset) covered all of them. Do this sweep before any production tenant data exists; retrofitting it later requires a multi-step online migration." },
+      { t: 'text', l: 'The one correct exception — JWT expiry', v: "SecurityTokenDescriptor.Expires is DateTime? — a .NET JWT library requirement. This is a library boundary: you pass DateTime.UtcNow.AddMinutes(n) here and nowhere else. Document it as an explicit exception (ADR-016 in this project) so future developers do not mistake it for an oversight." },
+      { t: 'terms', l: 'Key Terms', v: ['DateTimeOffset', 'DateTime.Kind', 'datetime2', 'datetimeoffset', 'Kind = Unspecified', 'UTC offset', 'EF Core column type mapping', 'library boundary exception'] },
+      { t: 'fu', v: 'If a client submits OccurredAt: 2026-05-31T09:00:00+05:30 (IST), and the handler stores it directly as DateTimeOffset, what does the datetimeoffset column hold — and how would you normalize it to UTC before storage?', fuLink: null }
+    ]
+  },
+  {
+    id: 60, cat: 'dotnet', level: 'advanced', resume: false, tag: 'EHS',
+    q: 'You need to restrict an audit log endpoint to specific roles in your ASP.NET Core API. A junior dev writes [Authorize(Roles = "OrganizationAdmin,SafetyOfficer")] directly on the action. Your tech lead flags it in review. What are the three failure modes of hardcoded role strings on controller actions, and how do you build a more extensible system that survives a future move to permission-based RBAC?',
+    answer: [
+      { t: 'text', l: 'Concept', v: '[Authorize(Roles = "...")] works for one endpoint in a prototype. It fails at scale for three reasons: (1) Magic strings — a typo or rename silently gives everyone a 403 with no compiler error. (2) Scattered ownership — the same role list appears on every endpoint that shares the rule. Change the rule, find and update every action. (3) Wrong layer — the question "who satisfies this policy" is a business rule that belongs in configuration or a database, not compiled into your controller.' },
+      { t: 'text', l: 'How it works — Policy-based authorization', v: 'ASP.NET Core separates policy names (what you check) from policy rules (who satisfies them). A controller action declares [Authorize(Policy = "AuditLogAccess")] — it says nothing about roles. In Program.cs, AddAuthorization() defines what AuditLogAccess means: RequireRole(...), RequireClaim(...), or a custom IAuthorizationRequirement. The controller never changes when the rule changes.' },
+      { t: 'text', l: 'In practice — Config-driven roles', v: 'Store the role list in appsettings.json: "AuthorizationPolicies": { "AuditLogAccess": ["OrganizationAdmin", "SafetyOfficer", "ComplianceManager"] }. Program.cs reads the dictionary and registers each policy in a loop: foreach (var (name, roles) in policies) options.AddPolicy(name, p => p.RequireRole(roles)). Adding a role to audit log access is now a config change with no recompile. The policy name constant (Policies.AuditLogAccess) lives in Application/Common/Constants — one string, shared by both the controller attribute and the registration loop.' },
+      { t: 'text', l: 'The evolution path to permission-based RBAC', v: 'When clients need granular control (buy module X, get access Y), the controller attribute [Authorize(Policy = "AuditLogAccess")] never changes. Only the policy registration changes: from RequireRole(...) to RequireClaim("permission", "audit-log.read"). Permissions are loaded from DB into JWT at login time. The seam is the policy constant — everything behind it can be swapped without touching a single controller.' },
+      { t: 'terms', l: 'Key Terms', v: ['IAuthorizationRequirement', 'IAuthorizationHandler', 'AddAuthorization options', 'RequireRole vs RequireClaim', 'policy name constant', 'composition root', 'config-driven authorization', 'permission claim in JWT'] },
+      { t: 'fu', v: 'Your policy currently uses RequireRole() which checks ClaimTypes.Role in the JWT. You move to permission-based RBAC and switch to RequireClaim("permission", "audit-log.read"). What has to change in the login handler, and how do you ensure old JWTs (still using the role claim) do not break active sessions during the transition?', fuLink: null }
+    ]
+  },
+  {
+    id: 59, cat: 'dotnet', level: 'medium', resume: false, tag: 'EHS',
+    q: 'Your .NET 8 API serializes DateTimeOffset timestamps as "2026-05-31T10:00:00+00:00" but your frontend team expects "2026-05-31T10:00:00.000Z". What causes this and how do you fix it without touching every endpoint? Also: a client submits OccurredAt: "2026-05-31T15:30:00+05:30" — how do you enforce UTC-only at the API boundary?',
+    answer: [
+      '<b>Concept:</b> System.Text.Json serializes DateTimeOffset using the ISO 8601 extended format with an explicit offset (+00:00). The Z suffix is semantically equivalent but preferred by industry APIs — AWS, Azure, and GCP all emit Z. Some JavaScript date libraries treat +00:00 and Z differently in timezone-aware display, and some strict parsers reject one form.',
+      '<b>Fix — custom JsonConverter:</b> Create a sealed class implementing JsonConverter&lt;DateTimeOffset&gt;. In Write(), call value.ToUniversalTime().ToString("yyyy-MM-dd\'T\'HH:mm:ss.fffZ", CultureInfo.InvariantCulture). In Read(), use DateTimeOffset.Parse with DateTimeStyles.RoundtripKind to handle both Z and +00:00 from incoming payloads. Wire it globally in Program.cs: builder.Services.AddControllers().AddJsonOptions(o =&gt; o.JsonSerializerOptions.Converters.Add(new DateTimeOffsetUtcZConverter())). One registration covers every endpoint.',
+      '<b>UTC normalization at the boundary:</b> A client can legally submit "2026-05-31T15:30:00+05:30" — it is a valid DateTimeOffset. Without a validator rule, EF Core persists it with the +05:30 offset intact. Add to FluentValidation: RuleFor(x =&gt; x.OccurredAt).Must(x =&gt; x.Offset == TimeSpan.Zero).WithMessage("OccurredAt must be UTC (offset +00:00)"). This rejects non-UTC offsets before the command reaches the handler.',
+      '<b>Why reject instead of silently normalize?</b> You could call .ToUniversalTime() in the handler. The argument against: silent normalization hides client bugs. A client submitting +05:30 may have a timezone conversion error in their integration. Rejecting it forces them to fix it in their tests, not discover it via corrupted data in production.',
+      '<b>Key terms:</b> DateTimeOffset, JsonConverter&lt;T&gt;, DateTimeStyles.RoundtripKind, FluentValidation Must(), Offset == TimeSpan.Zero, ISO 8601 Z suffix, API boundary normalization.',
+      '<b>Follow-up:</b> Why not use NodaTime? NodaTime replaces the entire type system (Instant, LocalDateTime, ZonedDateTime) and has no first-class EF Core support — requires custom value converters for every column. For this project the constraint is simpler: DateTimeOffset everywhere + Z-suffix converter + IANA timezone string on Incident. No extra library needed.'
+    ]
+  }
+];
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+
+let state = {
+  view: 'card',
+  catFilter: 'all',
+  levelFilter: 'all',
+  idx: 0,
+  revealed: false,
+  scores: { nailed: 0, okay: 0, work: 0 }
+};
+
+function filtered() {
+  return Q.filter(q => {
+    const catOk = state.catFilter === 'all' ||
+                  (state.catFilter === 'ehs' ? q.tag === 'EHS' : q.cat === state.catFilter);
+    const lvlOk = state.levelFilter === 'all' || q.level === state.levelFilter;
+    return catOk && lvlOk;
+  });
+}
+
+// ─── FILTERS ─────────────────────────────────────────────────────────────────
+
+function setFilter(type, val, btn) {
+  if (type === 'cat') {
+    state.catFilter = val;
+    document.querySelectorAll('#catFilters .fbtn').forEach(b => b.classList.remove('on'));
+  } else {
+    state.levelFilter = val;
+    document.querySelectorAll('#levelFilters .fbtn').forEach(b => b.classList.remove('on'));
+  }
+  btn.classList.add('on');
+  state.idx = 0;
+  state.revealed = false;
+  render();
+}
+
+// ─── JUMP TO QUESTION ────────────────────────────────────────────────────────
+
+function goToQuestion(id) {
+  state.catFilter = 'all';
+  state.levelFilter = 'all';
+  document.querySelectorAll('#catFilters .fbtn').forEach(b => b.classList.remove('on'));
+  document.querySelector('#catFilters .fbtn[data-cat="all"]').classList.add('on');
+  document.querySelectorAll('#levelFilters .fbtn').forEach(b => b.classList.remove('on'));
+  document.querySelector('#levelFilters .fbtn[data-lvl="all"]').classList.add('on');
+  const idx = Q.findIndex(q => q.id === id);
+  if (idx !== -1) { state.idx = idx; state.revealed = false; state.view = 'card'; render(); }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ─── RENDER HELPERS ──────────────────────────────────────────────────────────
+
+const CAT_META = {
+  about:     { label: 'About You',       cls: 't-about' },
+  dotnet:    { label: '.NET & C#',       cls: 't-dotnet' },
+  sql:       { label: 'SQL & Databases', cls: 't-sql' },
+  system:    { label: 'System Design',   cls: 't-system' },
+  behaviour: { label: 'Behavioural',     cls: 't-behaviour' },
+  remote:    { label: 'Remote Work',     cls: 't-remote' }
+};
+
+function tagHtml(cls, label) {
+  return `<span class="tag ${cls}">${label}</span>`;
+}
+
+function answerHtml(sections) {
+  return sections.map(s => {
+    if (s.t === 'text') return `<div class="a-block"><div class="a-lbl">${s.l}</div><div class="a-text">${s.v}</div></div>`;
+    if (s.t === 'terms') return `<div class="a-block"><div class="a-lbl">${s.l}</div><div class="a-terms">${s.v.map(t => `<span class="a-term">${t}</span>`).join('')}</div></div>`;
+    if (s.t === 'fu') {
+      const link = s.fuLink ? `<span class="fu-link" onclick="goToQuestion(${s.fuLink})">Jump to that question →</span>` : '';
+      return `<div class="follow-up"><div class="fu-lbl">Follow-up they will ask</div><div class="fu-text">${s.v}</div>${link}</div>`;
+    }
+    return '';
+  }).join('');
+}
+
+// ─── CARD VIEW ───────────────────────────────────────────────────────────────
+
+function render() {
+  const list = filtered();
+  const cardView = document.getElementById('cardView');
+  const navBar = document.getElementById('navBar');
+  const listView = document.getElementById('listView');
+
+  document.getElementById('sNailed').textContent = state.scores.nailed;
+  document.getElementById('sOkay').textContent   = state.scores.okay;
+  document.getElementById('sWork').textContent   = state.scores.work;
+
+  if (state.view === 'list') {
+    cardView.classList.add('hidden');
+    navBar.classList.add('hidden');
+    listView.classList.remove('hidden');
+    renderList(list);
+    document.getElementById('counter').textContent = `${list.length} question${list.length !== 1 ? 's' : ''}`;
+    return;
+  }
+
+  cardView.classList.remove('hidden');
+  listView.classList.add('hidden');
+
+  if (list.length === 0) {
+    navBar.classList.add('hidden');
+    document.getElementById('qCard').innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">No questions match this filter</div></div>`;
+    document.getElementById('counter').textContent = 'No cards';
+    return;
+  }
+
+  navBar.classList.remove('hidden');
+  if (state.idx >= list.length) state.idx = 0;
+
+  const q = list[state.idx];
+  const cat = CAT_META[q.cat];
+  const levelCls = `t-${q.level}`;
+  const levelLabel = q.level.charAt(0).toUpperCase() + q.level.slice(1);
+
+  let tags = tagHtml(cat.cls, cat.label) + tagHtml(levelCls, levelLabel);
+  if (q.resume) tags += tagHtml('t-resume', '📋 Resume-linked');
+  if (q.tag) tags += tagHtml('t-ehs', '🏗 EHS');
+
+  let cardHtml = `
+    <div class="q-label">Question</div>
+    <div class="q-tags">${tags}</div>
+    <div class="q-text">${q.q}</div>
+  `;
+
+  if (!state.revealed) {
+    cardHtml += `<div class="reveal-area" onclick="reveal()">Tap to reveal answer</div>`;
+  } else {
+    cardHtml += `
+      <div class="answer">${answerHtml(q.answer)}</div>
+      <div class="score-btns">
+        <button class="sbtn sbtn-n" onclick="score('nailed')">✓ Nailed it</button>
+        <button class="sbtn sbtn-o" onclick="score('okay')">~ Okay</button>
+        <button class="sbtn sbtn-w" onclick="score('work')">✗ Need work</button>
+      </div>
+    `;
+  }
+
+  document.getElementById('qCard').innerHTML = cardHtml;
+
+  const pos = state.idx + 1;
+  const total = list.length;
+  document.getElementById('counter').textContent = `Card ${pos} of ${total}`;
+  document.getElementById('navPos').textContent = `${pos} / ${total}`;
+  document.getElementById('btnPrev').disabled = state.idx === 0;
+  document.getElementById('btnNext').disabled = state.idx === list.length - 1;
+}
+
+function reveal() {
+  state.revealed = true;
+  render();
+}
+
+function score(type) {
+  state.scores[type]++;
+  go(1);
+}
+
+function go(dir) {
+  const list = filtered();
+  const next = state.idx + dir;
+  if (next >= 0 && next < list.length) {
+    state.idx = next;
+    state.revealed = false;
+    render();
+  }
+}
+
+// ─── LIST VIEW ───────────────────────────────────────────────────────────────
+
+function renderList(list) {
+  document.getElementById('listCount').textContent = `${list.length} question${list.length !== 1 ? 's' : ''}`;
+  document.getElementById('listItems').innerHTML = list.map((q, i) => {
+    const cat = CAT_META[q.cat];
+    const levelLabel = q.level.charAt(0).toUpperCase() + q.level.slice(1);
+    return `
+      <div class="li" id="li-${q.id}">
+        <div class="li-head" onclick="toggleListItem(${q.id})">
+          <div class="li-num">${String(i + 1).padStart(2, '0')}</div>
+          <div class="li-body">
+            <div class="li-q">${q.q}</div>
+            <div class="li-tags">
+              ${tagHtml(cat.cls, cat.label)}
+              ${tagHtml(`t-${q.level}`, levelLabel)}
+              ${q.resume ? tagHtml('t-resume', '📋 Resume-linked') : ''}
+              ${q.tag ? tagHtml('t-ehs', '🏗 EHS') : ''}
+            </div>
+          </div>
+          <div class="li-chev">▶</div>
+        </div>
+        <div class="li-ans">${answerHtml(q.answer)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleListItem(id) {
+  const el = document.getElementById(`li-${id}`);
+  el.classList.toggle('open');
+}
+
+// ─── VIEW TOGGLE ─────────────────────────────────────────────────────────────
+
+function toggleView() {
+  state.view = state.view === 'card' ? 'list' : 'card';
+  const btn = document.getElementById('viewToggle');
+  btn.textContent = state.view === 'card' ? 'List View' : 'Card View';
+  btn.classList.toggle('active', state.view === 'list');
+  render();
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+
+render();
+</script>
+</body>
+</html>
