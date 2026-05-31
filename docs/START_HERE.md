@@ -14,16 +14,17 @@ EHS-58: GET /api/incidents/{id}/audit-log + GET /api/correctiveactions/{id}/audi
 
 ## Last Session Handoff
 
-**Session 21 (2026-05-31):** EHS-62 DONE — global DateTime→DateTimeOffset sweep. 52 tests green. Jira → Done.
+**Session 22 (2026-05-31):** EHS-62 carry-overs committed. Z-suffix converter wired, UTC offset validation added to all 4 validators. 52 tests green.
 
 **Completed this session:**
-- EHS-62: BaseEntity, all domain entities, all commands/validators/DTOs, AuditInterceptor migrated to DateTimeOffset. EHS62_DateTimeOffset migration applied.
-- Context management restructure: new sliding-window doc structure implemented (this file is now the router).
+- `DateTimeOffsetUtcZConverter` wired in `Program.cs` — all DateTimeOffset fields now serialize as `Z` suffix
+- UTC normalization enforced at all 4 validators (OccurredAt × 2, DueDate × 2) — `.Must(x => x.Offset == TimeSpan.Zero)`
+- Test files cleaned up: `DateTime.UtcNow` → `DateTimeOffset.UtcNow` across 3 test files
+- technical-debt.md #24 marked ✅ Fixed
 
-**Not yet committed (carry into next session):**
-- `DateTimeOffsetUtcZConverter` — written, needs to go in `src/EHSPlatform.API/Converters/`, wire in Program.cs
-- UTC validator enforcement — `.Must(x => x.Offset == TimeSpan.Zero)` on OccurredAt + DueDate validators — not yet added
-- New Jira tickets needed: named timezone on Incident, Testcontainers round-trip test
+**Still needed (not yet in Jira):**
+- Named timezone on Incident: `string? IncidentTimeZoneId nvarchar(50)` + migration
+- Testcontainers round-trip test for datetimeoffset column type
 
 **Watch out for EHS-58:**
 - AuditLog has NO Global Query Filter — queries MUST manually filter `WHERE TenantId = @tenantId`

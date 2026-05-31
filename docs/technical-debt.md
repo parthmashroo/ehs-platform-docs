@@ -521,4 +521,4 @@ Enum values are already stored as strings (e.g. `"Reported"`) — no translation
 | 21 | AuditLogs table — no partitioning strategy at scale | 🟢 Low | Phase 16 | — | ⬜ Open |
 | 22 | SQL Server Temporal Tables not implemented — no DB-level tamper-proof history | 🟢 Low | Phase 16 | — | ⬜ Open |
 | 23 | EHS-58 must produce field-level diff DTO — not expose raw JSON blobs | 🟡 Medium | EHS-58 | — | ⬜ Open |
-| 24 | Incoming DateTimeOffset values from clients not normalized to UTC — client can submit +05:30 offset and it persists as-is | 🟡 Medium | Phase 7 (before API goes public) | — | ⬜ Open |
+| 24 | Incoming DateTimeOffset values from clients not normalized to UTC — client can submit +05:30 offset and it persists as-is | 🟡 Medium | Phase 7 (before API goes public) | — | ✅ Fixed |

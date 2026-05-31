@@ -33,7 +33,7 @@
 
 | Decision | Status |
 |---|---|
-| JSON output format — emit Z suffix, not +00:00 | Converter written, not yet committed |
-| UTC normalization at validators — `.Must(x => x.Offset == TimeSpan.Zero)` | Not yet implemented |
-| Named timezone storage — add `IncidentTimeZoneId nvarchar(50)` to Incident | Ticket not yet created |
-| Testcontainers round-trip test for datetimeoffset column | Ticket not yet created |
+| JSON output format — emit Z suffix, not +00:00 | ✅ Done — `DateTimeOffsetUtcZConverter` wired in Program.cs |
+| UTC normalization at validators — `.Must(x => x.Offset == TimeSpan.Zero)` | ✅ Done — all 4 validators updated |
+| Named timezone storage — add `IncidentTimeZoneId nvarchar(50)` to Incident | ⬜ Ticket needed |
+| Testcontainers round-trip test for datetimeoffset column | ⬜ Ticket needed |
