@@ -6,36 +6,33 @@
 
 ## Current State
 
-Phase 6 🔄 IN PROGRESS | Sprint 7 | Next ticket: **EHS-59**
+Phase 6 ✅ COMPLETE | Phase 7 🔄 NEXT | Sprint 8
 
-EHS-59: Phase 6 docs update
+Phase 7: Semantic Form Engine. Create Phase 7 Jira tickets before coding starts.
+
+**Backlog items needing Jira tickets:**
+- `IncidentTimeZoneId nvarchar(50)` on Incident + migration (named timezone storage)
+- Testcontainers round-trip test for `datetimeoffset` column type
 
 ---
 
 ## Last Session Handoff
 
-**Session 23 (2026-05-31):** EHS-58 committed and pushed. 60 tests green. Audit log endpoints live.
+**Session 24 (2026-05-31):** EHS-59 committed and pushed. Phase 6 complete. Interview cards Q51–Q53 added.
 
-**Completed this session:**
-- `AuditableEntity` enum in `Domain/Enums/` — replaces magic strings, enables future entitlement gating
-- `AuditLogEntryDto` in `Application/Common/Models/`
-- `GetIncidentAuditLogQuery` + handler — explicit TenantId filter, LEFT JOIN Users with `IgnoreQueryFilters()`, `"FullName (Inactive)"` for soft-deleted users
-- `GetCorrectiveActionAuditLogQuery` + handler — identical pattern
-- `Policies` static class in `Application/Common/Constants/` — policy name constant, no magic strings
-- Config-driven `AddAuthorization` in `Program.cs` — roles in `appsettings.json`, not in code
-- `AuditLogConfiguration`: extended primary index to include `ChangedAt`; added `(TenantId, ChangedById, ChangedAt)` secondary index
-- `IncidentsController` + `CorrectiveActionsController`: `GetAuditLog` action behind `AuditLogAccess` policy
-- Migration: `EHS-58_AuditLogIndexes`
-- 8 new tests: ordering, tenant isolation, active user name, inactive user suffix
+**Phase 6 complete — all tickets done:**
+- EHS-56: AuditLog entity + EF config + migration ✅
+- EHS-57: AuditInterceptor — SavingChanges snapshot + ChangeTracker add pattern ✅
+- EHS-62: DateTime → DateTimeOffset global sweep + UTC validator + `DateTimeOffsetUtcZConverter` ✅
+- EHS-58: GET audit-log endpoints, policy-driven auth, config-driven roles, soft-deleted user names ✅
+- EHS-59: Phase 6 docs update ✅
 
-**New technical debt added (EHS-58 review):**
+**Open technical debt from Phase 6 (in technical-debt.md #25–27):**
 - #25: `a.Action.ToString()` inside LINQ select — client-side evaluation risk
 - #26: `IgnoreQueryFilters()` undocumented scope — future TenantId filter bypass risk
-- #27: `TenantId == Guid.Empty` guard missing in both handlers
+- #27: `TenantId == Guid.Empty` guard missing in both audit log handlers
 
-**Still needed (not yet in Jira):**
-- Named timezone on Incident: `string? IncidentTimeZoneId nvarchar(50)` + migration
-- Testcontainers round-trip test for datetimeoffset column type
+**60 tests green. Phase 7 starts next.**
 
 ---
 

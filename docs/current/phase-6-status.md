@@ -10,7 +10,7 @@
 | EHS-57 | AuditInterceptor (SaveChangesInterceptor) — before/after JSON on all auditable entities | ✅ Done |
 | EHS-62 | Global DateTime → DateTimeOffset sweep — BaseEntity, all entities, commands, validators, DTOs, AuditInterceptor, migration | ✅ Done |
 | EHS-58 | GET /api/incidents/{id}/audit-log + GET /api/correctiveactions/{id}/audit-log | ✅ Done |
-| EHS-59 | Phase 6 docs update | ⬜ To Do |
+| EHS-59 | Phase 6 docs update | ✅ Done |
 
 ## EHS-58 Lessons Learned
 
@@ -37,6 +37,14 @@
 - Pin `Microsoft.EntityFrameworkCore.InMemory` to `8.0.0` when adding via CLI — without the version flag, `dotnet add package` resolves latest (10.x), which targets net10 and fails on net8.
 - Architecture gap: `TenantId == Guid.Empty` on authenticated user → audit rows written with empty TenantId silently. Tracked in technical-debt.md.
 - Test coverage gap: `CorrectiveAction` auditing not yet tested — `AuditableTypes` includes it but no test verifies `EntityName = "CorrectiveAction"`.
+
+## EHS-59 Lessons Learned
+
+- Phase 6 is complete. Interview cards Q51 (DateTimeOffset/UTC), Q52 (config-driven auth policies), Q53 (IgnoreQueryFilters safety) added to ehs-deep.html.
+- Technical debt #25–27 captured in technical-debt.md from the EHS-58 review session.
+- Two items deferred: `IncidentTimeZoneId nvarchar(50)` on Incident + migration; Testcontainers DateTimeOffset round-trip test. Both need Jira tickets before Phase 7 backlog is locked.
+
+---
 
 ## Open Decisions (from EHS-62 architecture review)
 
