@@ -117,24 +117,75 @@ No separate authentication server (no IdentityServer, no Azure AD B2C in early p
 
 ---
 
-## ADR-006: Outbox Pattern for Notifications
+## ADR-006: Messaging Strategy — Dapr Pub/Sub + Selective Outbox
 
-**Decision:** When a command executes, domain events are saved to an OutboxMessage table
-in the same database transaction as the business data. A background worker reads and
-processes them (sends emails).
+**Updated May 2026 (Sprint 7):** Original ADR described an outbox-for-everything approach.
+After evaluating Kafka, MassTransit, Wolverine, Logstash, Debezium, and Dapr, the strategy
+was refined. Kafka and MassTransit explicitly rejected — see rationale below and rejected
+table at the end of this document. Locked decisions:
 
-**Why:**
-- Guaranteed delivery — if the email server is down, the message stays in OutboxMessage
-  and retries later. No events lost.
-- No distributed transaction needed — business data and event are saved atomically
-- Simple — no message broker infrastructure required in early phases
+---
+
+**MediatR + Dapr — the locked messaging stack (never revisit):**
+- MediatR 12.2.0 (MIT) — all in-process dispatch: commands, queries, pipeline behaviours
+- Dapr pub/sub — all out-of-process async delivery: email, notifications, AI events
+- No Wolverine, no MassTransit, no Kafka, no RabbitMQ direct SDK — ever
+
+---
+
+**Email / Notifications (Phase 9) — Dapr pub/sub, no Outbox:**
+
+```
+SaveChanges() succeeds
+  └── handler publishes Dapr event ("incident.created")
+        └── Dapr delivers to subscriber (email/notification service)
+              └── Dapr handles retry internally
+```
+
+The OutboxMessage table is NOT used for email. If the pod crashes between SaveChanges
+and the Dapr publish, the notification email is skipped — this is an acceptable trade-off.
+A missed notification email does not corrupt data or violate compliance requirements.
+Dapr's built-in retry handles transient delivery failures (email server down, etc.).
+
+---
+
+**Elasticsearch sync (Phase 11) — OutboxMessages table + BackgroundService + Polly:**
+
+```
+One DB transaction:
+  ├── Save business entity row
+  └── Save OutboxMessage row ("index this in ES")   ← atomicity guarantee
+
+BackgroundService polls OutboxMessages table every N seconds
+  └── reads unprocessed rows
+        └── calls ES index API (via Dapr output binding or HttpClient)
+              └── Polly retry on transient ES failure
+                    └── marks OutboxMessage processed
+```
+
+The OutboxMessage table IS used here because ES sync has a data-integrity requirement
+email does not. In a safety compliance platform, an entity committing to SQL while silently
+never reaching the search index is not acceptable — an auditor searching for an incident
+that doesn't appear in results is a compliance failure. The outbox guarantees the indexing
+job always runs, even after pod restart or crash.
+
+---
+
+**Kafka — explicitly rejected:**
+Kafka solves high fan-out (10+ consumers), event replay, and millions of events/second —
+none of which apply to a single-service portfolio project. Dapr pub/sub is backed by
+Azure Service Bus in production. If scale eventually demands Kafka as the broker, the
+Dapr component YAML is swapped — zero application code changes.
+
+---
 
 **MAISAAS comparison:**
-- MAISAAS used RabbitMQ with durable: false and autoAck: true
-- Messages were lost on RabbitMQ restart and on handler failure
-- Our approach is more reliable with less infrastructure
+MAISAAS used RabbitMQ with `durable: false`, `autoAck: true` — messages were silently lost
+on RabbitMQ restart and on handler exception. Our OutboxMessage table means the indexing
+job never disappears: it stays unprocessed until confirmed delivered.
 
-**Future:** Azure Service Bus replaces the outbox worker when scale requires it (Phase 15+).
+**Future:** Dapr component YAML swap (Redis → Azure Service Bus → Kafka) handles broker
+evolution with zero application code changes.
 
 ---
 
@@ -546,6 +597,38 @@ full API surface is known.
 
 ---
 
+## ADR-016: All Timestamps as DateTimeOffset — UTC Always, Locale at UI
+
+**Context:** Identified during EHS-56 architecture review (May 2026). `AuditLog.ChangedAt` was typed as `DateTime`, which exposed a broader gap: `BaseEntity.CreatedAt`, `BaseEntity.UpdatedAt`, `Incident.OccurredAt`, `CorrectiveAction.DueDate`, `CorrectiveAction.CompletedAt`, and all handler assignments used `DateTime.UtcNow`. Fixed globally in EHS-62 before EHS-57 started.
+
+**Decision:** All timestamp fields in domain entities, DTOs, and commands must be `DateTimeOffset`. Always store UTC. UI handles locale display (timezone, date format, currency).
+
+**Rules:**
+- All entity timestamp properties: `DateTimeOffset`
+- All handler/domain assignments: `DateTimeOffset.UtcNow`
+- All DTO and command fields that carry timestamps: `DateTimeOffset`
+- EF Core maps `DateTimeOffset` → `datetimeoffset(7)` in SQL Server automatically
+
+**Exception — library boundaries only:** `JWT SecurityTokenDescriptor.Expires` takes `DateTime?` — keep as `DateTime.UtcNow` at that call site only. Do not propagate the `DateTime` type into domain code.
+
+**Why not `DateTime` with UtcNow:**
+`DateTime.UtcNow` has `Kind = Utc`, but `Kind` is not persisted. SQL Server `datetime2` drops it. Values written from app servers in different timezones can sort incorrectly. `DateTimeOffset` carries the UTC offset in the value itself — SQL Server `datetimeoffset` persists it. Unambiguous regardless of server timezone.
+
+**Why UTC always, locale at UI:**
+A safety incident at 14:30+05:30 (IST) and 14:30+00:00 (GMT) are different moments. Store the moment (UTC). The UI reads the user's timezone preference and formats for display. No server-side conversion needed, no ambiguity in queries, no ordering bugs across regions.
+
+**Implementation:** EHS-62 — full sweep of BaseEntity, all entity fields, all handlers, all DTOs. One combined migration (`EHS62_DateTimeOffset`). 52 tests green.
+
+**Open questions resolved at Phase 12:**
+
+- **JSON output format — `+00:00` vs `Z`:** `System.Text.Json` serialises `DateTimeOffset.UtcNow` as `2026-05-31T14:23:00+00:00`, not `Z`. Both are valid ISO 8601. Decision on which format the frontend expects — and whether to add a `JsonConverter` — deferred to Phase 12 before the React client is built.
+- **`DueDate` deadline semantics:** Is a corrective action deadline "June 15th in the reporter's timezone" or "a specific UTC moment"? Not yet resolved. Stored as `DateTimeOffset` (preserves the submitted offset), but the API currently accepts any offset without normalizing. Resolve before Phase 12.
+
+**Known gap — UTC normalization not enforced at API boundary:**
+Validators check `GreaterThan(DateTimeOffset.UtcNow)` but do not check `Offset == TimeSpan.Zero`. A client can POST `DueDate: 2026-06-15T00:00:00+05:30` and it persists with a `+05:30` offset, violating "store UTC always." Fix: add `.Must(x => x.Offset == TimeSpan.Zero)` to `OccurredAt` and `DueDate` validators before Phase 12. Tracked in technical-debt.md #24.
+
+---
+
 ## What We Deliberately Did NOT Do (and Why)
 
 | Rejected Approach | Why Rejected |
@@ -558,6 +641,10 @@ full API surface is known.
 | Quartz.NET | .NET BackgroundService is sufficient, less infrastructure |
 | BinaryFormatter (Redis) | Obsolete in .NET 5+, use System.Text.Json instead |
 | FusionCache | Adds L1 in-memory + stampede protection but obscures Redis behaviour — reducing learning value and adding an intermediate abstraction. `ICacheService` + Dapr State (Phase 8) achieves cross-pod benefits at the right time without FusionCache. |
+| Kafka | Solves high fan-out (10+ services), event replay, and millions of events/second — none of which apply at our scale. Dapr pub/sub (Azure Service Bus) covers our fan-out needs. If scale eventually demands Kafka as the broker, swap the Dapr component YAML — zero application code changes. |
+| MassTransit v9 | Apache 2.0 on v8, commercial licence on v9. Starting on v8 knowing a forced migration or licence fee looms on any upgrade is not acceptable. Dapr pub/sub covers the async delivery use case cleanly. |
+| Wolverine (in-process dispatch) | MediatR 12.2.0 (MIT, explicitly pinned) is already in use and sufficient. Wolverine adds durable outbox + saga orchestration, but Dapr handles those concerns. No justification for a second dispatch library alongside MediatR. |
+| Logstash / Debezium / Kafka Connect (ES sync) | CDC infrastructure requires dedicated ops investment (Kafka cluster, Kafka Connect, schema registry). Our OutboxMessages table + BackgroundService + Polly achieves ES sync with zero external infrastructure beyond what we already have. |
 | Pessimistic DB locking | Holds connections across HTTP lifecycle, deadlocks under load |
 | Broad TTL caching of live operational data | Stale incident/permit status is a safety risk in compliance domain |
 | CQRS separate read store (current phases) | Redis covers us to 1,000+ tenants; separate read store is not justified yet |
@@ -744,7 +831,7 @@ sidecar is running. Those are bonuses, not justifications.
 | Building Block | EHS Use Case | Phase | Verdict |
 |---|---|---|---|
 | **Workflow** | Work permit multi-step approval (Gas Tester → Safety Officer → Supervisor, waits up to 2hrs, escalates) | Phase 13 | **Adopt — anchor use case** |
-| **Pub/Sub** | Domain events: IncidentCreated → email + ES index + AI classify (Phase 17). Each subscriber independent, no polling | Phase 9 | **Adopt if sidecar running** |
+| **Pub/Sub** | Email/notifications: publish after SaveChanges, Dapr delivers + retries (no Outbox needed). ES sync: OutboxMessage table feeds the BackgroundService which calls ES via Dapr output binding. AI classify (Phase 17): same pub/sub, each subscriber independent. | Phase 9 | **Adopt if sidecar running** |
 | **Bindings (Cron)** | Replaces `PeriodicTimer` in OverdueCaJob and OutboxProcessorJob with declarative scheduling | Phase 9 | **Adopt if sidecar running** |
 | **Bindings (Output)** | Azure Blob for file attachments (Phase 10), SendGrid for email (Phase 9) — no SDK boilerplate | Phase 9/10 | **Adopt if sidecar running** |
 | **State** | `DaprCacheService : ICacheService` — swaps `DistributedCacheService` via single DI line | Phase 8 | **Marginal alone — adopt if sidecar running** |
@@ -775,22 +862,32 @@ Phase 17: Evaluate Dapr Actors if real-time site safety board requires distribut
 
 ---
 
-### Why Outbox Table Stays Even With Dapr Pub/Sub
+### Why the Outbox Table Is Used for ES Sync But Not Email
 
-Dapr pub/sub does not give you atomicity with your DB transaction. If you publish a Dapr event
-and the API pod crashes before committing the SQL row — the event fired but the data isn't saved.
+Dapr pub/sub does not give you atomicity with your DB transaction. This matters differently
+depending on the failure scenario:
 
-The OutboxMessage table solves this:
+**Email — no Outbox needed:**
+If the pod crashes after SaveChanges but before the Dapr publish, the notification is skipped.
+A missed email is a poor experience, not a compliance failure. Dapr's built-in retry handles
+transient failures (email server down). Outbox overhead is not justified here.
+
+**Elasticsearch sync — Outbox required:**
+If the pod crashes after SaveChanges but before ES indexing, the entity is in SQL but invisible
+to search. In a safety compliance platform this is a data-integrity failure — an auditor
+searching for an incident that doesn't appear is a compliance risk. The OutboxMessage row
+commits in the same SQL transaction as the entity, guaranteeing the indexing job always runs.
+
 ```
 One DB transaction:
-  ├── Save business data row
-  └── Save OutboxMessage row ("fire this event")
+  ├── Save business entity row
+  └── Save OutboxMessage row ("index this in ES")
 
-Dapr pub/sub (or OutboxProcessorJob) reads OutboxMessage and delivers.
+BackgroundService reads OutboxMessage → calls ES via Dapr output binding → marks processed.
 ```
 
-Dapr replaces the delivery mechanism, not the atomicity guarantee. The OutboxMessage table
-is not redundant with Dapr — it is the write-ahead log that makes Dapr delivery safe.
+Dapr replaces the delivery/indexing mechanism. The OutboxMessage table provides the atomicity
+guarantee Dapr pub/sub cannot give. They are complementary, not redundant.
 
 ---
 
