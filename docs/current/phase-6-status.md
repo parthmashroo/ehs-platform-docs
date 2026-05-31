@@ -9,8 +9,17 @@
 | EHS-56 | AuditLog entity + EF config + migration | ✅ Done |
 | EHS-57 | AuditInterceptor (SaveChangesInterceptor) — before/after JSON on all auditable entities | ✅ Done |
 | EHS-62 | Global DateTime → DateTimeOffset sweep — BaseEntity, all entities, commands, validators, DTOs, AuditInterceptor, migration | ✅ Done |
-| EHS-58 | GET /api/incidents/{id}/audit-log + GET /api/correctiveactions/{id}/audit-log | ⬜ Next |
+| EHS-58 | GET /api/incidents/{id}/audit-log + GET /api/correctiveactions/{id}/audit-log | ✅ Done |
 | EHS-59 | Phase 6 docs update | ⬜ To Do |
+
+## EHS-58 Lessons Learned
+
+- `AuditLog` has no Global Query Filter — the `TenantId` filter in the handler is mandatory. Missing it leaks cross-tenant audit data silently.
+- `IgnoreQueryFilters()` on the Users join bypasses ALL filters on that DbSet — not just `IsDeleted`. If Users ever gets a TenantId filter, this silently becomes a cross-tenant name leak. Document this wherever `IgnoreQueryFilters()` appears on joins.
+- Soft-deleted users show as `"FullName (Inactive)"` — achieved by `IgnoreQueryFilters()` + `DefaultIfEmpty()` + null check. Active user: FullName only. FK integrity (`DeleteBehavior.Restrict`) ensures the user record always exists; `"Unknown User"` is a true last-resort fallback.
+- `AuditableEntity` enum replaces magic strings for `EntityName` — future entitlement gating (e.g. "this client only has Incident module") can gate on this enum directly.
+- Authorization policy is config-driven via `appsettings.json` `AuthorizationPolicies` section — no role strings in code. `Policies` static class owns the policy name constant; `Program.cs` wires roles from config.
+- `a.Action.ToString()` inside LINQ select may force client-side evaluation against SQL Server — safer to project the enum int and call `.ToString()` outside the query. Deferred; works correctly in tests and against InMemory.
 
 ## EHS-58 Design Notes (read before starting)
 

@@ -6,30 +6,36 @@
 
 ## Current State
 
-Phase 6 🔄 IN PROGRESS | Sprint 7 | Next ticket: **EHS-58**
+Phase 6 🔄 IN PROGRESS | Sprint 7 | Next ticket: **EHS-59**
 
-EHS-58: GET /api/incidents/{id}/audit-log + GET /api/correctiveactions/{id}/audit-log
+EHS-59: Phase 6 docs update
 
 ---
 
 ## Last Session Handoff
 
-**Session 22 (2026-05-31):** EHS-62 carry-overs committed. Z-suffix converter wired, UTC offset validation added to all 4 validators. 52 tests green.
+**Session 23 (2026-05-31):** EHS-58 committed and pushed. 60 tests green. Audit log endpoints live.
 
 **Completed this session:**
-- `DateTimeOffsetUtcZConverter` wired in `Program.cs` — all DateTimeOffset fields now serialize as `Z` suffix
-- UTC normalization enforced at all 4 validators (OccurredAt × 2, DueDate × 2) — `.Must(x => x.Offset == TimeSpan.Zero)`
-- Test files cleaned up: `DateTime.UtcNow` → `DateTimeOffset.UtcNow` across 3 test files
-- technical-debt.md #24 marked ✅ Fixed
+- `AuditableEntity` enum in `Domain/Enums/` — replaces magic strings, enables future entitlement gating
+- `AuditLogEntryDto` in `Application/Common/Models/`
+- `GetIncidentAuditLogQuery` + handler — explicit TenantId filter, LEFT JOIN Users with `IgnoreQueryFilters()`, `"FullName (Inactive)"` for soft-deleted users
+- `GetCorrectiveActionAuditLogQuery` + handler — identical pattern
+- `Policies` static class in `Application/Common/Constants/` — policy name constant, no magic strings
+- Config-driven `AddAuthorization` in `Program.cs` — roles in `appsettings.json`, not in code
+- `AuditLogConfiguration`: extended primary index to include `ChangedAt`; added `(TenantId, ChangedById, ChangedAt)` secondary index
+- `IncidentsController` + `CorrectiveActionsController`: `GetAuditLog` action behind `AuditLogAccess` policy
+- Migration: `EHS-58_AuditLogIndexes`
+- 8 new tests: ordering, tenant isolation, active user name, inactive user suffix
+
+**New technical debt added (EHS-58 review):**
+- #25: `a.Action.ToString()` inside LINQ select — client-side evaluation risk
+- #26: `IgnoreQueryFilters()` undocumented scope — future TenantId filter bypass risk
+- #27: `TenantId == Guid.Empty` guard missing in both handlers
 
 **Still needed (not yet in Jira):**
 - Named timezone on Incident: `string? IncidentTimeZoneId nvarchar(50)` + migration
 - Testcontainers round-trip test for datetimeoffset column type
-
-**Watch out for EHS-58:**
-- AuditLog has NO Global Query Filter — queries MUST manually filter `WHERE TenantId = @tenantId`
-- Response should return field-level diffs, not raw JSON blobs (technical-debt.md #23)
-- `ChangedById` → resolve display name at read time, do not store inline
 
 ---
 

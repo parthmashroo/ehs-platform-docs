@@ -494,6 +494,42 @@ Enum values are already stored as strings (e.g. `"Reported"`) — no translation
 
 ---
 
+## Phase 6 Review — EHS-58 Audit Log Endpoints (May 2026)
+
+### 🟢 `a.Action.ToString()` inside LINQ select — client-side evaluation risk
+**Finding:** The audit log handler calls `a.Action.ToString()` inside the LINQ `select` projection. EF Core may not be able to translate this enum `.ToString()` call to SQL and silently switch to client-side evaluation — fetching the full result set and evaluating in memory.
+
+**Fix:** Project `Action = (int)a.Action` and call `.ToString()` after `.ToListAsync()`, or store a local `var action = a.Action;` before the query and reference that inside the select.
+
+**Target phase:** Phase 6/7
+**Status:** ⬜ Open
+
+---
+
+### 🟢 `IgnoreQueryFilters()` on Users join — undocumented scope
+**Finding:** Both audit log handlers use `_context.Users.IgnoreQueryFilters()` in the join to access soft-deleted users. `IgnoreQueryFilters()` bypasses ALL query filters on `Users` — not just `IsDeleted`. If a TenantId filter is ever added to `Users`, this silently becomes a cross-tenant user name leak.
+
+**Fix:** Add a comment at every `IgnoreQueryFilters()` call explaining which filter is being bypassed and why. When a TenantId filter is added to Users, revisit all call sites.
+
+**Target phase:** Phase 8 (when Users gets TenantId filter)
+**Status:** ⬜ Open
+
+---
+
+### 🟡 `TenantId == Guid.Empty` guard missing in audit log handlers
+**Finding:** Both `GetIncidentAuditLogQueryHandler` and `GetCorrectiveActionAuditLogQueryHandler` use `_currentUser.TenantId` as the tenant filter. If `TenantId == Guid.Empty` (authenticated but no tenant — edge case tracked in existing debt), the handler silently returns an empty list rather than failing fast with a clear error.
+
+**Fix:** Add guard at the top of both handlers:
+```csharp
+if (_currentUser.TenantId == Guid.Empty)
+    return [];
+```
+
+**Target phase:** Phase 6
+**Status:** ⬜ Open
+
+---
+
 ## Summary Table
 
 | # | Finding | Severity | Target | Ticket | Status |
@@ -520,5 +556,8 @@ Enum values are already stored as strings (e.g. `"Reported"`) — no translation
 | 20 | Disconnected entity updates produce empty audit diffs | 🟡 Medium | Convention | — | ⬜ Monitor |
 | 21 | AuditLogs table — no partitioning strategy at scale | 🟢 Low | Phase 16 | — | ⬜ Open |
 | 22 | SQL Server Temporal Tables not implemented — no DB-level tamper-proof history | 🟢 Low | Phase 16 | — | ⬜ Open |
-| 23 | EHS-58 must produce field-level diff DTO — not expose raw JSON blobs | 🟡 Medium | EHS-58 | — | ⬜ Open |
+| 23 | EHS-58 returns raw JSON blobs for OldValues/NewValues — field-level diff DTO deferred | 🟡 Medium | Phase 12 | — | ⬜ Deferred |
 | 24 | Incoming DateTimeOffset values from clients not normalized to UTC — client can submit +05:30 offset and it persists as-is | 🟡 Medium | Phase 7 (before API goes public) | — | ✅ Fixed |
+| 25 | `a.Action.ToString()` inside LINQ select — may force client-side evaluation against SQL Server | 🟢 Low | Phase 6/7 | — | ⬜ Open |
+| 26 | `IgnoreQueryFilters()` on Users join bypasses ALL future filters — undocumented scope risk | 🟢 Low | Phase 8 (when Users gets TenantId filter) | — | ⬜ Open |
+| 27 | `TenantId == Guid.Empty` guard missing in audit log handlers — silent empty result for unauthenticated tenant | 🟡 Medium | Phase 6 | — | ⬜ Open |
