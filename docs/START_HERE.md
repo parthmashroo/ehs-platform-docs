@@ -1,46 +1,60 @@
-# EHS Platform — AI Bootstrap
+# EHS Platform — Session Start
 
-Read in this order:
-
-1. `MEMORY.md` — user profile and project context (persisted memory)
-2. `dev-notes.md` — current phase status, all tickets, lessons learned (source of truth)
-3. `project-roadmap.md` — all 17 phases, architecture decisions, full scope
+**Read this file every session. Read nothing else unless this file tells you to.**
 
 ---
 
-## Current Status (as of May 2026)
+## Current State
 
-Phase 0 ✅ Phase 1 ✅ Phase 2 ✅ Phase 3 ✅ Phase 4 ✅ Phase 5 ✅ Phase 6 🔄 IN PROGRESS
+Phase 6 🔄 IN PROGRESS | Sprint 7 | Next ticket: **EHS-58**
 
-Active sprint: Sprint 7.
-Next ticket: **EHS-58** — GET /api/incidents/{id}/audit-log + GET /api/correctiveactions/{id}/audit-log.
-
-EHS-62 (DateTime → DateTimeOffset sweep) completed this session.
+EHS-58: GET /api/incidents/{id}/audit-log + GET /api/correctiveactions/{id}/audit-log
 
 ---
 
-## Key Documents
+## Last Session Handoff
 
-| Document | Purpose |
+**Session 21 (2026-05-31):** EHS-62 DONE — global DateTime→DateTimeOffset sweep. 52 tests green. Jira → Done.
+
+**Completed this session:**
+- EHS-62: BaseEntity, all domain entities, all commands/validators/DTOs, AuditInterceptor migrated to DateTimeOffset. EHS62_DateTimeOffset migration applied.
+- Context management restructure: new sliding-window doc structure implemented (this file is now the router).
+
+**Not yet committed (carry into next session):**
+- `DateTimeOffsetUtcZConverter` — written, needs to go in `src/EHSPlatform.API/Converters/`, wire in Program.cs
+- UTC validator enforcement — `.Must(x => x.Offset == TimeSpan.Zero)` on OccurredAt + DueDate validators — not yet added
+- New Jira tickets needed: named timezone on Incident, Testcontainers round-trip test
+
+**Watch out for EHS-58:**
+- AuditLog has NO Global Query Filter — queries MUST manually filter `WHERE TenantId = @tenantId`
+- Response should return field-level diffs, not raw JSON blobs (technical-debt.md #23)
+- `ChangedById` → resolve display name at read time, do not store inline
+
+---
+
+## What to Read Next
+
+Only read a second file if you actually need it:
+
+| Task | Read |
 |---|---|
-| `dev-notes.md` | Ticket-by-ticket status, code patterns, lessons learned |
-| `project-roadmap.md` | All 17 phases, full scope, technology stack |
-| `architecture-decisions.md` | All ADRs — locked decisions, never revisit |
-| `technical-debt.md` | Known debt, deferred decisions |
-| `ai-first-strategy.md` | Phase 17 AI architecture vision — MCP, AI Service Principal |
-| `ai-capabilities-research.md` | Market research — what competitors do, what practitioners want |
-| `ai-strategy-session-handoff.md` | All 7 AI capability gaps — verdicts and decisions locked |
-| `semantic-form-engine-design.md` | Phase 7 form engine — semantic AI layer, scoring, pre-built templates |
-| `maisaas-deep-analysis.md` | Reference system analysis (prior system Parth worked on) |
-| `career-profile.md` | Developer background and goals |
+| Working on Phase 6 tickets | `docs/current/phase-6-status.md` |
+| Making an architectural decision | `docs/architecture-decisions.md` (search for the relevant ADR) |
+| Adding a new entity | `docs/reference/patterns.md` |
+| Auth / JWT questions | `docs/reference/auth-jwt.md` |
+| Design Q&A, future phase notes, ES spike | `docs/reference/design-decisions.md` |
+| Known debt | `docs/technical-debt.md` |
+| All 17 phases scope | `docs/project-roadmap.md` |
+| Phase 1–5 ticket history | `docs/archive/dev-notes-phases-1-5.md` |
+| Full session log | `docs/archive/session-log.md` |
+| Project vitals, NuGet, DB, middleware | `docs/dev-notes.md` |
 
 ---
 
-## Rules (Non-Negotiable)
+## Non-Negotiable Rules (full rules in CLAUDE.md)
 
-- Never edit files in `c:\Projects\ehs-platform` directly — tell Parth what to change
-- Doc changes in `C:\Projects\ehs-platform-docs` — make directly, commit, push
-- All architecture decisions are locked — never re-debate them
-- Check Jira (pmashroo.atlassian.net) before starting any ticket
+- Never edit files in `c:\Projects\ehs-platform` — tell Parth exactly what to change
+- Doc changes in `C:\Projects\ehs-platform-docs` — Claude makes these directly, commits, pushes
+- Transition Jira → In Progress when starting, → Done when committed
 - Tests ship with every commit — never deferred
-- No Claude attribution in commits, PRs, or Jira
+- After every commit: run the 7-question architecture review (see CLAUDE.md)
