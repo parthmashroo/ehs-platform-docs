@@ -342,7 +342,7 @@ Infrastructure → must not reference API
 **Effort:** Half a day. No production code changes. Zero regression risk. Pure read-only assertions.
 
 **Target phase:** Phase 5 or 6 — before the codebase grows larger.
-**Ticket:** Needs creation.
+**Ticket:** EHS-61
 **Status:** ⬜ Open
 
 ---
@@ -366,6 +366,134 @@ Infrastructure → must not reference API
 
 ---
 
+## Phase 6 Review — EHS-56 AuditLog Entity (May 2026)
+
+### 🔴 AuditLog.ChangedAt is DateTime — must be DateTimeOffset before EHS-57
+**Finding:** `AuditLog.ChangedAt` is typed as `DateTime`. In a multi-region SaaS (EU-hosted or otherwise), `DateTime` without an embedded offset is ambiguous — app servers in different timezones produce inconsistent timestamps. Querying or sorting across instances can miss records or produce wrong ordering. The correct type is `DateTimeOffset`, which stores the UTC value plus the offset. The rule: always store UTC, let the UI handle locale display (timezone, currency, date format per user preference).
+
+**Fix:** In `AuditLog.cs`, change `public DateTime ChangedAt { get; set; }` to `public DateTimeOffset ChangedAt { get; set; }`. Run a new migration to update the column type. Also update `AuditLogEntryDto` in EHS-58 to use `DateTimeOffset`. Must be done before EHS-57 starts — EHS-57 writes to this field.
+
+**Target phase:** Phase 6 — fix before EHS-57
+**Ticket:** Fold into EHS-57 pre-work
+**Status:** ⬜ Open
+
+---
+
+### 🔴 No GDPR right-to-erasure strategy — ChangedById FK blocks User deletion
+**Finding:** `AuditLog.ChangedById` uses `DeleteBehavior.Restrict` — correct for audit integrity, but means a User record can never be deleted while any AuditLog row references them. Under GDPR Article 17 (right to erasure), a user in an EU-regulated jurisdiction can request deletion of their personal data. The `ChangedById` Guid (and potentially PII embedded in `OldValues`/`NewValues` JSON blobs) may constitute personal data under GDPR.
+
+**Recommended fix — Anonymisation:** On erasure request, replace `ChangedById` with a sentinel `WellKnownGuids.DeletedUser` Guid and redact PII from JSON blobs. The audit trail is preserved for compliance; user identity is removed for GDPR. Preferable to full row deletion, which destroys the compliance record.
+
+**Why not full deletion:** An EHS SaaS is itself a compliance platform. Deleting audit rows to satisfy GDPR creates a paradox — you destroy the evidence that safety procedures were followed. Anonymisation satisfies GDPR while preserving the compliance record.
+
+**Target phase:** Phase 9+ (compliance/legal module)
+**Ticket:** EHS-60
+**Status:** ⬜ Open
+
+---
+
+## Phase 6 Review — EHS-57 AuditInterceptor (May 2026)
+
+### 🟡 AuditLog missing ChangedByName — user display name not stored at write time
+
+**Finding:** `AuditLog.ChangedById` stores a Guid. The display name (e.g. "John Smith") is resolved at read time via a DB join in EHS-58. This is the ServiceNow pattern — their most complained-about audit limitation. If a user is hard-deleted (GDPR erasure), the Guid becomes unresolvable and the audit entry loses its "who" context permanently.
+
+**Industry standard:** SAP, Dynamics 365, EHASoft all store the display name at write time — immutable historical truth. The name captured at event time is what the record showed at that moment, even if the person later changes their name or is removed.
+
+**Fix:** Add `ChangedByName string` column to `AuditLog`. Populate from a `name` JWT claim in the interceptor. Requires adding `name` claim to `LoginCommandHandler` and exposing `UserName` on `ICurrentUserService`. Migration needed.
+
+**Why deferred:** `ICurrentUserService` does not expose a name today — only UserId, TenantId, Role, CompanyType. Adding it requires a JWT claim change (Phase 8 work). EHS-58 resolves names via DB join as an acceptable interim.
+
+**Target phase:** Phase 8
+**Ticket:** Fold into Phase 8 JWT / token enrichment work
+**Status:** ⬜ Open
+
+---
+
+### 🟡 AuditInterceptor blind to bulk operations and raw SQL — silent audit gaps
+
+**Finding:** The interceptor hooks into EF Core's `ChangeTracker`. Any operation that bypasses the ChangeTracker leaves zero audit trail:
+- `context.Incidents.Where(...).ExecuteUpdateAsync(...)` — EF 7+ bulk update, no ChangeTracker
+- `context.Database.ExecuteSqlRawAsync(...)` — raw SQL, no ChangeTracker
+- Direct DBA changes, migration scripts, data fixes
+
+Currently not a risk — all handlers load entities before modifying. But as the platform grows (bulk close, bulk archive, data migrations), this gap will silently appear.
+
+**Fix:** SQL Server Temporal Tables as a complementary DB-level safety net (see item below). Application AuditLog captures intent (who, why, correlation). Temporal Tables capture everything the DB touches — including bulk ops and DBA changes.
+
+**Target phase:** Phase 16 (pre-production hardening)
+**Ticket:** Needs creation
+**Status:** ⬜ Open
+
+---
+
+### 🟡 Disconnected entity updates produce empty audit diffs
+
+**Finding:** If an entity is attached to the context without being loaded from DB (`context.Entry(entity).State = EntityState.Modified`), EF Core has no original values snapshot. `OriginalValue` equals `CurrentValue` for all properties. The interceptor writes an AuditLog row where `OldValues` and `NewValues` are identical — technically not wrong, practically useless.
+
+**Currently not a risk:** All handlers load the entity from DB before modifying. The pattern `var entity = await _context.Incidents.FindAsync(id)` is used everywhere — EF takes its snapshot on that load. Guard this as a code review rule: never use `context.Entry().State = Modified` on an entity that wasn't loaded from the current context.
+
+**Target phase:** Enforce as convention. Revisit if bulk-import patterns are introduced.
+**Status:** ⬜ Monitor
+
+---
+
+### 🟢 AuditLogs table has no partitioning strategy — grows unbounded
+
+**Finding:** The shared `AuditLogs` table has a composite index `(TenantId, EntityName, EntityId)` but no partitioning. At 10M+ rows, index fragmentation accumulates, maintenance jobs (rebuild/reorganise) become expensive, and query performance degrades for cross-entity or time-range scans.
+
+**Fix:** SQL Server table partitioning by `ChangedAt` (monthly or yearly buckets). Old partitions can be moved to cheaper storage or archived. Zero application code change — DML operations are partition-aware automatically.
+
+**When it matters:** At realistic EHS platform scale (500 sites, 10,000 incidents/year, all changes audited), 10M rows takes roughly 10–20 years. Monitor actual row counts at Phase 16 before acting.
+
+**Target phase:** Phase 16 (pre-production, based on actual data volume)
+**Ticket:** Needs creation
+**Status:** ⬜ Open
+
+---
+
+### 🟢 SQL Server Temporal Tables not implemented — no DB-level tamper-proof history
+
+**Finding:** The application AuditLog captures intent (who, why, correlation, semantic labels). It does not capture full row snapshots and is limited to ChangeTracker-visible operations. SQL Server Temporal Tables provide a complementary DB-level guarantee:
+- Full row snapshot on every write — tamper-proof, maintained by SQL Server engine
+- Point-in-time reconstruction: `SELECT * FROM Incidents FOR SYSTEM_TIME AS OF '2026-01-01'`
+- Works for bulk ops, raw SQL, DBA changes — everything that touches the DB
+- Zero application code — one migration per table
+
+**What temporal tables don't capture (that our AuditLog does):** ChangedById, CorrelationId, AuditAction label, intent/reason. Both layers together give the complete picture: what changed (temporal tables) + who and why (AuditLog).
+
+**Compliance implication:** ISO 45001 and OSHA auditors expect legible, tamper-evident change history. Temporal tables are the strongest technical proof of record integrity available in SQL Server without a third-party system.
+
+**Target phase:** Phase 16 (pre-production compliance hardening)
+**Ticket:** Needs creation
+**Status:** ⬜ Open
+
+---
+
+### 🟢 AuditLog UI — EHS-58 must produce field-level diff structure, not raw JSON blobs
+
+**Finding:** Industry standard EHS audit UI (EHASoft, Intelex, Cority) presents a `Field | Old Value | New Value` grid with changed rows visually highlighted. Raw JSON blobs stored in `OldValues`/`NewValues` are not directly displayable. EHS-58 query response must parse the JSON and produce a structured DTO that the UI can render as a grid without interpretation.
+
+**EHS-58 response shape:**
+```json
+{
+  "changedAt": "...",
+  "changedBy": "John Smith",
+  "action": "Updated",
+  "changes": [
+    { "field": "Status", "oldValue": "Reported", "newValue": "Under Investigation" },
+    { "field": "AssignedTo", "oldValue": null, "newValue": "Sarah Jones" }
+  ]
+}
+```
+
+Enum values are already stored as strings (e.g. `"Reported"`) — no translation needed at read time. User names require a DB join until `ChangedByName` is added (see item above). Field name → display label mapping is EHS-58's responsibility.
+
+**Target phase:** EHS-58 (next ticket in Phase 6)
+**Status:** ⬜ Design decision captured — implement in EHS-58
+
+---
+
 ## Summary Table
 
 | # | Finding | Severity | Target | Ticket | Status |
@@ -384,4 +512,13 @@ Infrastructure → must not reference API
 | 12 | User-facing error messages: developer language + wrong HTTP status codes | 🔴 High | Error sprint | EHS-44 | ✅ Fixed |
 | 13 | ETag/If-Match HTTP contract missing — RowVersion invisible to clients | 🟡 Medium | Phase 5 | EHS-55 | ⬜ Open |
 | 14 | CORS not locked — AllowAnyOrigin before any deployment | 🔴 High | Now (30 min) | — | ⬜ Open |
-| 15 | No architecture layer tests — Clean Architecture enforced by discipline only | 🟡 Medium | Phase 5/6 | — | ⬜ Open |
+| 15 | No architecture layer tests — Clean Architecture enforced by discipline only | 🟡 Medium | Phase 5/6 | EHS-61 | ⬜ Open |
+| 16 | All timestamps are DateTime — must be DateTimeOffset globally (BaseEntity + all entities + all handlers) | 🔴 High | Phase 6 (pre-EHS-57) | EHS-62 | ✅ Fixed |
+| 17 | No GDPR right-to-erasure strategy — ChangedById FK blocks User deletion | 🔴 High | Phase 9+ | EHS-60 | ⬜ Open |
+| 18 | AuditLog missing ChangedByName — display name not stored at write time | 🟡 Medium | Phase 8 | — | ⬜ Open |
+| 19 | AuditInterceptor blind to bulk ops and raw SQL — silent audit gaps | 🟡 Medium | Phase 16 | — | ⬜ Open |
+| 20 | Disconnected entity updates produce empty audit diffs | 🟡 Medium | Convention | — | ⬜ Monitor |
+| 21 | AuditLogs table — no partitioning strategy at scale | 🟢 Low | Phase 16 | — | ⬜ Open |
+| 22 | SQL Server Temporal Tables not implemented — no DB-level tamper-proof history | 🟢 Low | Phase 16 | — | ⬜ Open |
+| 23 | EHS-58 must produce field-level diff DTO — not expose raw JSON blobs | 🟡 Medium | EHS-58 | — | ⬜ Open |
+| 24 | Incoming DateTimeOffset values from clients not normalized to UTC — client can submit +05:30 offset and it persists as-is | 🟡 Medium | Phase 7 (before API goes public) | — | ⬜ Open |

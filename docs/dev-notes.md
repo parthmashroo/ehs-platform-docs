@@ -115,6 +115,7 @@
 |---|---|---|
 | EHS-56 | AuditLog entity + EF config + migration | ✅ Done |
 | EHS-57 | AuditInterceptor (SaveChangesInterceptor) — before/after JSON on all auditable entities | ✅ Done |
+| EHS-62 | Global DateTime → DateTimeOffset sweep — BaseEntity, all entities, commands, validators, DTOs, AuditInterceptor, migration | ✅ Done |
 | EHS-58 | GET /api/incidents/{id}/audit-log + GET /api/correctiveactions/{id}/audit-log | ⬜ To Do |
 | EHS-59 | Phase 6 docs update | ⬜ To Do |
 
@@ -238,8 +239,8 @@ dotnet ef database update --project src/EHSPlatform.Infrastructure --startup-pro
 public abstract class BaseEntity
 {
     public Guid Id { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
     public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 }
 ```
@@ -1097,6 +1098,7 @@ Elasticsearch is the correct long-term search layer. SQL Full-Text Search stays 
 | Session 18 | May 2026 | EHS-52 DONE. docker-compose.yml created at solution root (Redis + Elasticsearch 8.13.4 + Kibana 8.13.4). All 3 containers running via Podman. Kibana Dev Tools used to create ehs-incidents index, bulk-insert 5 EHS-shaped incident documents, and run multi_match full-text search — relevance scoring confirmed working. SQL Full-Text comparison attempted — revealed that CONTAINS requires a Full-Text Catalog + Full-Text Index before any query is possible (zero-setup gap vs ES). ADR-015 written: Dapr building block decision map, anchor use case corrected to Phase 13 Work Permit Workflow. Dapr framing corrected across architecture-decisions.md and project-roadmap.md. Interview card Q27 added. |
 | Session 19 | May 2026 | EHS-53 DONE. Phase 5 docs update: dev-notes.md Current Phase Status updated to Phase 5 ✅ Complete / Phase 6 Next; all Phase 5 tickets confirmed Done; docker-compose comment corrected (ES + Kibana, SQL local); What's Coming table updated; Phase 5 lessons learned written; project-roadmap.md Phase 5 marked COMPLETE, all checkboxes ticked, status lines updated. Phase 5 fully closed out. Phase 6 is next. |
 | Session 20 | May 2026 | EHS-56 DONE. AuditLog entity in Domain/Entities (TenantId, EntityName, EntityId, AuditAction, ChangedById, ChangedAt, OldValues/NewValues JSON, CorrelationId). AuditAction enum (Created/Updated/Deleted) in Domain/Enums. AuditLogConfiguration in Infrastructure (no HasQueryFilter, no IsRowVersion, ChangedById FK with DeleteBehavior.Restrict, composite index on TenantId+EntityName+EntityId). DbSet<AuditLog> added to IApplicationDbContext and ApplicationDbContext. AddAuditLog migration applied. 49 tests all green. Phase 6 in progress — EHS-57 (SaveChangesInterceptor) next. |
+| Session 21 | May 2026 | EHS-62 DONE. Global DateTime → DateTimeOffset sweep per ADR-016. Changed BaseEntity.CreatedAt/UpdatedAt, AuditLog.ChangedAt, Incident.OccurredAt, CorrectiveAction.DueDate/CompletedAt, User.LastLoginAt. All DateTime.UtcNow → DateTimeOffset.UtcNow in handlers, validators, domain methods, AuditInterceptor. Commands (CreateIncident, UpdateIncident, CreateCorrectiveAction, UpdateCorrectiveAction) and DTOs (IncidentDto, CorrectiveActionDto) updated to match. JwtTokenService.cs left as DateTime.UtcNow — SecurityTokenDescriptor.Expires requires DateTime? (library boundary exception per ADR-016). EHS62_DateTimeOffset migration applied. 52 tests all green. Architecture review note: incoming DateTimeOffset values from clients are not normalized to UTC — tracked as debt. Next: EHS-58. |
 
 ---
 

@@ -15,6 +15,8 @@ Phase 0 ✅ Phase 1 ✅ Phase 2 ✅ Phase 3 ✅ Phase 4 ✅ Phase 5 ✅ Phase 6 
 Active sprint: Sprint 7.
 Next ticket: **EHS-58** — GET /api/incidents/{id}/audit-log + GET /api/correctiveactions/{id}/audit-log.
 
+EHS-62 (DateTime → DateTimeOffset sweep) completed this session.
+
 ---
 
 ## Key Documents
