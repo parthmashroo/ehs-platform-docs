@@ -668,6 +668,32 @@ if (_currentUser.TenantId == Guid.Empty)
 
 ---
 
+## Phase 7 Review — EHS-65 IAuditableEntity Marker Interface (Jun 2026)
+
+### 🟢 `IAuditableEntity` carries no `Id` contract — interceptor silently breaks if invariant violated
+
+**Finding:** `AuditInterceptor` calls `entry.Property("Id").CurrentValue` on every `IAuditableEntity`. This assumes every auditable entity has an `Id` property — currently guaranteed by `BaseEntity` inheritance. The interface itself enforces nothing. A future entity that implements `IAuditableEntity` without extending `BaseEntity` throws `InvalidOperationException` at runtime with no compile warning.
+
+**Risk:** Low today (all entities use `BaseEntity`). Medium if the team adds a value object or DTO that accidentally implements `IAuditableEntity`.
+
+**Fix:** When EHS-61 architecture tests are written, add an assertion: every type implementing `IAuditableEntity` must also extend `BaseEntity`. Alternatively, move `IAuditableEntity` to a non-marker shape: `public interface IAuditableEntity { Guid Id { get; } }` — but this duplicates the `BaseEntity` declaration and may cause diamond-inheritance noise.
+
+**Target phase:** Phase 7 — fold into EHS-61 arch tests
+**Status:** ⬜ Open
+
+---
+
+### 🟢 No test asserting `AuditLog` does NOT implement `IAuditableEntity`
+
+**Finding:** `AuditLog` is written by the interceptor — it must never be an `IAuditableEntity` itself. If someone adds `IAuditableEntity` to `AuditLog`, the interceptor enters infinite recursion: writing AuditLog triggers another SaveChanges snapshot, triggers another AuditLog write. No guard exists today.
+
+**Fix:** Add to EHS-61 architecture tests: `typeof(AuditLog).IsAssignableTo(typeof(IAuditableEntity))` must be `false`.
+
+**Target phase:** Phase 7 — fold into EHS-61 arch tests
+**Status:** ⬜ Open
+
+---
+
 ## Summary Table
 
 | # | Finding | Severity | Target | Ticket | Status |
@@ -710,3 +736,4 @@ if (_currentUser.TenantId == Guid.Empty)
 | 36 | Audit index mismatch + single-column tenant indexes — in-memory sorts at scale | 🟡 Medium | Phase 7/8 | P1 | ⬜ Open |
 | 37 | No role-based authz on write/delete — Contractor can soft-delete; ctype unenforced | 🟡 Medium | Phase 8 | P1 | ⬜ Open |
 | 38 | Quality bundle — claim-name constants, ctype unwired, duplicate audit handlers, shallow tests | 🟡 Medium | Phase 7/8 | P2 | ⬜ Open |
+| 39 | `IAuditableEntity` has no Id contract — interceptor assumes BaseEntity inheritance; no test guards AuditLog from accidentally implementing the interface | 🟢 Low | Phase 7 | EHS-61 arch tests | ⬜ Open |

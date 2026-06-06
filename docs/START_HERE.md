@@ -18,7 +18,7 @@ Phase 7: Semantic Form Engine. Create Phase 7 Jira tickets before coding starts.
 
 ## Last Session Handoff
 
-**Session 25 (2026-06-06):** EHS-69 committed and pushed (2 commits). CORS middleware wired. `EHSPlatform.API.Tests` integration test project created. Origin header enriched in Serilog. CORS test made environment-agnostic. Interview card Q61 added.
+**Session 26 (2026-06-06):** EHS-65 committed. `IAuditableEntity` marker interface added to Domain.Common. `Incident` and `CorrectiveAction` implement it. `AuditInterceptor` hardcoded `HashSet<Type>` removed — replaced with `is not IAuditableEntity` check. 62/62 tests green. Interview card Q62 added.
 
 **Phase 6 complete — all tickets done:**
 - EHS-56: AuditLog entity + EF config + migration ✅
@@ -27,8 +27,9 @@ Phase 7: Semantic Form Engine. Create Phase 7 Jira tickets before coding starts.
 - EHS-58: GET audit-log endpoints, policy-driven auth, config-driven roles, soft-deleted user names ✅
 - EHS-59: Phase 6 docs update ✅
 
-**Phase 7 in progress — EHS-69 done:**
+**Phase 7 in progress:**
 - EHS-69: CORS — named policy, config-driven origins, API integration test project ✅
+- EHS-65: `IAuditableEntity` marker interface — opt-in auditing, replaced hardcoded type registry ✅
 
 **Open technical debt (in technical-debt.md):**
 - #25: `a.Action.ToString()` inside LINQ select — client-side evaluation risk
