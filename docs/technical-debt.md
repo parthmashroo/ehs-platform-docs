@@ -585,5 +585,5 @@ if (_currentUser.TenantId == Guid.Empty)
 | 25 | `a.Action.ToString()` inside LINQ select — may force client-side evaluation against SQL Server | 🟢 Low | Phase 6/7 | — | ⬜ Open |
 | 26 | `IgnoreQueryFilters()` on Users join bypasses ALL future filters — undocumented scope risk | 🟢 Low | Phase 8 (when Users gets TenantId filter) | — | ⬜ Open |
 | 27 | `TenantId == Guid.Empty` guard missing in audit log handlers — silent empty result for unauthenticated tenant | 🟡 Medium | Phase 6 | — | ⬜ Open |
-| 28 | CORS integration test relies on `appsettings.Development.json` — fails silently if env is not Development | 🟡 Medium | Phase 7 | — | ⬜ Open |
+| 28 | CORS integration test relies on `appsettings.Development.json` — fails silently if env is not Development | 🟡 Medium | Phase 7 | EHS-69 | ✅ Fixed |
 | 29 | CORS `WithHeaders` allow-list has no maintenance process — new custom headers will cause silent browser CORS errors | 🟢 Low | Ongoing | — | ⬜ Open |

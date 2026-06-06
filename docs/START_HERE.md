@@ -18,7 +18,7 @@ Phase 7: Semantic Form Engine. Create Phase 7 Jira tickets before coding starts.
 
 ## Last Session Handoff
 
-**Session 25 (2026-06-06):** EHS-69 committed and pushed. CORS middleware wired. `EHSPlatform.API.Tests` integration test project created. Interview card Q61 added.
+**Session 25 (2026-06-06):** EHS-69 committed and pushed (2 commits). CORS middleware wired. `EHSPlatform.API.Tests` integration test project created. Origin header enriched in Serilog. CORS test made environment-agnostic. Interview card Q61 added.
 
 **Phase 6 complete — all tickets done:**
 - EHS-56: AuditLog entity + EF config + migration ✅
@@ -34,7 +34,7 @@ Phase 7: Semantic Form Engine. Create Phase 7 Jira tickets before coding starts.
 - #25: `a.Action.ToString()` inside LINQ select — client-side evaluation risk
 - #26: `IgnoreQueryFilters()` undocumented scope — future TenantId filter bypass risk
 - #27: `TenantId == Guid.Empty` guard missing in both audit log handlers
-- #28: CORS integration test relies on Development env config — fragile in CI ⚠️
+- #28: CORS integration test relies on Development env config ✅ Fixed
 - #29: CORS `WithHeaders` allow-list has no maintenance process
 
 **62 tests green. Next: pick next Phase 7 ticket from Jira.**
