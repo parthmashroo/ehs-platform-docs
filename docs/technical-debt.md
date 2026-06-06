@@ -530,6 +530,30 @@ if (_currentUser.TenantId == Guid.Empty)
 
 ---
 
+## Phase 7 Review — EHS-69 CORS (Jun 2026)
+
+### 🟡 CORS integration test relies on Development environment config — fragile in CI
+
+**Finding:** `CorsIntegrationTests` sends a preflight for `http://localhost:3000` and expects `Access-Control-Allow-Origin` in the response. The allowed origin exists only in `appsettings.Development.json`. `WebApplicationFactory` loads this file because the test environment defaults to `Development`. If any CI environment sets `ASPNETCORE_ENVIRONMENT=Production` (or any non-Development value), the `Cors:AllowedOrigins` array is empty from the base `appsettings.json` and both CORS tests break.
+
+**Fix:** In the `CorsIntegrationTests` constructor, inject origins via `builder.ConfigureAppConfiguration(cfg => cfg.AddInMemoryCollection(new[] { new KeyValuePair<string, string?>("Cors:AllowedOrigins:0", "http://localhost:3000") }))`. This makes the test self-contained and environment-agnostic.
+
+**Target phase:** Phase 7
+**Status:** ⬜ Open
+
+---
+
+### 🟢 CORS `WithHeaders` allow-list has no maintenance process — new custom headers will silently fail
+
+**Finding:** `AddCors` explicitly allows `Content-Type`, `Authorization`, `X-Correlation-Id`. Any new custom request header added to the API (e.g. `X-Idempotency-Key`, `X-Api-Version`) will be blocked by the browser with a CORS error until it is added to this list. There is no automated guard to catch the omission.
+
+**Fix:** Document the allow-list in `CLAUDE.md` so that any new custom header addition triggers a CORS allow-list update. Optionally, add an architecture test that asserts the allow-list matches a known enumerable.
+
+**Target phase:** Ongoing
+**Status:** ⬜ Open
+
+---
+
 ## Summary Table
 
 | # | Finding | Severity | Target | Ticket | Status |
@@ -547,7 +571,7 @@ if (_currentUser.TenantId == Guid.Empty)
 | 11 | All detail endpoints embed child lists — system-wide pattern should be count + lazy load | 🟢 Low | Phase 12 | — | ⬜ Open |
 | 12 | User-facing error messages: developer language + wrong HTTP status codes | 🔴 High | Error sprint | EHS-44 | ✅ Fixed |
 | 13 | ETag/If-Match HTTP contract missing — RowVersion invisible to clients | 🟡 Medium | Phase 5 | EHS-55 | ⬜ Open |
-| 14 | CORS not locked — AllowAnyOrigin before any deployment | 🔴 High | Now (30 min) | — | ⬜ Open |
+| 14 | CORS not locked — AllowAnyOrigin before any deployment | 🔴 High | Phase 7 | EHS-69 | ✅ Fixed |
 | 15 | No architecture layer tests — Clean Architecture enforced by discipline only | 🟡 Medium | Phase 5/6 | EHS-61 | ⬜ Open |
 | 16 | All timestamps are DateTime — must be DateTimeOffset globally (BaseEntity + all entities + all handlers) | 🔴 High | Phase 6 (pre-EHS-57) | EHS-62 | ✅ Fixed |
 | 17 | No GDPR right-to-erasure strategy — ChangedById FK blocks User deletion | 🔴 High | Phase 9+ | EHS-60 | ⬜ Open |
@@ -561,3 +585,5 @@ if (_currentUser.TenantId == Guid.Empty)
 | 25 | `a.Action.ToString()` inside LINQ select — may force client-side evaluation against SQL Server | 🟢 Low | Phase 6/7 | — | ⬜ Open |
 | 26 | `IgnoreQueryFilters()` on Users join bypasses ALL future filters — undocumented scope risk | 🟢 Low | Phase 8 (when Users gets TenantId filter) | — | ⬜ Open |
 | 27 | `TenantId == Guid.Empty` guard missing in audit log handlers — silent empty result for unauthenticated tenant | 🟡 Medium | Phase 6 | — | ⬜ Open |
+| 28 | CORS integration test relies on `appsettings.Development.json` — fails silently if env is not Development | 🟡 Medium | Phase 7 | — | ⬜ Open |
+| 29 | CORS `WithHeaders` allow-list has no maintenance process — new custom headers will cause silent browser CORS errors | 🟢 Low | Ongoing | — | ⬜ Open |
