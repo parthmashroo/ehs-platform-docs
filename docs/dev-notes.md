@@ -11,7 +11,7 @@
 | Repo | `C:\Projects\ehs-platform` |
 | IDE | Visual Studio 2022 Community |
 | Git UI | Fork |
-| Jira | pmashroo.atlassian.net — Sprint 7 |
+| Jira | pmashroo.atlassian.net — Sprint 8 |
 | Database | SQL Server 2022 local (no Docker needed) |
 | Connection String | `Server=localhost;Database=EHSPlatform;Trusted_Connection=True;TrustServerCertificate=True;` |
 | Docs Repo | `C:\Projects\ehs-platform-docs` |
@@ -28,10 +28,10 @@
 | Phase 3 — Corrective Actions | ✅ Complete |
 | Phase 4 — Users & Authentication | ✅ Complete |
 | Phase 5 — Multi-tenancy + Infrastructure Plumbing | ✅ Complete |
-| Phase 6 — Audit Logging | 🔄 In Progress |
-| Phase 7+ | ⬜ Not Started |
+| Phase 6 — Audit Logging | ✅ Complete |
+| Phase 7 — Hardening & Multi-Reviewer Audit | 🔄 In Progress |
 
-**Active tickets → see `docs/current/phase-6-status.md`**
+**Active tickets → see `docs/current/phase-7-status.md`**
 
 ---
 

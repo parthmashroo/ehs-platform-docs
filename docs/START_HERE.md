@@ -18,7 +18,7 @@ Phase 7: Semantic Form Engine. Create Phase 7 Jira tickets before coding starts.
 
 ## Last Session Handoff
 
-**Session 26 (2026-06-06):** EHS-65 committed. `IAuditableEntity` marker interface added to Domain.Common. `Incident` and `CorrectiveAction` implement it. `AuditInterceptor` hardcoded `HashSet<Type>` removed — replaced with `is not IAuditableEntity` check. 62/62 tests green. Interview card Q62 added.
+**Session 27 (2026-06-06):** EHS-66 committed. `AuditInterceptor.AddAuditLogs()` guard extended — returns early when `TenantId == Guid.Empty` even if `IsAuthenticated = true`. Prevents audit rows with empty TenantId from poisoning tenant-scoped queries. One new test added (authenticated + empty tenant → no audit log). 63/63 tests green. Interview card Q63 added.
 
 **Phase 6 complete — all tickets done:**
 - EHS-56: AuditLog entity + EF config + migration ✅
@@ -30,15 +30,15 @@ Phase 7: Semantic Form Engine. Create Phase 7 Jira tickets before coding starts.
 **Phase 7 in progress:**
 - EHS-69: CORS — named policy, config-driven origins, API integration test project ✅
 - EHS-65: `IAuditableEntity` marker interface — opt-in auditing, replaced hardcoded type registry ✅
+- EHS-66: AuditInterceptor TenantId == Guid.Empty guard ✅
 
 **Open technical debt (in technical-debt.md):**
 - #25: `a.Action.ToString()` inside LINQ select — client-side evaluation risk
 - #26: `IgnoreQueryFilters()` undocumented scope — future TenantId filter bypass risk
-- #27: `TenantId == Guid.Empty` guard missing in both audit log handlers
-- #28: CORS integration test relies on Development env config ✅ Fixed
+- #27: `TenantId == Guid.Empty` guard missing in both audit log QUERY handlers (interceptor now guarded via EHS-66)
 - #29: CORS `WithHeaders` allow-list has no maintenance process
 
-**62 tests green. Next: pick next Phase 7 ticket from Jira.**
+**63 tests green. Next: pick next Phase 7 ticket from Jira (P0-1 ValidationBehavior recommended — highest leverage).**
 
 ---
 
