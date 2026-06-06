@@ -65,6 +65,7 @@ Only read a second file if you actually need it:
 
 - Never edit files in `c:\Projects\ehs-platform` — tell Parth exactly what to change
 - Doc changes in `C:\Projects\ehs-platform-docs` — Claude makes these directly, commits, pushes
+- Read this C:\Users\Komal\.claude\projects\c--Projects-ehs-platform\memory\feedback_docs_ownership.md
 - Transition Jira → In Progress when starting, → Done when committed
 - Tests ship with every commit — never deferred
 - After every commit: run the 7-question architecture review (see CLAUDE.md)
