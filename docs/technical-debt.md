@@ -554,6 +554,120 @@ if (_currentUser.TenantId == Guid.Empty)
 
 ---
 
+## Phase 7 Multi-Reviewer Audit (Jun 2026)
+
+> Whole-codebase review by 4 independent agents (architecture, security, database, code-quality). Findings below are where 2+ reviewers converged or a single reviewer found a high-impact issue. Convergence noted per entry — independent agreement = high confidence the issue is real.
+
+### 🔴 MediatR ValidationBehavior missing — every FluentValidation validator is dead code
+**Finding:** `AddValidatorsFromAssembly` registers all validators, but no `IPipelineBehavior` invokes them and there is no MVC auto-validation. Commands dispatch via `ISender.Send`, so MVC model-validation never runs either. Every `*CommandValidator` (Create/Update Incident, all CorrectiveAction commands, Login, Register) is unreachable. Invalid input (empty Title, future OccurredAt, non-UTC offset) reaches the DB and only fails on a constraint. `RegisterCommandHandler` hand-throws `ValidationException` as a one-off workaround — proof the pipeline gap was felt but not fixed. **Convergence: Architecture + Code-quality.**
+
+**Fix:** `ValidationBehavior<TRequest,TResponse>` in `Application/Common/Behaviours/`, resolves `IEnumerable<IValidator<TRequest>>`, runs all, throws `ValidationException`. Register `AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>))`. Map to `ValidationProblemDetails` (field-level) in middleware. Add a test asserting invalid command → 400.
+
+**Target phase:** Phase 7 (immediate — highest leverage)
+**Ticket:** Needs creation (P0-1)
+**Status:** ⬜ Open
+
+---
+
+### 🔴 Tenant isolation depends on per-handler discipline, not an enforced seam
+**Finding:** Three independent gaps, same root cause. (a) `User`/`Organization` global query filter omits `TenantId` (`ApplicationDbContext.cs:44-47`) — any Users query returns every tenant's users (PII, emails, roles). `AssignIncidentCommandHandler:24` exploits this: assigns incidents to foreign-tenant users. (b) `TenantId` never stamped on Incident/CorrectiveAction create (`CreateIncidentCommandHandler:26`, `CreateCorrectiveActionCommandHandler:22`) → FK violation (feature broken) or mis-owned rows. (c) No interceptor enforces either; `User` does not implement `ITenantEntity`, which is why the filter gap went uncaught. **Convergence: Architecture + Security + Database (all 3).**
+
+**Fix:** `User` implements `ITenantEntity`; filter `x.TenantId == _tenantId && !x.IsDeleted`. Login/Register pre-auth lookups use explicit `IgnoreQueryFilters()`. `TenantStampInterceptor` (SaveChanges) stamps `TenantId` on `Added` `ITenantEntity` rows. `CreateCorrectiveAction` validates `IncidentId` belongs to current tenant before insert (IDOR fix). `ICurrentUserService` becomes a required DbContext dependency (remove `= null`); write path asserts `TenantId != Guid.Empty`.
+
+**Target phase:** Phase 7 (immediate)
+**Ticket:** Needs creation (P0-2) — one epic covering the seam
+**Status:** ⬜ Open
+
+---
+
+### 🔴 JWT signing key hardcoded in committed appsettings.json
+**Finding:** `"SecretKey": "EHSPlatform-Dev-SecretKey-..."` in base `appsettings.json:8` (HS256 symmetric). Ships to all environments unless overridden. Anyone with the repo forges a JWT with any `tid` + `Role=OrganizationAdmin` → full cross-tenant admin. **Convergence: Security (single reviewer, highest exploit impact).**
+
+**Fix:** Remove from committed config; user-secrets (dev), env/Key Vault (prod). Startup guard throws in non-Development if missing or equal to the known dev value. Pin `ValidAlgorithms = [HmacSha256]`. **Rotate the exposed key — it is compromised (was in git).**
+
+**Target phase:** Phase 7 (immediate)
+**Ticket:** Needs creation (P0-3)
+**Status:** ⬜ Open
+
+---
+
+### 🔴 SQL Server columns are datetime2, not datetimeoffset — offset silently discarded at DB layer
+**Finding:** Distinct from EHS-62 (which fixed the C# property type to `DateTimeOffset`). Every `DateTimeOffset` property maps to SQL `datetime2` across every entity config — no `HasColumnType("datetimeoffset")`. The offset is dropped on write; EF reconstructs `+00:00` on read, hiding the loss locally. `DateTimeOffsetUtcZConverter` is a JSON serialization converter (API only), not an EF value converter — it does not cover the column type. Violates ADR-016 intent at the persistence layer. **Convergence: Database (authoritative single reviewer).**
+
+**Fix:** `HasColumnType("datetimeoffset")` on every `DateTimeOffset` property (CreatedAt, UpdatedAt, OccurredAt, DueDate, CompletedAt, ChangedAt, LastLoginAt). Migration (non-destructive ALTER — wider precision). Do before production data.
+
+**Target phase:** Phase 7 (before prod data)
+**Ticket:** Needs creation (P0-4)
+**Status:** ⬜ Open
+
+---
+
+### 🔴 AuditLog has no global query filter — tenant isolation hand-rolled per query
+**Finding:** `AuditLog` has `TenantId` but no model-level filter; both audit-log handlers manually add `where a.TenantId == tenantId`. One forgotten `WHERE` in a future handler leaks every tenant's audit trail — the most sensitive data in the system. `AuditLog` is append-only (no `IsDeleted`). **Convergence: Architecture + Database.**
+
+**Fix:** `AuditLog` implements `ITenantEntity`; global filter `x.TenantId == _tenantId`. Drop the manual predicates from both handlers. Interceptor already stamps `TenantId` on write.
+
+**Target phase:** Phase 7
+**Ticket:** Needs creation (P1, fold into P0-2 seam epic)
+**Status:** ⬜ Open
+
+---
+
+### 🟡 exception.Message returned raw on 500 — schema/SQL info disclosure
+**Finding:** `ExceptionHandlingMiddleware:52` serializes `exception.Message` on the unmapped `InternalServerError` branch. EF/SQL exceptions leak schema, SQL, connection details. Accelerates the tenant-isolation attacks above. **Convergence: Security.**
+
+**Fix:** 500 branch returns static "An unexpected error occurred"; log the real message server-side only (already logged at :29).
+
+**Target phase:** Phase 7
+**Ticket:** Needs creation (P1)
+**Status:** ⬜ Open
+
+---
+
+### 🟡 Audit index mismatch + single-column tenant indexes — list/audit queries sort in memory at scale
+**Finding:** (a) `AuditLogConfiguration` defines composite indexes including `ChangedAt`, but migration `20260525144047_AddAuditLog` created narrower indexes without it — config/schema drift. Audit queries sort `ChangedAt DESC` in memory. (b) `Incidents`/`CorrectiveActions` `TenantId` indexes are single-column; the primary paginated list queries (filter Status/Severity/SiteId, order OccurredAt/DueDate) degrade to index scan + key lookup + sort as data grows. **Convergence: Database.**
+
+**Fix:** Filtered composites — `IX_Incidents (TenantId, Status, OccurredAt DESC) WHERE IsDeleted=0`, CorrectiveActions equivalent; audit composite includes `ChangedAt`. Align config and migration.
+
+**Target phase:** Phase 7/8
+**Ticket:** Needs creation (P1)
+**Status:** ⬜ Open
+
+---
+
+### 🟡 No role-based authorization on write/delete — any authenticated user (incl. Contractor) can mutate/delete
+**Finding:** Incident/CorrectiveAction controllers guard only with `[Authorize]` (any role). A low-privilege user or `CompanyType=Contractor` can soft-delete corrective actions. The `ctype` trust boundary is never enforced anywhere. **Convergence: Security.**
+
+**Fix:** Per-operation policies (delete → admin/safety officer). Decide and enforce what `Contractor` may do.
+
+**Target phase:** Phase 8
+**Ticket:** Needs creation (P1)
+**Status:** ⬜ Open
+
+---
+
+### 🟡 Cross-cutting quality debt (claim constants, ctype, audit handler dup, tests)
+**Finding (bundle):**
+- **Claim-name magic strings** `"uid"/"tid"/"ctype"` duplicated across `JwtTokenService`, `CurrentUserService`, `TenantResolutionMiddleware` — a typo yields a null claim + 500/401. Project's stated #1 priority (magic strings → constants). *(Architecture + Code.)*
+- **`CompanyType`/`ctype` claim declared but never consumed** in any authz decision — unwired extensibility seam. The Client/Contractor entitlement differentiation it exists for is unimplemented. *(Architecture.)*
+- **Two byte-identical audit-log query handlers** — pure copy-paste incl. `"Unknown User"`/`"(Inactive)"` magic strings. Extract shared builder. *(Database + Code.)*
+- **Test coverage shallow** — ~10 test files / ~25 handlers. Zero tests on Assign/Update/Create-CA/all read queries; **no validator unit tests, nothing exercising the validation pipeline** (which is why the dead-validator bug went unnoticed). *(Code.)*
+
+**Fix:** `ClaimNames` constants class. Wire or formally defer `ctype`. Extract shared audit-query builder. Backfill handler + validator tests with the ValidationBehavior work.
+
+**Target phase:** Phase 7/8
+**Ticket:** Needs creation (P2 bundle)
+**Status:** ⬜ Open
+
+---
+
+### Already tracked elsewhere (confirmed by this audit, not new)
+- **RowVersion is inert** — token + 409 mapping exist but no update path passes the original version → silent last-write-wins. Confirmed by Architecture + Database. Already tracked as **EHS-55** (ETag/If-Match HTTP contract, #13 below).
+- **Duplicated validation rules** (UTC-offset, future/past date, Title/Desc, Priority) across all 4 Create/Update validators. Confirmed by Architecture + Code. Already covered by the **existing shared-FluentValidation-rules ticket** — append the concrete list: `.MustBeUtc()` extension; Title MaxLength inconsistent (Create 500 vs Update 200); Update validators missing Type/Severity `.IsInEnum()`; Priority `InclusiveBetween(1,4)` on an enum → use `.IsInEnum()`.
+- **`TenantId == Guid.Empty` guard missing in audit handlers** — already #27 below.
+
+---
+
 ## Summary Table
 
 | # | Finding | Severity | Target | Ticket | Status |
@@ -587,3 +701,12 @@ if (_currentUser.TenantId == Guid.Empty)
 | 27 | `TenantId == Guid.Empty` guard missing in audit log handlers — silent empty result for unauthenticated tenant | 🟡 Medium | Phase 6 | — | ⬜ Open |
 | 28 | CORS integration test relies on `appsettings.Development.json` — fails silently if env is not Development | 🟡 Medium | Phase 7 | EHS-69 | ✅ Fixed |
 | 29 | CORS `WithHeaders` allow-list has no maintenance process — new custom headers will cause silent browser CORS errors | 🟢 Low | Ongoing | — | ⬜ Open |
+| 30 | MediatR ValidationBehavior missing — all FluentValidation validators are dead code | 🔴 High | Phase 7 | P0-1 | ⬜ Open |
+| 31 | Tenant isolation not an enforced seam — User filter omits TenantId, TenantId not stamped on create, no interceptor | 🔴 High | Phase 7 | P0-2 | ⬜ Open |
+| 32 | JWT signing key hardcoded in committed appsettings.json — cross-tenant token forgery | 🔴 High | Phase 7 | P0-3 | ⬜ Open |
+| 33 | SQL columns datetime2 not datetimeoffset — offset discarded at DB layer (distinct from EHS-62) | 🔴 High | Phase 7 | P0-4 | ⬜ Open |
+| 34 | AuditLog has no global query filter — tenant isolation hand-rolled per query | 🔴 High | Phase 7 | P1 (fold P0-2) | ⬜ Open |
+| 35 | exception.Message returned raw on 500 — schema/SQL info disclosure | 🟡 Medium | Phase 7 | P1 | ⬜ Open |
+| 36 | Audit index mismatch + single-column tenant indexes — in-memory sorts at scale | 🟡 Medium | Phase 7/8 | P1 | ⬜ Open |
+| 37 | No role-based authz on write/delete — Contractor can soft-delete; ctype unenforced | 🟡 Medium | Phase 8 | P1 | ⬜ Open |
+| 38 | Quality bundle — claim-name constants, ctype unwired, duplicate audit handlers, shallow tests | 🟡 Medium | Phase 7/8 | P2 | ⬜ Open |
