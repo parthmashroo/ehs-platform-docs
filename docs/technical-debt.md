@@ -683,6 +683,17 @@ if (_currentUser.TenantId == Guid.Empty)
 
 ---
 
+### 🟢 Generic audit helpers lack `IAuditableEntity` constraint — future extensibility gap
+
+**Finding:** If we add generic audit utilities (e.g. `AuditQueryBuilder<T>`, `GetAuditLogQuery<T>`) in Phase 8+, the type parameter should be constrained to `where T : IAuditableEntity`. Without it, callers can instantiate generic audit helpers against non-auditable types and get runtime failures instead of compile errors.
+
+**Fix:** When the first generic audit helper is written, add `where T : IAuditableEntity` constraint. No action needed today — premature until the helper exists.
+
+**Target phase:** Phase 8+ (when generic audit helpers are introduced)
+**Status:** ⬜ Deferred by design
+
+---
+
 ### 🟢 No test asserting `AuditLog` does NOT implement `IAuditableEntity`
 
 **Finding:** `AuditLog` is written by the interceptor — it must never be an `IAuditableEntity` itself. If someone adds `IAuditableEntity` to `AuditLog`, the interceptor enters infinite recursion: writing AuditLog triggers another SaveChanges snapshot, triggers another AuditLog write. No guard exists today.
@@ -737,3 +748,4 @@ if (_currentUser.TenantId == Guid.Empty)
 | 37 | No role-based authz on write/delete — Contractor can soft-delete; ctype unenforced | 🟡 Medium | Phase 8 | P1 | ⬜ Open |
 | 38 | Quality bundle — claim-name constants, ctype unwired, duplicate audit handlers, shallow tests | 🟡 Medium | Phase 7/8 | P2 | ⬜ Open |
 | 39 | `IAuditableEntity` has no Id contract — interceptor assumes BaseEntity inheritance; no test guards AuditLog from accidentally implementing the interface | 🟢 Low | Phase 7 | EHS-61 arch tests | ⬜ Open |
+| 40 | Generic audit helpers (future) lack `where T : IAuditableEntity` constraint — compile-time safety gap when helpers are introduced | 🟢 Low | Phase 8+ | — | ⬜ Deferred |
