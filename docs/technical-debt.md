@@ -705,6 +705,28 @@ if (_currentUser.TenantId == Guid.Empty)
 
 ---
 
+## Phase 7 Review — EHS-66 AuditInterceptor TenantId Guard (Jun 2026)
+
+### 🟢 AuditInterceptor guard fires silently — no observability when malformed auth state hits
+
+**Finding:** `AddAuditLogs()` returns early when `TenantId == Guid.Empty` (EHS-66 guard). The return is silent — no log, no metric. In production, if a middleware bug or malformed JWT causes every `SaveChanges` to skip auditing, there is no signal to diagnose from. The compliance audit trail degrades invisibly.
+
+**Fix:** Inject `ILogger<AuditInterceptor>` and add one warning log on the guard path:
+```csharp
+if (context is null || !_currentUserService.IsAuthenticated || _currentUserService.TenantId == Guid.Empty)
+{
+    if (_currentUserService.IsAuthenticated)
+        _logger.LogWarning("AuditInterceptor skipped: TenantId is Guid.Empty for authenticated user {UserId}", _currentUserService.UserId);
+    return;
+}
+```
+The unauthenticated path (system tasks, migrations) is expected — no warning needed there. The authenticated + empty-tenant path is always a bug — always worth logging.
+
+**Target phase:** Phase 7/8 — fold into P2 quality bundle
+**Status:** ⬜ Open
+
+---
+
 ## Summary Table
 
 | # | Finding | Severity | Target | Ticket | Status |
@@ -749,3 +771,4 @@ if (_currentUser.TenantId == Guid.Empty)
 | 38 | Quality bundle — claim-name constants, ctype unwired, duplicate audit handlers, shallow tests | 🟡 Medium | Phase 7/8 | P2 | ⬜ Open |
 | 39 | `IAuditableEntity` has no Id contract — interceptor assumes BaseEntity inheritance; no test guards AuditLog from accidentally implementing the interface | 🟢 Low | Phase 7 | EHS-61 arch tests | ⬜ Open |
 | 40 | Generic audit helpers (future) lack `where T : IAuditableEntity` constraint — compile-time safety gap when helpers are introduced | 🟢 Low | Phase 8+ | — | ⬜ Deferred |
+| 41 | AuditInterceptor TenantId guard fires silently — no log when malformed auth state skips auditing | 🟢 Low | Phase 7/8 | P2 | ⬜ Open |
