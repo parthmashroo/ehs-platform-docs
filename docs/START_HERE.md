@@ -18,7 +18,7 @@ Phase 7: Semantic Form Engine. Create Phase 7 Jira tickets before coding starts.
 
 ## Last Session Handoff
 
-**Session 28 (2026-06-07):** EHS-67 committed. Added CorrectiveAction audit test — pins `EntityName = "CorrectiveAction"`, `Action = Created`, `TenantId`, `ChangedById`. 64/64 tests green. Arch finding: `GetType().Name` proxy-unsafe → debt #42 (`entry.Metadata.ClrType.Name`). Interview card Q64 added.
+**Session 28 (2026-06-07):** EHS-67 committed. Added CorrectiveAction audit test — pins `EntityName = "CorrectiveAction"`, `Action = Created`, `TenantId`, `ChangedById`. 64/64 tests green. Arch finding: `GetType().Name` proxy-unsafe → fixed same session (`entry.Metadata.ClrType.Name`, debt #42 ✅). Interview card Q64 added.
 
 **Session 27 (2026-06-06):** EHS-66 committed. `AuditInterceptor.AddAuditLogs()` guard extended — returns early when `TenantId == Guid.Empty` even if `IsAuthenticated = true`. Prevents audit rows with empty TenantId from poisoning tenant-scoped queries. One new test added (authenticated + empty tenant → no audit log). 63/63 tests green. Interview card Q63 added.
 

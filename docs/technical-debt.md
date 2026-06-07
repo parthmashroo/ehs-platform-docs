@@ -798,4 +798,4 @@ EntityName = entry.Metadata.ClrType.Name,
 | 39 | `IAuditableEntity` has no Id contract — interceptor assumes BaseEntity inheritance; no test guards AuditLog from accidentally implementing the interface | 🟢 Low | Phase 7 | EHS-61 arch tests | ⬜ Open |
 | 40 | Generic audit helpers (future) lack `where T : IAuditableEntity` constraint — compile-time safety gap when helpers are introduced | 🟢 Low | Phase 8+ | — | ⬜ Deferred |
 | 41 | AuditInterceptor TenantId guard fires silently — no log when malformed auth state skips auditing | 🟢 Low | Phase 7/8 | P2 | ⬜ Open |
-| 42 | AuditInterceptor uses `GetType().Name` — proxy-unsafe; `entry.Metadata.ClrType.Name` is the correct EF idiom | 🟢 Low | Phase 7 | — | ⬜ Open |
+| 42 | AuditInterceptor uses `GetType().Name` — proxy-unsafe; `entry.Metadata.ClrType.Name` is the correct EF idiom | 🟢 Low | Phase 7 | — | ✅ Fixed |
