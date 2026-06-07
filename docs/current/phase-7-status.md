@@ -9,6 +9,7 @@
 | EHS-69 | CORS middleware — named policy, config-driven origins, API integration test project | ✅ Done |
 | EHS-65 | `IAuditableEntity` marker interface — opt-in auditing, replaced hardcoded type registry | ✅ Done |
 | EHS-66 | AuditInterceptor: guard against `TenantId == Guid.Empty` when authenticated | ✅ Done |
+| EHS-67 | AuditInterceptorTests: CorrectiveAction Created coverage — EntityName + TenantId + ChangedById | ✅ Done |
 | P0-1 | MediatR ValidationBehavior — validators currently dead code | ⬜ Backlog |
 | P0-2 | Tenant isolation seam — User filter + TenantStampInterceptor + CA parent check | ⬜ Backlog |
 | P0-3 | Move JWT signing key out of source + rotate + pin algorithm | ⬜ Backlog |

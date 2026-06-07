@@ -727,6 +727,32 @@ The unauthenticated path (system tasks, migrations) is expected — no warning n
 
 ---
 
+## Phase 7 Review — EHS-67 CorrectiveAction Audit Coverage (Jun 2026)
+
+### 🟢 AuditInterceptor uses `GetType().Name` — proxy-unsafe EntityName in production
+
+**Finding:** `AuditInterceptor` derives `EntityName` via `entry.Entity.GetType().Name`. If EF Core lazy-loading proxies are enabled (via `UseLazyLoadingProxies()`), `GetType()` returns the proxy subclass — `"CorrectiveActionProxy"`, `"IncidentProxy"` — not the mapped entity name. Every audit row written under lazy loading stores a wrong `EntityName`, permanently corrupting the audit trail with no error or warning.
+
+**The EHS-67 test does not catch this** — `InMemoryDatabase` does not use proxies. A proxy-enabled integration test against SQL Server would expose it immediately.
+
+**Fix:** Replace `entry.Entity.GetType().Name` with `entry.Metadata.ClrType.Name` in `AuditInterceptor`. The EF Core model metadata always holds the mapped CLR type, not the runtime proxy type. One-character change, zero behavioral difference in non-proxy scenarios.
+
+```csharp
+// Before (proxy-unsafe)
+var entityId = entry.Property("Id").CurrentValue?.ToString() ?? string.Empty;
+// EntityName captured elsewhere as: entry.Entity.GetType().Name
+
+// After — also fix EntityName at the AddRange site:
+EntityName = entry.Metadata.ClrType.Name,
+```
+
+**Risk:** Low today — `UseLazyLoadingProxies()` is not called anywhere in the project. Medium if any future developer adds it as a "fix" for navigation property N+1 issues. The audit trail corruption would be silent and permanent.
+
+**Target phase:** Phase 7 — small fix, can be done as part of any interceptor touch
+**Status:** ⬜ Open
+
+---
+
 ## Summary Table
 
 | # | Finding | Severity | Target | Ticket | Status |
@@ -772,3 +798,4 @@ The unauthenticated path (system tasks, migrations) is expected — no warning n
 | 39 | `IAuditableEntity` has no Id contract — interceptor assumes BaseEntity inheritance; no test guards AuditLog from accidentally implementing the interface | 🟢 Low | Phase 7 | EHS-61 arch tests | ⬜ Open |
 | 40 | Generic audit helpers (future) lack `where T : IAuditableEntity` constraint — compile-time safety gap when helpers are introduced | 🟢 Low | Phase 8+ | — | ⬜ Deferred |
 | 41 | AuditInterceptor TenantId guard fires silently — no log when malformed auth state skips auditing | 🟢 Low | Phase 7/8 | P2 | ⬜ Open |
+| 42 | AuditInterceptor uses `GetType().Name` — proxy-unsafe; `entry.Metadata.ClrType.Name` is the correct EF idiom | 🟢 Low | Phase 7 | — | ⬜ Open |

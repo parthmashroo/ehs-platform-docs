@@ -18,6 +18,8 @@ Phase 7: Semantic Form Engine. Create Phase 7 Jira tickets before coding starts.
 
 ## Last Session Handoff
 
+**Session 28 (2026-06-07):** EHS-67 committed. Added CorrectiveAction audit test — pins `EntityName = "CorrectiveAction"`, `Action = Created`, `TenantId`, `ChangedById`. 64/64 tests green. Arch finding: `GetType().Name` proxy-unsafe → debt #42 (`entry.Metadata.ClrType.Name`). Interview card Q64 added.
+
 **Session 27 (2026-06-06):** EHS-66 committed. `AuditInterceptor.AddAuditLogs()` guard extended — returns early when `TenantId == Guid.Empty` even if `IsAuthenticated = true`. Prevents audit rows with empty TenantId from poisoning tenant-scoped queries. One new test added (authenticated + empty tenant → no audit log). 63/63 tests green. Interview card Q63 added.
 
 **Phase 6 complete — all tickets done:**
@@ -31,6 +33,7 @@ Phase 7: Semantic Form Engine. Create Phase 7 Jira tickets before coding starts.
 - EHS-69: CORS — named policy, config-driven origins, API integration test project ✅
 - EHS-65: `IAuditableEntity` marker interface — opt-in auditing, replaced hardcoded type registry ✅
 - EHS-66: AuditInterceptor TenantId == Guid.Empty guard ✅
+- EHS-67: CorrectiveAction audit interceptor coverage ✅
 
 **Open technical debt (in technical-debt.md):**
 - #25: `a.Action.ToString()` inside LINQ select — client-side evaluation risk
@@ -38,7 +41,7 @@ Phase 7: Semantic Form Engine. Create Phase 7 Jira tickets before coding starts.
 - #27: `TenantId == Guid.Empty` guard missing in both audit log QUERY handlers (interceptor now guarded via EHS-66)
 - #29: CORS `WithHeaders` allow-list has no maintenance process
 
-**63 tests green. Next: pick next Phase 7 ticket from Jira (P0-1 ValidationBehavior recommended — highest leverage).**
+**64 tests green. Next: pick next Phase 7 ticket from Jira (P0-1 ValidationBehavior recommended — highest leverage).**
 
 ---
 
