@@ -18,6 +18,8 @@ Phase 7: Semantic Form Engine. Create Phase 7 Jira tickets before coding starts.
 
 ## Last Session Handoff
 
+**Session 30 (2026-06-13):** EHS-71 committed. Extracted `MustBeUtc()` FluentValidation extension to `Application/Common/Validation/CommonValidatorRules.cs` — eliminates inline `x.Offset == TimeSpan.Zero` predicate duplicated across 4 validators. 68/68 tests green (4 new isolation tests for shared rule). Debt #43, #44 added. Interview card Q66 added.
+
 **Session 29 (2026-06-13):** EHS-70 committed. Fixed `a.Action.ToString()` inside LINQ expression tree in both audit log query handlers — was potential EF Core client-side eval. Two-step fix: `(int)a.Action` in SQL, `((AuditAction)r.ActionInt).ToString()` in-memory after ToListAsync. 64/64 tests green. Debt #25 ✅. Interview card Q65 added.
 
 **Session 28 (2026-06-07):** EHS-67 committed. Added CorrectiveAction audit test — pins `EntityName = "CorrectiveAction"`, `Action = Created`, `TenantId`, `ChangedById`. 64/64 tests green. Arch finding: `GetType().Name` proxy-unsafe → fixed same session (`entry.Metadata.ClrType.Name`, debt #42 ✅). Interview card Q64 added.
@@ -37,14 +39,17 @@ Phase 7: Semantic Form Engine. Create Phase 7 Jira tickets before coding starts.
 - EHS-66: AuditInterceptor TenantId == Guid.Empty guard ✅
 - EHS-67: CorrectiveAction audit interceptor coverage ✅
 - EHS-70: Audit log handlers — fix `Action.ToString()` client-eval ✅
+- EHS-71: Extract `MustBeUtc()` shared validator rule — 4 validators updated ✅
 
 **Open technical debt (in technical-debt.md):**
 - ~~#25: `a.Action.ToString()` inside LINQ select~~ ✅ Fixed EHS-70
 - #26: `IgnoreQueryFilters()` undocumented scope — future TenantId filter bypass risk
 - #27: `TenantId == Guid.Empty` guard missing in both audit log QUERY handlers (interceptor now guarded via EHS-66)
 - #29: CORS `WithHeaders` allow-list has no maintenance process
+- #43: `MustBeUtc()` has no `DateTimeOffset?` overload
+- #44: No global using for `CommonValidatorRules` namespace
 
-**64 tests green. Next: pick next Phase 7 ticket from Jira (P0-1 ValidationBehavior recommended — highest leverage).**
+**68 tests green. Next: P0-1 (MediatR ValidationBehavior — validators are dead code without pipeline behavior) — highest leverage remaining.**
 
 ---
 
