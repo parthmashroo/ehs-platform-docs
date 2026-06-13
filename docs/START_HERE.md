@@ -18,6 +18,8 @@ Phase 7: Semantic Form Engine. Create Phase 7 Jira tickets before coding starts.
 
 ## Last Session Handoff
 
+**Session 29 (2026-06-13):** EHS-70 committed. Fixed `a.Action.ToString()` inside LINQ expression tree in both audit log query handlers — was potential EF Core client-side eval. Two-step fix: `(int)a.Action` in SQL, `((AuditAction)r.ActionInt).ToString()` in-memory after ToListAsync. 64/64 tests green. Debt #25 ✅. Interview card Q65 added.
+
 **Session 28 (2026-06-07):** EHS-67 committed. Added CorrectiveAction audit test — pins `EntityName = "CorrectiveAction"`, `Action = Created`, `TenantId`, `ChangedById`. 64/64 tests green. Arch finding: `GetType().Name` proxy-unsafe → fixed same session (`entry.Metadata.ClrType.Name`, debt #42 ✅). Interview card Q64 added.
 
 **Session 27 (2026-06-06):** EHS-66 committed. `AuditInterceptor.AddAuditLogs()` guard extended — returns early when `TenantId == Guid.Empty` even if `IsAuthenticated = true`. Prevents audit rows with empty TenantId from poisoning tenant-scoped queries. One new test added (authenticated + empty tenant → no audit log). 63/63 tests green. Interview card Q63 added.
@@ -34,9 +36,10 @@ Phase 7: Semantic Form Engine. Create Phase 7 Jira tickets before coding starts.
 - EHS-65: `IAuditableEntity` marker interface — opt-in auditing, replaced hardcoded type registry ✅
 - EHS-66: AuditInterceptor TenantId == Guid.Empty guard ✅
 - EHS-67: CorrectiveAction audit interceptor coverage ✅
+- EHS-70: Audit log handlers — fix `Action.ToString()` client-eval ✅
 
 **Open technical debt (in technical-debt.md):**
-- #25: `a.Action.ToString()` inside LINQ select — client-side evaluation risk
+- ~~#25: `a.Action.ToString()` inside LINQ select~~ ✅ Fixed EHS-70
 - #26: `IgnoreQueryFilters()` undocumented scope — future TenantId filter bypass risk
 - #27: `TenantId == Guid.Empty` guard missing in both audit log QUERY handlers (interceptor now guarded via EHS-66)
 - #29: CORS `WithHeaders` allow-list has no maintenance process

@@ -496,13 +496,13 @@ Enum values are already stored as strings (e.g. `"Reported"`) — no translation
 
 ## Phase 6 Review — EHS-58 Audit Log Endpoints (May 2026)
 
-### 🟢 `a.Action.ToString()` inside LINQ select — client-side evaluation risk
+### ~~🟢 `a.Action.ToString()` inside LINQ select — client-side evaluation risk~~ ✅ Fixed in EHS-70
 **Finding:** The audit log handler calls `a.Action.ToString()` inside the LINQ `select` projection. EF Core may not be able to translate this enum `.ToString()` call to SQL and silently switch to client-side evaluation — fetching the full result set and evaluating in memory.
 
-**Fix:** Project `Action = (int)a.Action` and call `.ToString()` after `.ToListAsync()`, or store a local `var action = a.Action;` before the query and reference that inside the select.
+**Fix:** Project `ActionInt = (int)a.Action` in the SQL expression tree, call `((AuditAction)r.ActionInt).ToString()` in-memory after `.ToListAsync()`. Applied to both `GetIncidentAuditLogQueryHandler` and `GetCorrectiveActionAuditLogQueryHandler`.
 
 **Target phase:** Phase 6/7
-**Status:** ⬜ Open
+**Status:** ✅ Fixed — EHS-70
 
 ---
 
@@ -781,7 +781,7 @@ EntityName = entry.Metadata.ClrType.Name,
 | 22 | SQL Server Temporal Tables not implemented — no DB-level tamper-proof history | 🟢 Low | Phase 16 | — | ⬜ Open |
 | 23 | EHS-58 returns raw JSON blobs for OldValues/NewValues — field-level diff DTO deferred | 🟡 Medium | Phase 12 | — | ⬜ Deferred |
 | 24 | Incoming DateTimeOffset values from clients not normalized to UTC — client can submit +05:30 offset and it persists as-is | 🟡 Medium | Phase 7 (before API goes public) | — | ✅ Fixed |
-| 25 | `a.Action.ToString()` inside LINQ select — may force client-side evaluation against SQL Server | 🟢 Low | Phase 6/7 | — | ⬜ Open |
+| 25 | `a.Action.ToString()` inside LINQ select — may force client-side evaluation against SQL Server | 🟢 Low | Phase 6/7 | EHS-70 | ✅ Fixed |
 | 26 | `IgnoreQueryFilters()` on Users join bypasses ALL future filters — undocumented scope risk | 🟢 Low | Phase 8 (when Users gets TenantId filter) | — | ⬜ Open |
 | 27 | `TenantId == Guid.Empty` guard missing in audit log handlers — silent empty result for unauthenticated tenant | 🟡 Medium | Phase 6 | — | ⬜ Open |
 | 28 | CORS integration test relies on `appsettings.Development.json` — fails silently if env is not Development | 🟡 Medium | Phase 7 | EHS-69 | ✅ Fixed |
