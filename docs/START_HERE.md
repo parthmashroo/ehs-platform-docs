@@ -46,8 +46,8 @@ Phase 7: Semantic Form Engine. Create Phase 7 Jira tickets before coding starts.
 - #26: `IgnoreQueryFilters()` undocumented scope — future TenantId filter bypass risk
 - #27: `TenantId == Guid.Empty` guard missing in both audit log QUERY handlers (interceptor now guarded via EHS-66)
 - #29: CORS `WithHeaders` allow-list has no maintenance process
-- #43: `MustBeUtc()` has no `DateTimeOffset?` overload
-- #44: No global using for `CommonValidatorRules` namespace
+- ~~#43: `MustBeUtc()` has no `DateTimeOffset?` overload~~ ✅ Fixed
+- ~~#44: No global using for `CommonValidatorRules` namespace~~ ✅ Fixed
 
 **68 tests green. Next: P0-1 (MediatR ValidationBehavior — validators are dead code without pipeline behavior) — highest leverage remaining.**
 

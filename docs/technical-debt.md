@@ -799,5 +799,5 @@ EntityName = entry.Metadata.ClrType.Name,
 | 40 | Generic audit helpers (future) lack `where T : IAuditableEntity` constraint — compile-time safety gap when helpers are introduced | 🟢 Low | Phase 8+ | — | ⬜ Deferred |
 | 41 | AuditInterceptor TenantId guard fires silently — no log when malformed auth state skips auditing | 🟢 Low | Phase 7/8 | P2 | ⬜ Open |
 | 42 | AuditInterceptor uses `GetType().Name` — proxy-unsafe; `entry.Metadata.ClrType.Name` is the correct EF idiom | 🟢 Low | Phase 7 | — | ✅ Fixed |
-| 43 | `CommonValidatorRules.MustBeUtc()` has no `DateTimeOffset?` overload — nullable date fields silently skip the UTC check | 🟢 Low | Phase 8 (if nullable dates added) | — | ⬜ Open |
-| 44 | `using EHSPlatform.Application.Common.Validation;` required per-file — no global using means developers can write inline UTC checks without seeing `MustBeUtc()` exists | 🟢 Low | Phase 7/8 | — | ⬜ Open |
+| 43 | `CommonValidatorRules.MustBeUtc()` has no `DateTimeOffset?` overload — nullable date fields silently skip the UTC check | 🟢 Low | Phase 8 (if nullable dates added) | — | ✅ Fixed |
+| 44 | `using EHSPlatform.Application.Common.Validation;` required per-file — no global using means developers can write inline UTC checks without seeing `MustBeUtc()` exists | 🟢 Low | Phase 7/8 | — | ✅ Fixed |
