@@ -18,6 +18,8 @@ Phase 7: Semantic Form Engine. Create Phase 7 Jira tickets before coding starts.
 
 ## Last Session Handoff
 
+**Session 31 (2026-06-15):** EHS-72 committed. Wired FluentValidation to MediatR pipeline via `ValidationBehavior<TRequest,TResponse>` in `Application/Common/Behaviours/` — all `*CommandValidator` classes were dead code before this. ExceptionHandlingMiddleware upgraded to return `ValidationProblemDetails` with per-field errors. 24 new tests (behavior unit, validator unit ×2, integration test asserting 400 + field errors). 92/92 tests green. Debt #30 ✅, #45 + #46 added. Interview card Q67 added.
+
 **Session 30 (2026-06-13):** EHS-71 committed. Extracted `MustBeUtc()` FluentValidation extension to `Application/Common/Validation/CommonValidatorRules.cs` — eliminates inline `x.Offset == TimeSpan.Zero` predicate duplicated across 4 validators. 68/68 tests green (4 new isolation tests for shared rule). Debt #43, #44 added. Interview card Q66 added.
 
 **Session 29 (2026-06-13):** EHS-70 committed. Fixed `a.Action.ToString()` inside LINQ expression tree in both audit log query handlers — was potential EF Core client-side eval. Two-step fix: `(int)a.Action` in SQL, `((AuditAction)r.ActionInt).ToString()` in-memory after ToListAsync. 64/64 tests green. Debt #25 ✅. Interview card Q65 added.
@@ -40,16 +42,18 @@ Phase 7: Semantic Form Engine. Create Phase 7 Jira tickets before coding starts.
 - EHS-67: CorrectiveAction audit interceptor coverage ✅
 - EHS-70: Audit log handlers — fix `Action.ToString()` client-eval ✅
 - EHS-71: Extract `MustBeUtc()` shared validator rule — 4 validators updated ✅
+- EHS-72: Wire ValidationBehavior to MediatR pipeline — dead validators are now live ✅
 
 **Open technical debt (in technical-debt.md):**
-- ~~#25: `a.Action.ToString()` inside LINQ select~~ ✅ Fixed EHS-70
 - #26: `IgnoreQueryFilters()` undocumented scope — future TenantId filter bypass risk
 - #27: `TenantId == Guid.Empty` guard missing in both audit log QUERY handlers (interceptor now guarded via EHS-66)
 - #29: CORS `WithHeaders` allow-list has no maintenance process
-- ~~#43: `MustBeUtc()` has no `DateTimeOffset?` overload~~ ✅ Fixed
-- ~~#44: No global using for `CommonValidatorRules` namespace~~ ✅ Fixed
+- #31: Tenant isolation not enforced at seam level (P0-2)
+- #32: JWT signing key hardcoded in appsettings.json (P0-3)
+- #33: SQL columns datetime2 not datetimeoffset (P0-4)
+- #45: ValidationBehavior runs for queries too — ICommand marker would scope it
 
-**68 tests green. Next: P0-1 (MediatR ValidationBehavior — validators are dead code without pipeline behavior) — highest leverage remaining.**
+**92 tests green. Next: P0-2 (tenant isolation seam — User filter missing TenantId, TenantId not stamped on create) — highest remaining risk.**
 
 ---
 

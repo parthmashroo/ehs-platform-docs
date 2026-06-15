@@ -753,6 +753,32 @@ EntityName = entry.Metadata.ClrType.Name,
 
 ---
 
+## Phase 7 Review — EHS-72 ValidationBehavior (Jun 2026)
+
+### 🟢 ValidationBehavior runs for all MediatR requests — ICommand marker interface would scope it
+
+**Finding:** `ValidationBehavior<TRequest, TResponse>` is registered as a open-generic `IPipelineBehavior<,>`, so it fires for every MediatR dispatch — including read queries (`GetIncidentsQuery`, `GetAuditLogsQuery`). Queries have no validators; DI resolves an empty `IEnumerable<IValidator<TRequest>>` and the behavior short-circuits. Low cost per call, but architecturally noisy: the behavior is a command-only concern applied system-wide.
+
+**Fix:** Add `ICommand` marker interface. Constrain behavior: `where TRequest : ICommand`. All command classes implement `ICommand`. Queries are untouched. One line per command class; no behavior change.
+
+**Target phase:** Phase 8
+**Ticket:** Fold into quality bundle (P2)
+**Status:** ⬜ Open
+
+---
+
+### 🟢 Task.WhenAll parallelizes validators — safe today, fragile when async DB rules are added
+
+**Finding:** `ValidationBehavior` runs all validators via `Task.WhenAll(validators.Select(v => v.ValidateAsync(...)))`. Today all validators are pure in-memory (no DB calls). Safe. The moment any validator adds `MustAsync` (e.g., uniqueness checks against the DB), two validators on the same command fire two concurrent DB queries with no rate-limiting, connection-pool awareness, or ordering guarantee.
+
+**Fix:** No action now. When the first `MustAsync` validator is written, revisit: either `foreach` + `await` (sequential), or set a concurrency policy. Document the parallel assumption in the behavior.
+
+**Target phase:** Phase 8+ (when async validators introduced)
+**Ticket:** —
+**Status:** ⬜ Deferred by design
+
+---
+
 ## Summary Table
 
 | # | Finding | Severity | Target | Ticket | Status |
@@ -786,7 +812,7 @@ EntityName = entry.Metadata.ClrType.Name,
 | 27 | `TenantId == Guid.Empty` guard missing in audit log handlers — silent empty result for unauthenticated tenant | 🟡 Medium | Phase 6 | — | ⬜ Open |
 | 28 | CORS integration test relies on `appsettings.Development.json` — fails silently if env is not Development | 🟡 Medium | Phase 7 | EHS-69 | ✅ Fixed |
 | 29 | CORS `WithHeaders` allow-list has no maintenance process — new custom headers will cause silent browser CORS errors | 🟢 Low | Ongoing | — | ⬜ Open |
-| 30 | MediatR ValidationBehavior missing — all FluentValidation validators are dead code | 🔴 High | Phase 7 | P0-1 | ⬜ Open |
+| 30 | MediatR ValidationBehavior missing — all FluentValidation validators are dead code | 🔴 High | Phase 7 | EHS-72 | ✅ Fixed |
 | 31 | Tenant isolation not an enforced seam — User filter omits TenantId, TenantId not stamped on create, no interceptor | 🔴 High | Phase 7 | P0-2 | ⬜ Open |
 | 32 | JWT signing key hardcoded in committed appsettings.json — cross-tenant token forgery | 🔴 High | Phase 7 | P0-3 | ⬜ Open |
 | 33 | SQL columns datetime2 not datetimeoffset — offset discarded at DB layer (distinct from EHS-62) | 🔴 High | Phase 7 | P0-4 | ⬜ Open |
@@ -801,3 +827,5 @@ EntityName = entry.Metadata.ClrType.Name,
 | 42 | AuditInterceptor uses `GetType().Name` — proxy-unsafe; `entry.Metadata.ClrType.Name` is the correct EF idiom | 🟢 Low | Phase 7 | — | ✅ Fixed |
 | 43 | `CommonValidatorRules.MustBeUtc()` has no `DateTimeOffset?` overload — nullable date fields silently skip the UTC check | 🟢 Low | Phase 8 (if nullable dates added) | — | ✅ Fixed |
 | 44 | `using EHSPlatform.Application.Common.Validation;` required per-file — no global using means developers can write inline UTC checks without seeing `MustBeUtc()` exists | 🟢 Low | Phase 7/8 | — | ✅ Fixed |
+| 45 | `ValidationBehavior` resolves validators for ALL MediatR requests including queries — wasted DI resolution; `ICommand` marker would scope it to commands only | 🟢 Low | Phase 8 | — | ⬜ Open |
+| 46 | `Task.WhenAll` in ValidationBehavior parallelizes validators — safe today (pure in-memory); first async validator with DB uniqueness check fans out unbounded DB connections per command | 🟢 Low | Phase 8+ (when async validators added) | — | ⬜ Deferred |
