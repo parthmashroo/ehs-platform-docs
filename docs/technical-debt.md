@@ -802,6 +802,38 @@ EntityName = entry.Metadata.ClrType.Name,
 
 ---
 
+## Phase 7 Review — EHS-76 AuditLog Global Query Filter (Jun 2026)
+
+### 🟢 Convention-based `HasQueryFilter` registration — 8 individual calls grow linearly
+
+**Finding:** `OnModelCreating` has 8 individual `HasQueryFilter` calls, one per entity. When a new entity is added that implements `ITenantEntity`, the developer must remember to also add the filter call. There is no enforcement. A missing filter = silent cross-tenant data leak for that entity only — no build error, no test failure unless there's an explicit cross-tenant test.
+
+**Fix (Phase 8):** Replace individual calls with a convention loop:
+```csharp
+foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+{
+    if (typeof(ITenantEntity).IsAssignableFrom(entityType.ClrType))
+        modelBuilder.Entity(entityType.ClrType).HasQueryFilter(/* lambda via Expression.Lambda */);
+}
+```
+New entities implementing `ITenantEntity` get the filter automatically. No `OnModelCreating` changes needed per entity.
+
+**Target phase:** Phase 8
+**Ticket:** —
+**Status:** ⬜ Open
+
+---
+
+### 🟢 In-memory provider leaks `IgnoreQueryFilters()` scope — documented, two-query pattern is the fix
+
+**Finding:** EF Core's in-memory provider applies `IgnoreQueryFilters()` to the entire LINQ expression tree when called on a joined entity — it does NOT scope it to the entity it's called on. SQL Server generates a subquery that scopes the hint correctly. The `GetIncidentAuditLogQueryHandler` and `GetCorrectiveActionAuditLogQueryHandler` originally used `join u in _context.Users.IgnoreQueryFilters()` — this disabled the AuditLog global filter in in-memory tests. Fix: split into two queries (AuditLog fetch + separate Users dict lookup). This is also cleaner architecture; no explanation comment required in the handlers.
+
+**Target phase:** N/A — fixed in EHS-76
+**Ticket:** N/A
+**Status:** ✅ Fixed (two-query pattern is the canonical approach going forward)
+
+---
+
 ## Summary Table
 
 | # | Finding | Severity | Target | Ticket | Status |
@@ -839,7 +871,7 @@ EntityName = entry.Metadata.ClrType.Name,
 | 31 | Tenant isolation not an enforced seam — User filter omits TenantId, TenantId not stamped on create, no interceptor | 🔴 High | Phase 7 | P0-2 | ⬜ Open |
 | 32 | JWT signing key hardcoded in committed appsettings.json — cross-tenant token forgery | 🔴 High | Phase 7 | P0-3 | ⬜ Open |
 | 33 | SQL columns datetime2 not datetimeoffset — offset discarded at DB layer (distinct from EHS-62) | 🔴 High | Phase 7 | P0-4 | ⬜ Open |
-| 34 | AuditLog has no global query filter — tenant isolation hand-rolled per query | 🔴 High | Phase 7 | P1 (fold P0-2) | ⬜ Open |
+| 34 | AuditLog has no global query filter — tenant isolation hand-rolled per query | 🔴 High | Phase 7 | EHS-76 | ✅ Fixed |
 | 35 | exception.Message returned raw on 500 — schema/SQL info disclosure | 🟡 Medium | Phase 7 | P1 | ⬜ Open |
 | 36 | Audit index mismatch + single-column tenant indexes — in-memory sorts at scale | 🟡 Medium | Phase 7/8 | P1 | ⬜ Open |
 | 37 | No role-based authz on write/delete — Contractor can soft-delete; ctype unenforced | 🟡 Medium | Phase 8 | P1 | ⬜ Open |
@@ -853,3 +885,4 @@ EntityName = entry.Metadata.ClrType.Name,
 | 45 | `ValidationBehavior` resolves validators for ALL MediatR requests including queries — wasted DI resolution; `ICommand` marker would scope it to commands only | 🟢 Low | Phase 8 | EHS-81 | ⬜ Open |
 | 46 | `Task.WhenAll` in ValidationBehavior parallelizes validators — safe today (pure in-memory); first async validator with DB uniqueness check fans out unbounded DB connections per command | 🟢 Low | Phase 8+ (when async validators added) | — | ⬜ Deferred |
 | 47 | Application layer vocabulary gap — MediatR `IRequestHandler<,>` in 15 handlers, `IRequest<T>` in 14 commands, `AbstractValidator<T>` in 8+ validators leak library API surfaces into domain core. Compounding cost: 37 files now, ~170 at Phase 17. ACL-First seam (ADR-018) closes this. | 🟡 Medium | Phase 7 | EHS-81 | ⬜ Open |
+| 48 | Convention-based `HasQueryFilter` registration missing — 8 individual calls grow linearly; new ITenantEntity implementors silently miss tenant isolation if developer forgets the call | 🟢 Low | Phase 8 | — | ⬜ Open |

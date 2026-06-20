@@ -18,6 +18,8 @@ Phase 7: Semantic Form Engine. Create Phase 7 Jira tickets before coding starts.
 
 ## Last Session Handoff
 
+**Session 33 (2026-06-20):** EHS-76 committed. Added `ITenantEntity` to `AuditLog`, `HasQueryFilter(x => x.TenantId == _tenantId)` in `ApplicationDbContext`. Removed manual `where a.TenantId == tenantId` from both audit log query handlers — split into two queries (AuditLog fetch + Users dict lookup) to isolate `IgnoreQueryFilters()` scope (in-memory provider leaks hint to entire LINQ tree; SQL Server does not). Tests updated to pass mock `ICurrentUserService` into `ApplicationDbContext` constructor. 93/93 green. Debt #34 ✅, #48 added. Interview card Q69 added.
+
 **Session 32 (2026-06-20):** EHS-77 committed. Suppressed `exception.Message` in `ExceptionHandlingMiddleware` for 500 responses — `Detail = statusCode == HttpStatusCode.InternalServerError ? null : exception.Message`. Domain exceptions (404/422/403/409) still surface their authored messages. 1 new unit test using `DefaultHttpContext` + `NullLogger` asserts 500 body never contains internal detail. 93/93 tests green. Debt: `DbUpdateConcurrencyException` (409) also leaks EF entity names — tracked. Interview card Q68 added.
 
 **Session 31 (2026-06-15):** EHS-72 committed. Wired FluentValidation to MediatR pipeline via `ValidationBehavior<TRequest,TResponse>` in `Application/Common/Behaviours/` — all `*CommandValidator` classes were dead code before this. ExceptionHandlingMiddleware upgraded to return `ValidationProblemDetails` with per-field errors. 24 new tests (behavior unit, validator unit ×2, integration test asserting 400 + field errors). 92/92 tests green. Debt #30 ✅, #45 + #46 added. Interview card Q67 added.
@@ -62,7 +64,7 @@ EHS-80 (created Session 32) = EHS-77 (already existed from multi-reviewer audit)
 | Ticket | What | Effort | Status |
 |---|---|---|---|
 | **EHS-77** | Suppress `exception.Message` on 500 — single line in `ExceptionHandlingMiddleware` + 1 test | 30 min | ✅ DONE |
-| **EHS-76** | AuditLog global query filter — add `ITenantEntity` to AuditLog, add filter in DbContext, remove 2 manual WHERE clauses in handlers | 1 hr | ⬜ TODO |
+| **EHS-76** | AuditLog global query filter — add `ITenantEntity` to AuditLog, add filter in DbContext, remove 2 manual WHERE clauses in handlers | 1 hr | ✅ DONE |
 | **EHS-74** | JWT signing key out of source — user-secrets (dev), env var (prod), startup guard, pin `ValidAlgorithms` | 1 hr | ⬜ TODO |
 
 ### Session B — Migrations (~3 hrs total, 2 commits)
