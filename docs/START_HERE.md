@@ -44,19 +44,60 @@ Phase 7: Semantic Form Engine. Create Phase 7 Jira tickets before coding starts.
 - EHS-71: Extract `MustBeUtc()` shared validator rule — 4 validators updated ✅
 - EHS-72: Wire ValidationBehavior to MediatR pipeline — dead validators are now live ✅
 
-**Open technical debt (in technical-debt.md):**
-- #26: `IgnoreQueryFilters()` undocumented scope — future TenantId filter bypass risk
-- #27: `TenantId == Guid.Empty` guard missing in both audit log QUERY handlers (interceptor now guarded via EHS-66)
-- #29: CORS `WithHeaders` allow-list has no maintenance process
-- #31: Tenant isolation not enforced at seam level (P0-2)
-- #32: JWT signing key hardcoded in appsettings.json (P0-3)
-- #33: SQL columns datetime2 not datetimeoffset (P0-4)
-- #45: ValidationBehavior runs for queries too — ICommand marker would scope it (EHS-81)
-- #47: Application layer vocabulary gap — MediatR/FluentValidation/EFCore API surfaces leak into domain core (EHS-81)
+**92 tests green (as of EHS-72). No new code committed since.**
 
-**Jira keys (actual):** EHS-80 = 500 info disclosure fix | EHS-81 = ACL wrappers | EHS-82 = ADR-017 doc | EHS-83 = ADR-018 doc
+---
 
-**92 tests green. Next: EHS-80 (500 info disclosure fix — P1 security, 30 min) → then P0-2 (tenant isolation seam) — highest remaining risk.**
+## Phase 7 — Remaining Sprint (verified from Jira 2026-06-20)
+
+> This section replaces ad-hoc "next ticket" notes. Read this every session. Update status as tickets complete.
+
+### ⚠️ Duplicate to close
+EHS-80 (created Session 32) = EHS-77 (already existed from multi-reviewer audit). **Close EHS-80 as duplicate.** Work on EHS-77.
+
+### Session A — Quick security wins (~2.5 hrs total, 3 commits)
+
+| Ticket | What | Effort | Status |
+|---|---|---|---|
+| **EHS-77** | Suppress `exception.Message` on 500 — single line in `ExceptionHandlingMiddleware` + 1 test | 30 min | ⬜ TODO |
+| **EHS-76** | AuditLog global query filter — add `ITenantEntity` to AuditLog, add filter in DbContext, remove 2 manual WHERE clauses in handlers | 1 hr | ⬜ TODO |
+| **EHS-74** | JWT signing key out of source — user-secrets (dev), env var (prod), startup guard, pin `ValidAlgorithms` | 1 hr | ⬜ TODO |
+
+### Session B — Migrations (~3 hrs total, 2 commits)
+
+| Ticket | What | Effort | Status |
+|---|---|---|---|
+| **EHS-75** | `HasColumnType("datetimeoffset")` on every `DateTimeOffset` property in all entity configs + migration | 2 hrs | ⬜ TODO |
+| **EHS-78** | Fix audit index mismatch + composite tenant indexes (`TenantId, Status, OccurredAt DESC WHERE IsDeleted=0`) — migration only | 1 hr | ⬜ TODO |
+
+### Session C — Tenant isolation seam (~4 hrs, own session, highest risk)
+
+| Ticket | What | Effort | Status |
+|---|---|---|---|
+| **EHS-73** | User global query filter + TenantId, TenantStampInterceptor, stamp TenantId on CreateIncident + CreateCorrectiveAction, AuditLog filter (overlaps EHS-76 — coordinate) | 4 hrs | ⬜ TODO |
+
+### Session D — Quality + architecture (after P0/P1 cleared)
+
+| Ticket | What | Effort | Status |
+|---|---|---|---|
+| **EHS-79** | Code-quality bundle: ClaimNames constants, ctype wiring, shared audit-query builder, backfill tests | 2-3 hrs | ⬜ TODO |
+| **EHS-81** | ACL wrapper interfaces — Proprietary Vocabulary for all non-.NET frameworks | 1 session | ⬜ TODO |
+| **EHS-82** | Write ADR-017 doc (MediatR license risk) | 30 min | ⬜ TODO |
+| **EHS-83** | Write ADR-018 doc (ACL-First principle) | 45 min | ⬜ TODO |
+
+### Backlog — defer, not this phase
+
+| Ticket | Defer to |
+|---|---|
+| EHS-61: NetArchTest architecture layer tests | Phase 8 |
+| EHS-55: ETag/If-Match HTTP contract | Phase 5 leftover — Phase 8 |
+| EHS-54: Revoke JWT on soft-delete | Phase 8 |
+| EHS-60: GDPR erasure strategy | Phase 9+ |
+| EHS-63: Replace DbSet→IQueryable in IApplicationDbContext | Phase 8 |
+| EHS-64: DB-managed timestamps + RowVersion shadow | Phase 8 |
+| EHS-68: Permission-Based RBAC | Phase 8 |
+
+**Start every session at the top of the first incomplete Session block above. Do not jump ahead.**
 
 ---
 
