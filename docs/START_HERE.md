@@ -18,6 +18,8 @@ Phase 7: Semantic Form Engine. Create Phase 7 Jira tickets before coding starts.
 
 ## Last Session Handoff
 
+**Session 32 (2026-06-20):** EHS-77 committed. Suppressed `exception.Message` in `ExceptionHandlingMiddleware` for 500 responses — `Detail = statusCode == HttpStatusCode.InternalServerError ? null : exception.Message`. Domain exceptions (404/422/403/409) still surface their authored messages. 1 new unit test using `DefaultHttpContext` + `NullLogger` asserts 500 body never contains internal detail. 93/93 tests green. Debt: `DbUpdateConcurrencyException` (409) also leaks EF entity names — tracked. Interview card Q68 added.
+
 **Session 31 (2026-06-15):** EHS-72 committed. Wired FluentValidation to MediatR pipeline via `ValidationBehavior<TRequest,TResponse>` in `Application/Common/Behaviours/` — all `*CommandValidator` classes were dead code before this. ExceptionHandlingMiddleware upgraded to return `ValidationProblemDetails` with per-field errors. 24 new tests (behavior unit, validator unit ×2, integration test asserting 400 + field errors). 92/92 tests green. Debt #30 ✅, #45 + #46 added. Interview card Q67 added.
 
 **Session 30 (2026-06-13):** EHS-71 committed. Extracted `MustBeUtc()` FluentValidation extension to `Application/Common/Validation/CommonValidatorRules.cs` — eliminates inline `x.Offset == TimeSpan.Zero` predicate duplicated across 4 validators. 68/68 tests green (4 new isolation tests for shared rule). Debt #43, #44 added. Interview card Q66 added.
@@ -44,7 +46,7 @@ Phase 7: Semantic Form Engine. Create Phase 7 Jira tickets before coding starts.
 - EHS-71: Extract `MustBeUtc()` shared validator rule — 4 validators updated ✅
 - EHS-72: Wire ValidationBehavior to MediatR pipeline — dead validators are now live ✅
 
-**92 tests green (as of EHS-72). No new code committed since.**
+**93 tests green (as of EHS-77). No new code committed since.**
 
 ---
 
@@ -59,7 +61,7 @@ EHS-80 (created Session 32) = EHS-77 (already existed from multi-reviewer audit)
 
 | Ticket | What | Effort | Status |
 |---|---|---|---|
-| **EHS-77** | Suppress `exception.Message` on 500 — single line in `ExceptionHandlingMiddleware` + 1 test | 30 min | ⬜ TODO |
+| **EHS-77** | Suppress `exception.Message` on 500 — single line in `ExceptionHandlingMiddleware` + 1 test | 30 min | ✅ DONE |
 | **EHS-76** | AuditLog global query filter — add `ITenantEntity` to AuditLog, add filter in DbContext, remove 2 manual WHERE clauses in handlers | 1 hr | ⬜ TODO |
 | **EHS-74** | JWT signing key out of source — user-secrets (dev), env var (prod), startup guard, pin `ValidAlgorithms` | 1 hr | ⬜ TODO |
 
