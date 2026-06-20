@@ -896,3 +896,92 @@ guarantee Dapr pub/sub cannot give. They are complementary, not redundant.
 - Whether to adopt `.NET Aspire` as local dev orchestrator (see Phase 8 roadmap — evaluate alongside Dapr)
 - Whether Work Permits use Dapr Workflow or Dapr Actors (evaluate at Phase 13 based on prototype)
 - Whether to split into microservices (Service Invocation becomes relevant only then)
+
+---
+
+## ADR-017: MediatR v13 License Risk + In-Process Dispatcher Decoupling
+
+**Context:** MediatR v13 shipped July 2025 under a commercial license. EHS is pinned to v12.x (MIT/Apache — safe, no action needed today). The risk: a security CVE in v12 requiring an upgrade to v13 would force a commercial license decision mid-project.
+
+**Decision:** Stay on MediatR 12.x. Decouple the EHS Application layer from MediatR interfaces via ACL wrappers (EHS-81, ADR-018). After EHS-81, a library swap touches exactly 5 files.
+
+**What the ISender seam already gives us (done):**
+Controllers inject `ISender` (not `IMediator`) — dispatch is already decoupled at the API layer.
+
+**What EHS-81 completes:**
+- `ICommand`, `ICommand<T>`, `IQuery<T>` marker interfaces in `Application/Common/CQRS/`
+- `ICommandHandler<TCommand, TResponse>` extending `IRequestHandler<,>` — one ACL file
+- `IQueryHandler<TQuery, TResponse>` extending `IRequestHandler<,>` — one ACL file
+- All 15 handler classes reference EHS interfaces only. MediatR confined to 5 files total.
+
+**Migration path if forced (CVE or license scenario):**
+`martinothamar/Mediator` (MIT license, actively maintained):
+- Same `ISender` interface — zero controller changes
+- Same `IRequestHandler<TRequest, TResponse>` shape — update the 5 ACL adapter files only
+- Source-generator based (no runtime reflection) — 2.3x faster, 3.5x less memory, AOT-compatible
+- Swap cost after EHS-81: NuGet package change + namespace update in 5 ACL files. Every handler untouched.
+
+**Why not Wolverine:**
+Full messaging platform (durable outbox, saga orchestration). Dapr (ADR-006/ADR-015) already handles those concerns. No justification for a second dispatch library alongside MediatR.
+
+**Timing:** Evaluate martinothamar/Mediator at Phase 12-13 when Dapr integration lands. v12.x is safe and sufficient for all phases up to that point.
+
+**Implementation:** EHS-82 (ADR doc), EHS-81 (ACL interfaces).
+
+---
+
+## ADR-018: Proprietary Vocabulary / ACL-First Principle
+
+**Context:** Session 32 (Jun 2026). EHS Application layer directly referenced MediatR `IRequestHandler<,>` in 15 handler files, `IRequest<T>` in 14 command/query files, `AbstractValidator<T>` in 8+ validators, `IEntityTypeConfiguration<T>` in 10+ config files. Each external library API surface leaked into the domain layer. MediatR v13 licensing (ADR-017) surfaced the compounding cost: 37 files at Phase 7, projected ~170 files at Phase 17 if left unchecked.
+
+**The Principle:**
+EHS owns its vocabulary. External libraries adapt to EHS interfaces — not the other way around. Application layer defines the contract. Libraries implement it at the edge.
+
+This is the DDD Anti-Corruption Layer (ACL) pattern applied at the library boundary, not just the service boundary.
+
+**The Rule:**
+Every non-.NET-core external library touching the Application or Domain layer must be wrapped behind an EHS-owned interface. Library types appear in a maximum of 5 ACL files per library. All handler, validator, command, query, and config code uses EHS interfaces only.
+
+**Compounding cost argument:**
+| Phase | Files to retrofit | Cost estimate |
+|---|---|---|
+| Phase 7 (now) | 37 files | 2 hours mechanical |
+| Phase 17 (if deferred) | ~170 files | 2 days + test refactor + regression risk |
+
+**Already implemented (ACL seams in place):**
+| Library | ACL Interface | Location |
+|---|---|---|
+| EF Core | `IApplicationDbContext` | Application/Common/Interfaces/ |
+| Serilog | `ILogger<T>` (MEL) | .NET core — already abstracted |
+| MediatR (dispatch) | `ISender` | Controllers only |
+| JWT | `ITokenService` | Application/Common/Interfaces/ |
+| Redis | `ICacheService` / `IDistributedCache` (MEL) | Application/Common/Interfaces/ |
+
+**EHS-81 closes the gap:**
+| Library | ACL Wrapper | Location |
+|---|---|---|
+| MediatR | `ICommand`, `ICommand<T>`, `IQuery<T>` | Application/Common/CQRS/ |
+| MediatR | `ICommandHandler<TCmd, TRes>` | Application/Common/CQRS/ |
+| MediatR | `IQueryHandler<TQuery, TRes>` | Application/Common/CQRS/ |
+| FluentValidation | `EhsValidator<T> : AbstractValidator<T>` | Application/Common/Validation/ |
+| EF Core config | `EhsEntityConfiguration<T> : IEntityTypeConfiguration<T>` | Infrastructure/Persistence/Config/ |
+
+**What does NOT get wrapped:**
+- FluentValidation rule DSL inside validators — `EhsValidator<T>` is the ACL; the `RuleFor().Must().WithMessage()` syntax is the value and stays.
+- xUnit in test projects — test code is not domain code.
+- .NET core libraries (`ILogger<T>`, `IDistributedCache`, `IHttpContextAccessor`) — Microsoft owns these and they are stable abstractions themselves, not volatile third-party surfaces.
+
+**Frontend rule (Phase 12+):**
+Same principle applies to the React layer. Business logic must not call library APIs directly:
+- Data fetching: custom hooks wrap React Query — `useIncidents()` not `useQuery(['incidents'], ...)`
+- State: EHS store interface wraps Zustand — `useEhsStore()` not direct `useStore()`
+- Components: EHS design system wraps shadcn/ui, Radix, or MUI — `<EhsButton>` not `<Button>` from the library
+
+Library swap on the frontend = change the custom hook/wrapper, not 40 component files.
+
+**Enforcement:**
+- EHS-61 (NetArchTest): assert Application layer has zero direct MediatR/FluentValidation/EFCore references except the ACL files
+- Code review: any PR adding a library reference directly to Application layer without a corresponding ACL file violates this ADR
+- CLAUDE.md rule to add: "ACL-First — every external library touching Application layer gets a wrapper interface before its types are used in handlers, validators, or commands"
+
+**Implementation:** EHS-81 (ACL interfaces — closes the gap), EHS-83 (this ADR doc).

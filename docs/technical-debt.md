@@ -753,6 +753,29 @@ EntityName = entry.Metadata.ClrType.Name,
 
 ---
 
+## Session 32 Review — Proprietary Vocabulary / ACL Gap (Jun 2026)
+
+### 🟡 Application layer leaks external library API surfaces — no Proprietary Vocabulary seam
+
+**Finding:** 37 files in `EHSPlatform.Application` reference `using MediatR` directly. 15 handler classes implement `IRequestHandler<,>` (MediatR interface). 14 command/query classes implement `IRequest<T>` (MediatR interface). 8+ validators extend `AbstractValidator<T>` (FluentValidation). 10+ entity configs implement `IEntityTypeConfiguration<T>` directly. These library API surfaces leak into EHS's domain layer — the Application layer expresses library vocabulary, not EHS vocabulary.
+
+**The violation:** Application layer should express its own ubiquitous language. `IRequestHandler<CreateIncidentCommand, Guid>` is MediatR vocabulary. `ICommandHandler<CreateIncidentCommand, Guid>` is EHS vocabulary. One tells you a library detail. The other tells you what the class does.
+
+**Compounding cost (the decisive argument):**
+- Phase 7 now: 37 files to retrofit + 7 ACL files to create = 2 hours
+- Phase 17 if deferred: ~170 files + test refactor + baked muscle memory = 2 days + regression risk
+- Every phase that adds handlers without the seam raises the cost. Do it at Phase 7.
+
+**Risk beyond swap protection:** MediatR v13 went commercial July 2025. A CVE in v12 requiring upgrade would currently touch 37 files. With the ACL seam: swap cost drops to 5 files.
+
+**Fix (EHS-81):** 7 ACL interface/base-class files in `Application/Common/CQRS/` and `Application/Common/Validation/`. All handlers, commands, validators, and configs reference EHS interfaces only. MediatR confined to 5 files total after this change. Full detail in ADR-018 (`docs/architecture-decisions.md`).
+
+**Target phase:** Phase 7 — before more handlers are added
+**Ticket:** EHS-81
+**Status:** ⬜ Open
+
+---
+
 ## Phase 7 Review — EHS-72 ValidationBehavior (Jun 2026)
 
 ### 🟢 ValidationBehavior runs for all MediatR requests — ICommand marker interface would scope it
@@ -827,5 +850,6 @@ EntityName = entry.Metadata.ClrType.Name,
 | 42 | AuditInterceptor uses `GetType().Name` — proxy-unsafe; `entry.Metadata.ClrType.Name` is the correct EF idiom | 🟢 Low | Phase 7 | — | ✅ Fixed |
 | 43 | `CommonValidatorRules.MustBeUtc()` has no `DateTimeOffset?` overload — nullable date fields silently skip the UTC check | 🟢 Low | Phase 8 (if nullable dates added) | — | ✅ Fixed |
 | 44 | `using EHSPlatform.Application.Common.Validation;` required per-file — no global using means developers can write inline UTC checks without seeing `MustBeUtc()` exists | 🟢 Low | Phase 7/8 | — | ✅ Fixed |
-| 45 | `ValidationBehavior` resolves validators for ALL MediatR requests including queries — wasted DI resolution; `ICommand` marker would scope it to commands only | 🟢 Low | Phase 8 | — | ⬜ Open |
+| 45 | `ValidationBehavior` resolves validators for ALL MediatR requests including queries — wasted DI resolution; `ICommand` marker would scope it to commands only | 🟢 Low | Phase 8 | EHS-81 | ⬜ Open |
 | 46 | `Task.WhenAll` in ValidationBehavior parallelizes validators — safe today (pure in-memory); first async validator with DB uniqueness check fans out unbounded DB connections per command | 🟢 Low | Phase 8+ (when async validators added) | — | ⬜ Deferred |
+| 47 | Application layer vocabulary gap — MediatR `IRequestHandler<,>` in 15 handlers, `IRequest<T>` in 14 commands, `AbstractValidator<T>` in 8+ validators leak library API surfaces into domain core. Compounding cost: 37 files now, ~170 at Phase 17. ACL-First seam (ADR-018) closes this. | 🟡 Medium | Phase 7 | EHS-81 | ⬜ Open |

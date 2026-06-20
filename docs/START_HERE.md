@@ -51,9 +51,12 @@ Phase 7: Semantic Form Engine. Create Phase 7 Jira tickets before coding starts.
 - #31: Tenant isolation not enforced at seam level (P0-2)
 - #32: JWT signing key hardcoded in appsettings.json (P0-3)
 - #33: SQL columns datetime2 not datetimeoffset (P0-4)
-- #45: ValidationBehavior runs for queries too — ICommand marker would scope it
+- #45: ValidationBehavior runs for queries too — ICommand marker would scope it (EHS-81)
+- #47: Application layer vocabulary gap — MediatR/FluentValidation/EFCore API surfaces leak into domain core (EHS-81)
 
-**92 tests green. Next: P0-2 (tenant isolation seam — User filter missing TenantId, TenantId not stamped on create) — highest remaining risk.**
+**Jira keys (actual):** EHS-80 = 500 info disclosure fix | EHS-81 = ACL wrappers | EHS-82 = ADR-017 doc | EHS-83 = ADR-018 doc
+
+**92 tests green. Next: EHS-80 (500 info disclosure fix — P1 security, 30 min) → then P0-2 (tenant isolation seam) — highest remaining risk.**
 
 ---
 
