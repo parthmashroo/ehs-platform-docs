@@ -83,7 +83,7 @@ EHS-80 (created Session 32) = EHS-77 (already existed from multi-reviewer audit)
 | Ticket | What | Effort | Status |
 |---|---|---|---|
 | **EHS-79** | Code-quality bundle: ClaimNames constants, ctype wiring, shared audit-query builder, backfill tests | 2-3 hrs | ⬜ TODO |
-| **EHS-81** | ACL wrapper interfaces — Proprietary Vocabulary for all non-.NET frameworks | 1 session | ⬜ TODO |
+| **EHS-81** | ACL wrapper interfaces — Proprietary Vocabulary for all non-.NET frameworks | 1 session | ⬜ TODO — **PROMOTED: P1, do after EHS-74, not last. 45 files already import MediatR/FV directly. 8 files added in 1 sprint. Deferral cost compounds.** |
 | **EHS-82** | Write ADR-017 doc (MediatR license risk) | 30 min | ⬜ TODO |
 | **EHS-83** | Write ADR-018 doc (ACL-First principle) | 45 min | ⬜ TODO |
 
