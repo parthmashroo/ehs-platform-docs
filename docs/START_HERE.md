@@ -18,6 +18,8 @@ Phase 7: Semantic Form Engine. Create Phase 7 Jira tickets before coding starts.
 
 ## Last Session Handoff
 
+**Session 37 (2026-06-21):** EHS-78 committed. Added composite filtered indexes: `(TenantId, Status, OccurredAt DESC WHERE IsDeleted=0)` on Incidents, `(TenantId, Status, DueDate WHERE IsDeleted=0)` on CorrectiveActions. Fixed AuditLog composite indexes to use `IsDescending(..., true)` on ChangedAt — prior indexes had ChangedAt ASC, all queries used OrderByDescending (full in-memory sort on every query). Bare single-column `IX_Incidents_TenantId` and `IX_CorrectiveActions_TenantId` dropped by EF — composite leading column covers FK lookup (GitHub #33454). 4 new model metadata tests; 2 use `IDesignTimeModel` for IsDescending (runtime model strips design-time metadata). 98/98 tests green. Interview card Q72 added. Debt #49, #50 added.
+
 **Session 36 (2026-06-21):** EHS-75 committed. Overrode `ConfigureConventions` in `ApplicationDbContext` to call `HaveColumnType("datetimeoffset")` for `DateTimeOffset` and `DateTimeOffset?` globally — prevents EF Core default `datetimeoffset(7)` string from diverging against snapshot's `datetimeoffset`, which caused spurious ALTER COLUMN on every migration add. Added missing explicit configs for `CompletedAt` (CorrectiveAction) and `LastLoginAt` (User). Added model metadata test iterating all EF entity types and asserting column type = `"datetimeoffset"`. DB verified via SQL MCP — 21/21 DateTimeOffset columns already `datetimeoffset(7)`. Migration was empty (schema already correct from EHS-62). 94/94 tests green. Interview card Q71 added.
 
 **Session 35 (2026-06-21):** EHS-74 committed. Removed `SecretKey` from `appsettings.json`. Added `UserSecretsId` to API .csproj via `dotnet user-secrets init`. Set rotated dev key via user-secrets (old key was compromised — in Git history). Added startup guard in `DependencyInjection.AddInfrastructure()` — throws `InvalidOperationException` on missing or sub-32-char key with actionable fix message. Fixed `WebApplicationFactory` integration tests (`CorsIntegrationTests`, `CreateIncidentValidationIntegrationTests`) to inject test key via `AddInMemoryCollection`. 93/93 tests green. Interview card Q70 added.
@@ -52,7 +54,7 @@ Phase 7: Semantic Form Engine. Create Phase 7 Jira tickets before coding starts.
 - EHS-71: Extract `MustBeUtc()` shared validator rule — 4 validators updated ✅
 - EHS-72: Wire ValidationBehavior to MediatR pipeline — dead validators are now live ✅
 
-**93 tests green (as of EHS-77). No new code committed since.**
+**98 tests green (as of EHS-78). No new code committed since.**
 
 ---
 
@@ -76,7 +78,7 @@ EHS-80 (created Session 32) = EHS-77 (already existed from multi-reviewer audit)
 | Ticket | What | Effort | Status |
 |---|---|---|---|
 | **EHS-75** | `HasColumnType("datetimeoffset")` on every `DateTimeOffset` property in all entity configs + migration | 2 hrs | ✅ DONE |
-| **EHS-78** | Fix audit index mismatch + composite tenant indexes (`TenantId, Status, OccurredAt DESC WHERE IsDeleted=0`) — migration only | 1 hr | ⬜ TODO |
+| **EHS-78** | Fix audit index mismatch + composite tenant indexes (`TenantId, Status, OccurredAt DESC WHERE IsDeleted=0`) — migration only | 1 hr | ✅ DONE |
 
 ### Session C — Tenant isolation seam (~4 hrs, own session, highest risk)
 
