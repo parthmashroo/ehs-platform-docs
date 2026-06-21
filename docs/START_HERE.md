@@ -18,6 +18,8 @@ Phase 7: Semantic Form Engine. Create Phase 7 Jira tickets before coding starts.
 
 ## Last Session Handoff
 
+**Session 35 (2026-06-21):** EHS-74 committed. Removed `SecretKey` from `appsettings.json`. Added `UserSecretsId` to API .csproj via `dotnet user-secrets init`. Set rotated dev key via user-secrets (old key was compromised — in Git history). Added startup guard in `DependencyInjection.AddInfrastructure()` — throws `InvalidOperationException` on missing or sub-32-char key with actionable fix message. Fixed `WebApplicationFactory` integration tests (`CorsIntegrationTests`, `CreateIncidentValidationIntegrationTests`) to inject test key via `AddInMemoryCollection`. 93/93 tests green. Interview card Q70 added.
+
 **Session 33 (2026-06-20):** EHS-76 committed. Added `ITenantEntity` to `AuditLog`, `HasQueryFilter(x => x.TenantId == _tenantId)` in `ApplicationDbContext`. Removed manual `where a.TenantId == tenantId` from both audit log query handlers — split into two queries (AuditLog fetch + Users dict lookup) to isolate `IgnoreQueryFilters()` scope (in-memory provider leaks hint to entire LINQ tree; SQL Server does not). Tests updated to pass mock `ICurrentUserService` into `ApplicationDbContext` constructor. 93/93 green. Debt #34 ✅, #48 added. Interview card Q69 added.
 
 **Session 32 (2026-06-20):** EHS-77 committed. Suppressed `exception.Message` in `ExceptionHandlingMiddleware` for 500 responses — `Detail = statusCode == HttpStatusCode.InternalServerError ? null : exception.Message`. Domain exceptions (404/422/403/409) still surface their authored messages. 1 new unit test using `DefaultHttpContext` + `NullLogger` asserts 500 body never contains internal detail. 93/93 tests green. Debt: `DbUpdateConcurrencyException` (409) also leaks EF entity names — tracked. Interview card Q68 added.
@@ -65,7 +67,7 @@ EHS-80 (created Session 32) = EHS-77 (already existed from multi-reviewer audit)
 |---|---|---|---|
 | **EHS-77** | Suppress `exception.Message` on 500 — single line in `ExceptionHandlingMiddleware` + 1 test | 30 min | ✅ DONE |
 | **EHS-76** | AuditLog global query filter — add `ITenantEntity` to AuditLog, add filter in DbContext, remove 2 manual WHERE clauses in handlers | 1 hr | ✅ DONE |
-| **EHS-74** | JWT signing key out of source — user-secrets (dev), env var (prod), startup guard, pin `ValidAlgorithms` | 1 hr | ⬜ TODO |
+| **EHS-74** | JWT signing key out of source — user-secrets (dev), env var (prod), startup guard | 1 hr | ✅ DONE |
 
 ### Session B — Migrations (~3 hrs total, 2 commits)
 
