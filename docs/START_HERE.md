@@ -14,6 +14,9 @@ Phase 7: Semantic Form Engine. Create Phase 7 Jira tickets before coding starts.
 - `IncidentTimeZoneId nvarchar(50)` on Incident + migration (named timezone storage)
 - Testcontainers round-trip test for `datetimeoffset` column type
 
+**Non-code backlog (no Jira needed):**
+- Migrate Q67-Q73 from `index.html` → `ehs-deep.html` (wrong file — routing rule added Session 38). Convert format: plain HTML strings → `{t,l,v}` structured objects. Assign topics: Q67 `cqrs`, Q68-Q72 `ef-core`, Q73 `multi-tenancy`. New ids 51-57 in ehs-deep. Remove from index.html. Never commit either file.
+
 ---
 
 ## Last Session Handoff
