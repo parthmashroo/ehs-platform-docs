@@ -18,6 +18,8 @@ Phase 7: Semantic Form Engine. Create Phase 7 Jira tickets before coding starts.
 
 ## Last Session Handoff
 
+**Session 38 (2026-06-27):** EHS-73 committed. Closed the tenant isolation seam: `User` implements `ITenantEntity` + `HasQueryFilter(TenantId == _tenantId && !IsDeleted)`. `LoginCommandHandler` and `RegisterCommandHandler` use `IgnoreQueryFilters()` + manual `!u.IsDeleted` for pre-auth paths. New `TenantStampInterceptor` (SaveChangesInterceptor) auto-stamps `TenantId` on all `Added` `ITenantEntity` rows. `CreateIncidentCommandHandler` explicitly sets `TenantId`. `CreateCorrectiveActionCommandHandler` injects `ICurrentUserService`, adds IDOR check (`Incidents.AnyAsync` owns correct tenant) and explicit `TenantId` stamp. `ICurrentUserService` made required in `ApplicationDbContext` constructor (removed `= null` default). 8 test files updated for required constructor; 1 new `TenantStampInterceptorTests` (5 tests); `TenantIsolationTests` rewritten (3 cross-tenant rejection tests). 106/106 tests green. Interview card Q73 added. Debt #31-#33, #35-#36 ✅. Debt #51-#55 added.
+
 **Session 37 (2026-06-21):** EHS-78 committed. Added composite filtered indexes: `(TenantId, Status, OccurredAt DESC WHERE IsDeleted=0)` on Incidents, `(TenantId, Status, DueDate WHERE IsDeleted=0)` on CorrectiveActions. Fixed AuditLog composite indexes to use `IsDescending(..., true)` on ChangedAt — prior indexes had ChangedAt ASC, all queries used OrderByDescending (full in-memory sort on every query). Bare single-column `IX_Incidents_TenantId` and `IX_CorrectiveActions_TenantId` dropped by EF — composite leading column covers FK lookup (GitHub #33454). 4 new model metadata tests; 2 use `IDesignTimeModel` for IsDescending (runtime model strips design-time metadata). 98/98 tests green. Interview card Q72 added. Debt #49, #50 added.
 
 **Session 36 (2026-06-21):** EHS-75 committed. Overrode `ConfigureConventions` in `ApplicationDbContext` to call `HaveColumnType("datetimeoffset")` for `DateTimeOffset` and `DateTimeOffset?` globally — prevents EF Core default `datetimeoffset(7)` string from diverging against snapshot's `datetimeoffset`, which caused spurious ALTER COLUMN on every migration add. Added missing explicit configs for `CompletedAt` (CorrectiveAction) and `LastLoginAt` (User). Added model metadata test iterating all EF entity types and asserting column type = `"datetimeoffset"`. DB verified via SQL MCP — 21/21 DateTimeOffset columns already `datetimeoffset(7)`. Migration was empty (schema already correct from EHS-62). 94/94 tests green. Interview card Q71 added.
@@ -54,7 +56,7 @@ Phase 7: Semantic Form Engine. Create Phase 7 Jira tickets before coding starts.
 - EHS-71: Extract `MustBeUtc()` shared validator rule — 4 validators updated ✅
 - EHS-72: Wire ValidationBehavior to MediatR pipeline — dead validators are now live ✅
 
-**98 tests green (as of EHS-78). No new code committed since.**
+**106 tests green (as of EHS-73).**
 
 ---
 
@@ -84,7 +86,7 @@ EHS-80 (created Session 32) = EHS-77 (already existed from multi-reviewer audit)
 
 | Ticket | What | Effort | Status |
 |---|---|---|---|
-| **EHS-73** | User global query filter + TenantId, TenantStampInterceptor, stamp TenantId on CreateIncident + CreateCorrectiveAction, AuditLog filter (overlaps EHS-76 — coordinate) | 4 hrs | ⬜ TODO |
+| **EHS-73** | User global query filter + TenantId, TenantStampInterceptor, stamp TenantId on CreateIncident + CreateCorrectiveAction, AuditLog filter (overlaps EHS-76 — coordinate) | 4 hrs | ✅ DONE |
 
 ### Session D — Quality + architecture (after P0/P1 cleared)
 

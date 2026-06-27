@@ -834,6 +834,69 @@ New entities implementing `ITenantEntity` get the filter automatically. No `OnMo
 
 ---
 
+## Phase 7 Review — EHS-73 Tenant Isolation Seam (Jun 2026)
+
+### 🟡 `IgnoreQueryFilters()` footgun — bypasses ALL filters including `IsDeleted`
+
+**Finding:** Login and Register use `IgnoreQueryFilters()` to bypass the new `TenantId == _tenantId` filter on `Users`. `IgnoreQueryFilters()` bypasses ALL global query filters — not just TenantId. The `!u.IsDeleted` predicate must be manually re-added. Today it is. But this is invisible to future developers who add another pre-auth path and forget.
+
+**Risk:** A future developer adds a password-reset or MFA-challenge path, uses `IgnoreQueryFilters()`, omits `!IsDeleted`. Soft-deleted users can authenticate. No build error, no test failure unless there's an explicit test for that path.
+
+**Fix:** Add a comment at every `IgnoreQueryFilters()` call site: `// Bypasses all filters (TenantId + IsDeleted) — re-add IsDeleted guard explicitly`. Alternatively, extract `GetUserByEmailForAuthAsync()` on a repository that encapsulates the full pre-auth lookup — single correct path, no repetition.
+
+**Target phase:** Phase 8 (P2 quality bundle — EHS-79)
+**Status:** ⬜ Open
+
+---
+
+### 🟡 Concurrent registration race — `DbUpdateException` instead of `ValidationException`
+
+**Finding:** `RegisterCommandHandler` checks `AnyAsync(email)` then inserts. Two concurrent requests with the same email both pass the check (race window); the second write throws `DbUpdateException` on the unique index. `ExceptionHandlingMiddleware` does not map `DbUpdateException` — falls through to 500 with suppressed detail. Caller sees 500 instead of 422.
+
+**Risk:** During a signup spike, some users silently receive a 500. The unique index prevents data corruption, but the API contract is wrong.
+
+**Fix:** Wrap `SaveChangesAsync` in a try/catch for `DbUpdateException`; detect SQL error 2601/2627 (unique index violation) and rethrow as `ValidationException` with message `"An account with this email already exists."`.
+
+**Target phase:** Phase 8 (P2 — EHS-79)
+**Status:** ⬜ Open
+
+---
+
+### 🟢 `TenantStampInterceptor` only guards `Guid.Empty` — non-empty wrong `TenantId` passes through
+
+**Finding:** `StampTenantId()` stamps only when `entry.Entity.TenantId == Guid.Empty`. If a handler sets a non-empty but wrong `TenantId` (via a bug or compromised handler), the interceptor silently allows it. The interceptor is a stamp-if-missing net, not an enforcement layer.
+
+**Risk:** Low today — handlers only get `TenantId` from DI. Medium if any handler ever accepts `TenantId` from the request body.
+
+**Fix:** If `entry.State == EntityState.Added && entry.Entity.TenantId != Guid.Empty && entry.Entity.TenantId != _currentUserService.TenantId` → overwrite with current tenant (prevents misconfiguration from causing cross-tenant rows). Document the decision.
+
+**Target phase:** Phase 9+ — only relevant if handlers accept TenantId from request
+**Status:** ⬜ Open (P3 — monitor)
+
+---
+
+### 🟢 `FindAsync` bypasses global query filters — cross-tenant PK lookup
+
+**Finding:** EF Core's `FindAsync(id)` uses the identity map / direct PK lookup and bypasses all global query filters. If any handler uses `FindAsync` on an `ITenantEntity`, it returns the entity regardless of TenantId. Current handlers all use `FirstOrDefaultAsync` (filter-respecting), but `FindAsync` is the natural EF idiom — a future developer may use it without knowing the bypass.
+
+**Fix:** Ban `FindAsync` on all `ITenantEntity` sets via architecture test (EHS-61 scope). Add code-review rule: never use `FindAsync` on a filtered entity set; always use `FirstOrDefaultAsync(x => x.Id == id)`.
+
+**Target phase:** Phase 7 — fold into EHS-61 arch tests
+**Status:** ⬜ Open (P3)
+
+---
+
+### 🟢 `Organization` has no `TenantId` filter — cross-tenant org data accessible
+
+**Finding:** `Organization.HasQueryFilter(x => !x.IsDeleted)` — no TenantId filter. Any authenticated user can read any organization's data via queries that join or navigate to `Organization`. In Phase 9+ (contractor relationships, multi-tenant visibility), a contractor user could enumerate client organizations they are not contracted with.
+
+**Design constraint:** `Organization` is the tenant-root entity. The correct filter would be `x.Id == _tenantId && !x.IsDeleted` — filtering by its own primary key. Validate this semantics before adding.
+
+**Target phase:** Phase 9 (multi-tenant config module)
+**Status:** ⬜ Open (P3 — requires design decision)
+
+---
+
 ## Summary Table
 
 | # | Finding | Severity | Target | Ticket | Status |
@@ -863,17 +926,17 @@ New entities implementing `ITenantEntity` get the filter automatically. No `OnMo
 | 23 | EHS-58 returns raw JSON blobs for OldValues/NewValues — field-level diff DTO deferred | 🟡 Medium | Phase 12 | — | ⬜ Deferred |
 | 24 | Incoming DateTimeOffset values from clients not normalized to UTC — client can submit +05:30 offset and it persists as-is | 🟡 Medium | Phase 7 (before API goes public) | — | ✅ Fixed |
 | 25 | `a.Action.ToString()` inside LINQ select — may force client-side evaluation against SQL Server | 🟢 Low | Phase 6/7 | EHS-70 | ✅ Fixed |
-| 26 | `IgnoreQueryFilters()` on Users join bypasses ALL future filters — undocumented scope risk | 🟢 Low | Phase 8 (when Users gets TenantId filter) | — | ⬜ Open |
+| 26 | `IgnoreQueryFilters()` on Users join bypasses ALL future filters — undocumented scope risk | 🟢 Low | Phase 8 | — | ⬜ Active — EHS-73 added TenantId filter; Login/Register re-add !IsDeleted. See entry 51. |
 | 27 | `TenantId == Guid.Empty` guard missing in audit log handlers — silent empty result for unauthenticated tenant | 🟡 Medium | Phase 6 | — | ⬜ Open |
 | 28 | CORS integration test relies on `appsettings.Development.json` — fails silently if env is not Development | 🟡 Medium | Phase 7 | EHS-69 | ✅ Fixed |
 | 29 | CORS `WithHeaders` allow-list has no maintenance process — new custom headers will cause silent browser CORS errors | 🟢 Low | Ongoing | — | ⬜ Open |
 | 30 | MediatR ValidationBehavior missing — all FluentValidation validators are dead code | 🔴 High | Phase 7 | EHS-72 | ✅ Fixed |
-| 31 | Tenant isolation not an enforced seam — User filter omits TenantId, TenantId not stamped on create, no interceptor | 🔴 High | Phase 7 | P0-2 | ⬜ Open |
-| 32 | JWT signing key hardcoded in committed appsettings.json — cross-tenant token forgery | 🔴 High | Phase 7 | P0-3 | ⬜ Open |
-| 33 | SQL columns datetime2 not datetimeoffset — offset discarded at DB layer (distinct from EHS-62) | 🔴 High | Phase 7 | P0-4 | ⬜ Open |
+| 31 | Tenant isolation not an enforced seam — User filter omits TenantId, TenantId not stamped on create, no interceptor | 🔴 High | Phase 7 | EHS-73 | ✅ Fixed |
+| 32 | JWT signing key hardcoded in committed appsettings.json — cross-tenant token forgery | 🔴 High | Phase 7 | EHS-74 | ✅ Fixed |
+| 33 | SQL columns datetime2 not datetimeoffset — offset discarded at DB layer (distinct from EHS-62) | 🔴 High | Phase 7 | EHS-75 | ✅ Fixed |
 | 34 | AuditLog has no global query filter — tenant isolation hand-rolled per query | 🔴 High | Phase 7 | EHS-76 | ✅ Fixed |
-| 35 | exception.Message returned raw on 500 — schema/SQL info disclosure | 🟡 Medium | Phase 7 | P1 | ⬜ Open |
-| 36 | Audit index mismatch + single-column tenant indexes — in-memory sorts at scale | 🟡 Medium | Phase 7/8 | P1 | ⬜ Open |
+| 35 | exception.Message returned raw on 500 — schema/SQL info disclosure | 🟡 Medium | Phase 7 | EHS-77 | ✅ Fixed |
+| 36 | Audit index mismatch + single-column tenant indexes — in-memory sorts at scale | 🟡 Medium | Phase 7/8 | EHS-78 | ✅ Fixed |
 | 37 | No role-based authz on write/delete — Contractor can soft-delete; ctype unenforced | 🟡 Medium | Phase 8 | P1 | ⬜ Open |
 | 38 | Quality bundle — claim-name constants, ctype unwired, duplicate audit handlers, shallow tests | 🟡 Medium | Phase 7/8 | P2 | ⬜ Open |
 | 39 | `IAuditableEntity` has no Id contract — interceptor assumes BaseEntity inheritance; no test guards AuditLog from accidentally implementing the interface | 🟢 Low | Phase 7 | EHS-61 arch tests | ⬜ Open |
@@ -888,3 +951,8 @@ New entities implementing `ITenantEntity` get the filter automatically. No `OnMo
 | 48 | Convention-based `HasQueryFilter` registration missing — 8 individual calls grow linearly; new ITenantEntity implementors silently miss tenant isolation if developer forgets the call | 🟢 Low | Phase 8 | — | ⬜ Open |
 | 49 | CorrectiveAction composite index missing `AssignedToId` — `IX_CorrectiveActions_TenantId_Status_DueDate` does not cover user-specific CA dashboard queries (filter by `AssignedToId`); every user-dashboard query scans the full tenant partition | 🟡 Medium | Phase 8 | — | ⬜ Open |
 | 50 | EF migrations do not emit `ONLINE = ON` for index creation — SQL Server Standard edition acquires a table-level schema modification lock during `CREATE INDEX`, blocking all reads and writes on `Incidents` and `CorrectiveActions` for the full create duration in production | 🟡 Medium | Phase 8 (pre-prod deploy) | — | ⬜ Open |
+| 51 | `IgnoreQueryFilters()` footgun on pre-auth paths — bypasses ALL filters (TenantId + IsDeleted); Login/Register manually re-add `!IsDeleted` but pattern undocumented, future pre-auth paths may omit it | 🟡 Medium | Phase 8 | EHS-79 | ⬜ Open |
+| 52 | Concurrent registration race — `DbUpdateException` on unique index falls through to 500; should map to 422 `ValidationException` ("email already exists") | 🟡 Medium | Phase 8 | EHS-79 | ⬜ Open |
+| 53 | `TenantStampInterceptor` only guards `Guid.Empty` — non-empty wrong TenantId passes through; interceptor is stamp-if-missing, not enforcement | 🟢 Low | Phase 9+ | — | ⬜ Open |
+| 54 | `FindAsync` bypasses global query filters — cross-tenant PK lookup possible if used on `ITenantEntity` sets; all handlers currently use `FirstOrDefaultAsync` but `FindAsync` is natural EF idiom | 🟢 Low | Phase 7 (EHS-61 arch tests) | EHS-61 | ⬜ Open |
+| 55 | `Organization` has no TenantId filter — cross-tenant org data accessible; filter would be `x.Id == _tenantId` (org is tenant root); design decision required | 🟢 Low | Phase 9 | — | ⬜ Open |
